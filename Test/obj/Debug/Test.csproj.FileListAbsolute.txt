@@ -1,5 +1,0 @@
-C:\Users\Eddy\Mis proyectos\CCI Backend\Test\bin\Debug\Test.dll
-C:\Users\Eddy\Mis proyectos\CCI Backend\Test\bin\Debug\Test.pdb
-C:\Users\Eddy\Mis proyectos\CCI Backend\Test\obj\Debug\ResolveAssemblyReference.cache
-C:\Users\Eddy\Mis proyectos\CCI Backend\Test\obj\Debug\Test.dll
-C:\Users\Eddy\Mis proyectos\CCI Backend\Test\obj\Debug\Test.pdb

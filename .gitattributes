@@ -23,9 +23,3 @@ Dependencies/Microsoft.Cci.SourceModel.dll -text
 Test/Examples.cs -text
 Test/Properties/AssemblyInfo.cs -text
 Test/Test.csproj -text
-Test/bin/Debug/Test.dll -text
-Test/bin/Debug/Test.pdb -text
-Test/obj/Debug/DesignTimeResolveAssemblyReferencesInput.cache -text
-Test/obj/Debug/Test.csproj.FileListAbsolute.txt -text
-Test/obj/Debug/Test.dll -text
-Test/obj/Debug/Test.pdb -text
