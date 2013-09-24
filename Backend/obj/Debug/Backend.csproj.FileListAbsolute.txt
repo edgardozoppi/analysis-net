@@ -1,0 +1,14 @@
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Backend.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Backend.pdb
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Microsoft.Cci.ILGenerator.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Microsoft.Cci.MetadataHelper.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Microsoft.Cci.MetadataModel.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Microsoft.Cci.MutableMetadataModel.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Microsoft.Cci.PdbReader.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Microsoft.Cci.PdbWriter.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Microsoft.Cci.PeReader.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Microsoft.Cci.PeWriter.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\bin\Debug\Microsoft.Cci.SourceModel.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\obj\Debug\Backend.dll
+C:\Users\Eddy\Mis proyectos\CCI Backend\Backend\obj\Debug\Backend.pdb
