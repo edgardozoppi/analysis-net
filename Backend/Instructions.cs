@@ -46,6 +46,8 @@ namespace Backend
 		public Operand RightOperand { get; set; }
 		public BinaryOperation Operation { get; set; }
 		public Variable Result { get; set; }
+		public bool CheckOverflow { get; set; }
+		public bool TreatOperandsAsUnsignedIntegers { get; set; }
 
 		public BinaryInstruction(uint label, Variable result, Operand left, BinaryOperation operation, Operand right)
 		{

@@ -1,0 +1,8 @@
+/*.suo
+Backend/*.user
+Backend/bin
+Backend/obj
+Console/bin
+Console/obj
+Test/bin
+Test/obj

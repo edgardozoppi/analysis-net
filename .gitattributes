@@ -1,9 +1,9 @@
 * text=auto !eol
 Backend/Backend.csproj -text
 Backend/Disassembler.cs -text
-Backend/Instruction.cs -text
+Backend/Instructions.cs -text
 Backend/MethodBody.cs -text
-Backend/Operand.cs -text
+Backend/Operands.cs -text
 Backend/Properties/AssemblyInfo.cs -text
 /CCI[!!-~]Backend.sln -text
 Console/Assembly.cs -text

@@ -21,8 +21,8 @@ namespace Console
 				visitor.Rewrite(assembly.Module);
 			}
 
-			System.Console.ReadKey();
 			System.Console.WriteLine("Done!");
+			System.Console.ReadKey();
 		}
 	}
 }

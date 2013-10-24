@@ -68,9 +68,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Disassembler.cs" />
-    <Compile Include="Instruction.cs" />
+    <Compile Include="Instructions.cs" />
     <Compile Include="MethodBody.cs" />
-    <Compile Include="Operand.cs" />
+    <Compile Include="Operands.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
