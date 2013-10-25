@@ -8,116 +8,149 @@ namespace Backend
 {
 	public class Disassembler
 	{
-		private IMethodDefinition methodDef;
-		private LocalVariable thisParameter;
-		private IDictionary<IParameterDefinition, LocalVariable> parametersDef;
-		private IDictionary<ILocalDefinition, LocalVariable> localsDef;
-		private Stack<Operand> stack;
-		private uint tempCount;
+		#region class OperandStack
 
-		public Disassembler(IMethodDefinition methodDefinition)
+		class OperandStack
 		{
-			methodDef = methodDefinition;
-			parametersDef = new Dictionary<IParameterDefinition, LocalVariable>();
-			localsDef = new Dictionary<ILocalDefinition, LocalVariable>();
-			stack = new Stack<Operand>(methodDef.Body.MaxStack);
+			private TemporalVariable[] stack;
+			private ushort top;
 
-			if (!methodDef.IsStatic)
-				thisParameter = new LocalVariable("this");
-
-			foreach (var parameter in methodDef.Parameters)
+			public OperandStack(ushort capacity)
 			{
-				var p = new LocalVariable(parameter.Name.Value);
-				parametersDef.Add(parameter, p);
+				stack = new TemporalVariable[capacity];
+
+				for (var i = 0u; i < capacity; ++i)
+					stack[i] = new TemporalVariable(i);
 			}
 
-			foreach (var local in methodDef.Body.LocalVariables)
+			public int Capacity
 			{
-				var l = new LocalVariable(local.Name.Value);
-				localsDef.Add(local, l);
+				get { return stack.Length; }
+			}
+
+			public void Clear()
+			{
+				top = 0;
+			}
+
+			public TemporalVariable Push()
+			{
+				if (top >= stack.Length) throw new InvalidOperationException();
+				return stack[top++];
+			}
+
+			public TemporalVariable Pop()
+			{
+				if (top <= 0) throw new InvalidOperationException();
+				return stack[--top];
+			}
+		}
+
+		#endregion
+
+		private IMethodDefinition method;
+		private ISourceLocationProvider sourceLocationProvider;
+		private LocalVariable thisParameter;
+		private IDictionary<IParameterDefinition, LocalVariable> parameters;
+		private IDictionary<ILocalDefinition, LocalVariable> locals;
+		private OperandStack stack;
+
+		public Disassembler(IMethodDefinition methodDefinition, ISourceLocationProvider sourceLocationProvider)
+		{
+			this.method = methodDefinition;
+			this.sourceLocationProvider = sourceLocationProvider;
+			this.parameters = new Dictionary<IParameterDefinition, LocalVariable>();
+			this.locals = new Dictionary<ILocalDefinition, LocalVariable>();
+			this.stack = new OperandStack(method.Body.MaxStack);
+
+			if (!method.IsStatic)
+				this.thisParameter = new LocalVariable("this");
+
+			foreach (var parameter in method.Parameters)
+			{
+				var p = new LocalVariable(parameter.Name.Value);
+				this.parameters.Add(parameter, p);
+			}
+
+			foreach (var local in method.Body.LocalVariables)
+			{
+				var name = this.GetLocalSourceName(local);
+				var l = new LocalVariable(name);
+				this.locals.Add(local, l);
 			}
 		}
 
 		public MethodBody Execute()
 		{
-			var body = new MethodBody(methodDef);
-			stack.Clear();
-			tempCount = 1;
+			var body = new MethodBody(method);
 
-			foreach (var op in methodDef.Body.Operations)
+			foreach (var op in method.Body.Operations)
 			{
 				Instruction instruction = null;
-				BinaryOperation binaryOperation;
-				EmptyOperation emptyOperation;
-				UnaryOperation unaryOperation;
 
 				switch (op.OperationCode)
 				{
 					case OperationCode.Add:
 					case OperationCode.Add_Ovf:
 					case OperationCode.Add_Ovf_Un:
-						binaryOperation = BinaryOperation.Add;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Add);
+						break;
 
 					case OperationCode.And:
-						binaryOperation = BinaryOperation.And;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.And);
+						break;
 
 					case OperationCode.Ceq:
-						binaryOperation = BinaryOperation.Eq;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Eq);
+						break;
 
 					case OperationCode.Cgt:
 					case OperationCode.Cgt_Un:
-						binaryOperation = BinaryOperation.Gt;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Gt);
+						break;
 
 					case OperationCode.Clt:
 					case OperationCode.Clt_Un:
-						binaryOperation = BinaryOperation.Lt;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Lt);
+						break;
 
 					case OperationCode.Div:
 					case OperationCode.Div_Un:
-						binaryOperation = BinaryOperation.Div;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Div);
+						break;
 
 					case OperationCode.Mul:
 					case OperationCode.Mul_Ovf:
 					case OperationCode.Mul_Ovf_Un:
-						binaryOperation = BinaryOperation.Mul;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Mul);
+						break;
 
 					case OperationCode.Or:
-						binaryOperation = BinaryOperation.Or;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Or);
+						break;
 
 					case OperationCode.Rem:
 					case OperationCode.Rem_Un:
-						binaryOperation = BinaryOperation.Rem;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Rem);
+						break;
 
 					case OperationCode.Shl:
-						binaryOperation = BinaryOperation.Shl;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Shl);
+						break;
 
 					case OperationCode.Shr:
 					case OperationCode.Shr_Un:
-						binaryOperation = BinaryOperation.Shr;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Shr);
+						break;
 
 					case OperationCode.Sub:
 					case OperationCode.Sub_Ovf:
 					case OperationCode.Sub_Ovf_Un:
-						binaryOperation = BinaryOperation.Sub;
-						goto binaryOperation;
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Sub);
+						break;
 
 					case OperationCode.Xor:
-						binaryOperation = BinaryOperation.Xor;
-						goto binaryOperation;
-
-				binaryOperation:
-						instruction = this.ProcessBinaryOperation(op, binaryOperation);
+						instruction = this.ProcessBinaryOperation(op, BinaryOperation.Xor);
 						break;
 
 					//case OperationCode.Arglist:
@@ -221,15 +254,11 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Break:
-						emptyOperation = EmptyOperation.Break;
-						goto emptyOperation;
+						instruction = this.ProcessEmptyOperation(op, EmptyOperation.Break);
+						break;
 
 					case OperationCode.Nop:
-						emptyOperation = EmptyOperation.Nop;
-						goto emptyOperation;
-
-				emptyOperation:
-						instruction = this.ProcessEmptyOperation(op, emptyOperation);
+						instruction = this.ProcessEmptyOperation(op, EmptyOperation.Nop);
 						break;
 
 					//case OperationCode.Brfalse:
@@ -372,7 +401,7 @@ namespace Backend
 					case OperationCode.Ldloc_S:
 					//case OperationCode.Ldfld:
 					//case OperationCode.Ldsfld:
-					    instruction = this.ProcessVariable(op);
+					    instruction = this.ProcessLoadVariable(op);
 					    break;
 
 					//case OperationCode.Ldarga:
@@ -403,7 +432,7 @@ namespace Backend
 					case OperationCode.Ldc_R8:
 					case OperationCode.Ldnull:
 					case OperationCode.Ldstr:
-						instruction = this.ProcessConstant(op);
+						instruction = this.ProcessLoadConstant(op);
 						break;
 
 					//case OperationCode.Ldind_I:
@@ -438,15 +467,11 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Neg:
-						unaryOperation = UnaryOperation.Neg;
-						goto unaryOperation;
+						instruction = this.ProcessUnaryOperation(op, UnaryOperation.Neg);
+						break;
 
 					case OperationCode.Not:
-						unaryOperation = UnaryOperation.Not;
-						goto unaryOperation;
-
-				unaryOperation:
-						instruction = this.ProcessUnaryOperation(op, unaryOperation);
+						instruction = this.ProcessUnaryOperation(op, UnaryOperation.Not);
 						break;
 
 					//case OperationCode.Newobj:
@@ -514,7 +539,7 @@ namespace Backend
 					case OperationCode.Stloc_S:
 					//case OperationCode.Stobj:
 					//case OperationCode.Stsfld:
-					    instruction = this.ProcessAssignment(op);
+					    instruction = this.ProcessStoreVariable(op);
 					    break;
 
 					//case OperationCode.Switch:
@@ -547,55 +572,37 @@ namespace Backend
 			return body;
 		}
 
-		private Instruction ProcessConstant(IOperation op)
+		private Instruction ProcessLoadConstant(IOperation op)
 		{
 			var source = new Constant(op.Value);
-			var dest = new TemporalVariable(tempCount++);
+			var dest = stack.Push();
 			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
-
-			stack.Push(dest);
 			return instruction;
 		}
 
-		private Instruction ProcessUnaryOperation(IOperation op, UnaryOperation operation)
-		{
-			var operand = stack.Pop();
-			var dest = new TemporalVariable(tempCount++);
-			var instruction = new UnaryInstruction(op.Offset, dest, operation, operand);
-
-			stack.Push(dest);
-			return instruction;
-		}
-
-		private Instruction ProcessVariable(IOperation op)
+		private Instruction ProcessLoadVariable(IOperation op)
 		{
 			if (op.Value == null)
 			{
 				var source = thisParameter;
-				var dest = new TemporalVariable(tempCount++);
+				var dest = stack.Push();
 				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
-
-				stack.Push(dest);
 				return instruction;
 			}
 			else if (op.Value is IParameterDefinition)
 			{
 				var paramDef = op.Value as IParameterDefinition;
-				var source = parametersDef[paramDef];
-				var dest = new TemporalVariable(tempCount++);
+				var source = parameters[paramDef];
+				var dest = stack.Push();
 				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
-
-				stack.Push(dest);
 				return instruction;
 			}
 			else if (op.Value is ILocalDefinition)
 			{
 				var localDef = op.Value as ILocalDefinition;
-				var source = localsDef[localDef];
-				var dest = new TemporalVariable(tempCount++);
+				var source = locals[localDef];
+				var dest = stack.Push();
 				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
-
-				stack.Push(dest);
 				return instruction;
 			}
 			else
@@ -604,7 +611,7 @@ namespace Backend
 			}
 		}
 
-		private Instruction ProcessAssignment(IOperation op)
+		private Instruction ProcessStoreVariable(IOperation op)
 		{
 			if (op.Value == null)
 			{
@@ -617,7 +624,7 @@ namespace Backend
 			else if (op.Value is IParameterDefinition)
 			{
 				var paramDef = op.Value as IParameterDefinition;
-				var dest = parametersDef[paramDef];
+				var dest = parameters[paramDef];
 				var source = stack.Pop();
 				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 
@@ -626,7 +633,7 @@ namespace Backend
 			else if (op.Value is ILocalDefinition)
 			{
 				var localDef = op.Value as ILocalDefinition;
-				var dest = localsDef[localDef];
+				var dest = locals[localDef];
 				var source = stack.Pop();
 				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 
@@ -644,15 +651,34 @@ namespace Backend
 			return instruction;
 		}
 
+		private Instruction ProcessUnaryOperation(IOperation op, UnaryOperation operation)
+		{
+			var operand = stack.Pop();
+			var result = stack.Push();
+			var instruction = new UnaryInstruction(op.Offset, result, operation, operand);
+			return instruction;
+		}
+
 		private Instruction ProcessBinaryOperation(IOperation op, BinaryOperation operation)
 		{
-			var leftOp = stack.Pop();
-			var rightOp = stack.Pop();
-			var dest = new TemporalVariable(tempCount++);
-			var instruction = new BinaryInstruction(op.Offset, dest, leftOp, operation, rightOp);
-
-			stack.Push(dest);
+			var right = stack.Pop();
+			var left = stack.Pop();
+			var result = stack.Push();
+			var instruction = new BinaryInstruction(op.Offset, result, left, operation, right);
 			return instruction;
+		}
+
+		private string GetLocalSourceName(ILocalDefinition local)
+		{
+			var name = local.Name.Value;
+
+			if (this.sourceLocationProvider != null)
+			{
+				bool isCompilerGenerated;
+				name = this.sourceLocationProvider.GetSourceNameFor(local, out isCompilerGenerated);
+			}
+
+			return name;
 		}
 	}
 }

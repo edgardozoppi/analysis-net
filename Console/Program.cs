@@ -17,7 +17,7 @@ namespace Console
 			{
 				assembly.Load(input);
 
-				var visitor = new MethodVisitor(host);
+				var visitor = new MethodVisitor(host, assembly.PdbReader);
 				visitor.Rewrite(assembly.Module);
 			}
 

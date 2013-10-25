@@ -10,14 +10,17 @@ namespace Console
 {
 	class MethodVisitor : MetadataRewriter
 	{
-		public MethodVisitor(IMetadataHost host)
+		private ISourceLocationProvider sourceLocationProvider;
+
+		public MethodVisitor(IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
 			: base(host)
 		{
+			this.sourceLocationProvider = sourceLocationProvider;
 		}
 
 		public override IMethodDefinition Rewrite(IMethodDefinition methodDefinition)
 		{
-			var disassembler = new Disassembler(methodDefinition);
+			var disassembler = new Disassembler(methodDefinition, sourceLocationProvider);
 			var methodBody = disassembler.Execute();
 
 			System.Console.WriteLine(methodBody);

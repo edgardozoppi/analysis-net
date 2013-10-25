@@ -19,7 +19,7 @@ namespace Backend
 
 		public override string ToString()
 		{
-			var header = MemberHelper.GetMethodSignature(this.MethodDefinition, NameFormattingOptions.Signature);
+			var header = MemberHelper.GetMethodSignature(this.MethodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.ParameterName);
 			var body = string.Join("\n\t", this.Instructions);
 
 			return string.Format("{0}\n\t{1}", header, body);
