@@ -11,7 +11,7 @@ namespace Test
 		{
 			int a = 1;
 			int b = 2;
-			int c = a + b * arg1;
+			byte c = (byte)(a + b * arg1);
 		}
 	}
 }

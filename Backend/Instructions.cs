@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Microsoft.Cci;
 
 namespace Backend
 {
@@ -26,7 +27,8 @@ namespace Backend
 	{
 		Copy,
 		Not,
-		Neg
+		Neg,
+		Conv
 	}
 
 	public enum EmptyOperation
@@ -133,6 +135,28 @@ namespace Backend
 			}
 
 			return string.Format("{0}:\t{1};", this.Label, operation);
+		}
+	}
+
+	public class ConvertInstruction : Instruction
+	{
+		public Operand Operand { get; set; }
+		public ITypeReference Type { get; set; }
+		public Variable Result { get; set; }
+		public bool CheckNumericRange { get; set; }
+		public bool TreatOperandAsUnsignedInteger { get; set; }
+
+		public ConvertInstruction(uint label, Variable result, ITypeReference type, Operand operand)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Result = result;
+			this.Type = type;
+			this.Operand = operand;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:\t{1} = ({2}){3};", this.Label, this.Result, this.Type, this.Operand);
 		}
 	}
 }

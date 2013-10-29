@@ -48,6 +48,7 @@ namespace Backend
 
 		#endregion
 
+		private IMetadataHost host;
 		private IMethodDefinition method;
 		private ISourceLocationProvider sourceLocationProvider;
 		private LocalVariable thisParameter;
@@ -55,8 +56,9 @@ namespace Backend
 		private IDictionary<ILocalDefinition, LocalVariable> locals;
 		private OperandStack stack;
 
-		public Disassembler(IMethodDefinition methodDefinition, ISourceLocationProvider sourceLocationProvider)
+		public Disassembler(IMetadataHost host, IMethodDefinition methodDefinition, ISourceLocationProvider sourceLocationProvider)
 		{
+			this.host = host;
 			this.method = methodDefinition;
 			this.sourceLocationProvider = sourceLocationProvider;
 			this.parameters = new Dictionary<IParameterDefinition, LocalVariable>();
@@ -286,44 +288,80 @@ namespace Backend
 					//    expression = this.ParsePointerCall(currentOperation);
 					//    break;
 
-					//case OperationCode.Castclass:
-					//case OperationCode.Conv_I:
-					//case OperationCode.Conv_I1:
-					//case OperationCode.Conv_I2:
-					//case OperationCode.Conv_I4:
-					//case OperationCode.Conv_I8:
-					//case OperationCode.Conv_Ovf_I:
-					//case OperationCode.Conv_Ovf_I_Un:
-					//case OperationCode.Conv_Ovf_I1:
-					//case OperationCode.Conv_Ovf_I1_Un:
-					//case OperationCode.Conv_Ovf_I2:
-					//case OperationCode.Conv_Ovf_I2_Un:
-					//case OperationCode.Conv_Ovf_I4:
-					//case OperationCode.Conv_Ovf_I4_Un:
-					//case OperationCode.Conv_Ovf_I8:
-					//case OperationCode.Conv_Ovf_I8_Un:
-					//case OperationCode.Conv_Ovf_U:
-					//case OperationCode.Conv_Ovf_U_Un:
-					//case OperationCode.Conv_Ovf_U1:
-					//case OperationCode.Conv_Ovf_U1_Un:
-					//case OperationCode.Conv_Ovf_U2:
-					//case OperationCode.Conv_Ovf_U2_Un:
-					//case OperationCode.Conv_Ovf_U4:
-					//case OperationCode.Conv_Ovf_U4_Un:
-					//case OperationCode.Conv_Ovf_U8:
-					//case OperationCode.Conv_Ovf_U8_Un:
-					//case OperationCode.Conv_R_Un:
-					//case OperationCode.Conv_R4:
-					//case OperationCode.Conv_R8:
-					//case OperationCode.Conv_U:
-					//case OperationCode.Conv_U1:
-					//case OperationCode.Conv_U2:
-					//case OperationCode.Conv_U4:
-					//case OperationCode.Conv_U8:
-					//case OperationCode.Unbox:
-					//case OperationCode.Unbox_Any:
-					//    expression = this.ParseConversion(currentOperation);
-					//    break;
+					case OperationCode.Castclass:
+					case OperationCode.Unbox:
+					case OperationCode.Unbox_Any:
+						instruction = this.ProcessConversion(op);
+						break;
+
+					case OperationCode.Conv_I:
+					case OperationCode.Conv_Ovf_I:
+					case OperationCode.Conv_Ovf_I_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemIntPtr);
+						break;
+
+					case OperationCode.Conv_I1:
+					case OperationCode.Conv_Ovf_I1:
+					case OperationCode.Conv_Ovf_I1_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemInt8);
+						break;
+
+					case OperationCode.Conv_I2:
+					case OperationCode.Conv_Ovf_I2:
+					case OperationCode.Conv_Ovf_I2_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemInt16);
+						break;
+
+					case OperationCode.Conv_I4:
+					case OperationCode.Conv_Ovf_I4:
+					case OperationCode.Conv_Ovf_I4_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemInt32);
+						break;
+
+					case OperationCode.Conv_I8:
+					case OperationCode.Conv_Ovf_I8:
+					case OperationCode.Conv_Ovf_I8_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemInt64);
+						break;
+
+					case OperationCode.Conv_U:
+					case OperationCode.Conv_Ovf_U:
+					case OperationCode.Conv_Ovf_U_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemUIntPtr);
+						break;
+
+					case OperationCode.Conv_U1:
+					case OperationCode.Conv_Ovf_U1:
+					case OperationCode.Conv_Ovf_U1_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemUInt8);
+						break;
+
+					case OperationCode.Conv_U2:
+					case OperationCode.Conv_Ovf_U2:
+					case OperationCode.Conv_Ovf_U2_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemUInt16);
+						break;
+
+					case OperationCode.Conv_U4:
+					case OperationCode.Conv_Ovf_U4:
+					case OperationCode.Conv_Ovf_U4_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemUInt32);
+						break;
+
+					case OperationCode.Conv_U8:
+					case OperationCode.Conv_Ovf_U8:
+					case OperationCode.Conv_Ovf_U8_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemUInt64);
+						break;
+
+					case OperationCode.Conv_R4:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemFloat32);
+						break;
+
+					case OperationCode.Conv_R8:
+					case OperationCode.Conv_R_Un:
+						instruction = this.ProcessConversion(op, host.PlatformType.SystemFloat64);
+						break;
 
 					//case OperationCode.Ckfinite:
 					//    var operand = this.PopOperandStack();
@@ -393,16 +431,20 @@ namespace Backend
 					case OperationCode.Ldarg_2:
 					case OperationCode.Ldarg_3:
 					case OperationCode.Ldarg_S:
+						instruction = this.ProcessLoadArgument(op);
+					    break;
+
 					case OperationCode.Ldloc:
 					case OperationCode.Ldloc_0:
 					case OperationCode.Ldloc_1:
 					case OperationCode.Ldloc_2:
 					case OperationCode.Ldloc_3:
 					case OperationCode.Ldloc_S:
+					    instruction = this.ProcessLoadLocal(op);
+					    break;
+
 					//case OperationCode.Ldfld:
 					//case OperationCode.Ldsfld:
-					    instruction = this.ProcessLoadVariable(op);
-					    break;
 
 					//case OperationCode.Ldarga:
 					//case OperationCode.Ldarga_S:
@@ -513,6 +555,9 @@ namespace Backend
 
 					case OperationCode.Starg:
 					case OperationCode.Starg_S:
+						instruction = this.ProcessStoreArgument(op);
+					    break;
+
 					//case OperationCode.Stelem:
 					//case OperationCode.Stelem_I:
 					//case OperationCode.Stelem_I1:
@@ -531,16 +576,18 @@ namespace Backend
 					//case OperationCode.Stind_R4:
 					//case OperationCode.Stind_R8:
 					//case OperationCode.Stind_Ref:
+
 					case OperationCode.Stloc:
 					case OperationCode.Stloc_0:
 					case OperationCode.Stloc_1:
 					case OperationCode.Stloc_2:
 					case OperationCode.Stloc_3:
 					case OperationCode.Stloc_S:
+					    instruction = this.ProcessStoreLocal(op);
+					    break;
+
 					//case OperationCode.Stobj:
 					//case OperationCode.Stsfld:
-					    instruction = this.ProcessStoreVariable(op);
-					    break;
 
 					//case OperationCode.Switch:
 					//    statement = this.ParseSwitchInstruction(currentOperation);
@@ -580,69 +627,52 @@ namespace Backend
 			return instruction;
 		}
 
-		private Instruction ProcessLoadVariable(IOperation op)
+		private Instruction ProcessLoadArgument(IOperation op)
 		{
-			if (op.Value == null)
+			var source = thisParameter;
+
+			if (op.Value is IParameterDefinition)
 			{
-				var source = thisParameter;
-				var dest = stack.Push();
-				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
-				return instruction;
+				var argument = op.Value as IParameterDefinition;
+				source = parameters[argument];
 			}
-			else if (op.Value is IParameterDefinition)
-			{
-				var paramDef = op.Value as IParameterDefinition;
-				var source = parameters[paramDef];
-				var dest = stack.Push();
-				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
-				return instruction;
-			}
-			else if (op.Value is ILocalDefinition)
-			{
-				var localDef = op.Value as ILocalDefinition;
-				var source = locals[localDef];
-				var dest = stack.Push();
-				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
-				return instruction;
-			}
-			else
-			{
-				throw new NotImplementedException();
-			}
+
+			var dest = stack.Push();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			return instruction;
 		}
 
-		private Instruction ProcessStoreVariable(IOperation op)
+		private Instruction ProcessLoadLocal(IOperation op)
 		{
-			if (op.Value == null)
-			{
-				var dest = thisParameter;
-				var source = stack.Pop();
-				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var local = op.Value as ILocalDefinition;
+			var source = locals[local];
+			var dest = stack.Push();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			return instruction;
+		}
 
-				return instruction;
-			}
-			else if (op.Value is IParameterDefinition)
-			{
-				var paramDef = op.Value as IParameterDefinition;
-				var dest = parameters[paramDef];
-				var source = stack.Pop();
-				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+		private Instruction ProcessStoreArgument(IOperation op)
+		{
+			var dest = thisParameter;
 
-				return instruction;
-			}
-			else if (op.Value is ILocalDefinition)
+			if (op.Value is IParameterDefinition)
 			{
-				var localDef = op.Value as ILocalDefinition;
-				var dest = locals[localDef];
-				var source = stack.Pop();
-				var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+				var argument = op.Value as IParameterDefinition;
+				dest = parameters[argument];
+			}
+			
+			var source = stack.Pop();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			return instruction;
+		}
 
-				return instruction;
-			}
-			else
-			{
-				throw new NotImplementedException();
-			}
+		private Instruction ProcessStoreLocal(IOperation op)
+		{
+			var local = op.Value as ILocalDefinition;
+			var dest = locals[local];
+			var source = stack.Pop();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			return instruction;
 		}
 
 		private Instruction ProcessEmptyOperation(IOperation op, EmptyOperation operation)
@@ -665,6 +695,20 @@ namespace Backend
 			var left = stack.Pop();
 			var result = stack.Push();
 			var instruction = new BinaryInstruction(op.Offset, result, left, operation, right);
+			return instruction;
+		}
+
+		private Instruction ProcessConversion(IOperation op)
+		{
+			var type = op.Value as ITypeReference;
+			return ProcessConversion(op, type);
+		}
+
+		private Instruction ProcessConversion(IOperation op, ITypeReference type)
+		{
+			var operand = stack.Pop();
+			var result = stack.Push();
+			var instruction = new ConvertInstruction(op.Offset, result, type, operand);
 			return instruction;
 		}
 

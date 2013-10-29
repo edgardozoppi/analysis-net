@@ -20,7 +20,7 @@ namespace Console
 
 		public override IMethodDefinition Rewrite(IMethodDefinition methodDefinition)
 		{
-			var disassembler = new Disassembler(methodDefinition, sourceLocationProvider);
+			var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
 			var methodBody = disassembler.Execute();
 
 			System.Console.WriteLine(methodBody);
