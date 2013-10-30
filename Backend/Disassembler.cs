@@ -28,6 +28,11 @@ namespace Backend
 				get { return stack.Length; }
 			}
 
+			public int Size
+			{
+				get { return top; }
+			}
+
 			public void Clear()
 			{
 				top = 0;
@@ -43,6 +48,12 @@ namespace Backend
 			{
 				if (top <= 0) throw new InvalidOperationException();
 				return stack[--top];
+			}
+
+			public TemporalVariable Peek()
+			{
+				if (top <= 0) throw new InvalidOperationException();
+				return stack[top - 1];
 			}
 		}
 
@@ -244,10 +255,6 @@ namespace Backend
 					//    statement = this.ParseBinaryConditionalBranch(currentOperation);
 					//    break;
 
-					//case OperationCode.Box:
-					//    expression = this.ParseConversion(currentOperation);
-					//    break;
-
 					//case OperationCode.Br:
 					//case OperationCode.Br_S:
 					//case OperationCode.Leave:
@@ -289,6 +296,7 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Castclass:
+					case OperationCode.Box:
 					case OperationCode.Unbox:
 					case OperationCode.Unbox_Any:
 						instruction = this.ProcessConversion(op);
@@ -392,9 +400,9 @@ namespace Backend
 					//    expression = this.ParseCopyObject();
 					//    break;
 
-					//case OperationCode.Dup:
-					//    expression = this.ParseDup(instruction.Type);
-					//    break;
+					case OperationCode.Dup:
+						instruction = this.ProcessDup(op);
+						break;
 
 					//case OperationCode.Endfilter:
 					//    statement = this.ParseEndfilter();
@@ -434,6 +442,11 @@ namespace Backend
 						instruction = this.ProcessLoadArgument(op);
 					    break;
 
+					case OperationCode.Ldarga:
+					case OperationCode.Ldarga_S:
+						instruction = this.ProcessLoadArgumentAddress(op);
+						break;
+
 					case OperationCode.Ldloc:
 					case OperationCode.Ldloc_0:
 					case OperationCode.Ldloc_1:
@@ -443,15 +456,16 @@ namespace Backend
 					    instruction = this.ProcessLoadLocal(op);
 					    break;
 
+					case OperationCode.Ldloca:
+					case OperationCode.Ldloca_S:
+						instruction = this.ProcessLoadLocalAddress(op);
+					    break;
+
 					//case OperationCode.Ldfld:
 					//case OperationCode.Ldsfld:
 
-					//case OperationCode.Ldarga:
-					//case OperationCode.Ldarga_S:
 					//case OperationCode.Ldflda:
 					//case OperationCode.Ldsflda:
-					//case OperationCode.Ldloca:
-					//case OperationCode.Ldloca_S:
 					//case OperationCode.Ldftn:
 					//case OperationCode.Ldvirtftn:
 					//    expression = this.ParseAddressOf(instruction);
@@ -520,14 +534,14 @@ namespace Backend
 					//    expression = this.ParseCreateObjectInstance(currentOperation);
 					//    break;
 
-					//case OperationCode.No_:
-					//    Contract.Assume(false); //if code out there actually uses this, I need to know sooner rather than later.
-					//    //TODO: need object model support
-					//    break;
+					case OperationCode.No_:
+						//if code out there actually uses this, I need to know sooner rather than later.
+						//TODO: need object model support
+						throw new NotImplementedException("Invalid opcode: No.");
 
-					//case OperationCode.Pop:
-					//    statement = this.ParsePop();
-					//    break;
+					case OperationCode.Pop:
+						stack.Pop();
+						continue;
 
 					//case OperationCode.Readonly_:
 					//    this.sawReadonly = true;
@@ -623,7 +637,7 @@ namespace Backend
 		{
 			var source = new Constant(op.Value);
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
 			return instruction;
 		}
 
@@ -638,7 +652,22 @@ namespace Backend
 			}
 
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			return instruction;
+		}
+
+		private Instruction ProcessLoadArgumentAddress(IOperation op)
+		{
+			var source = thisParameter;
+
+			if (op.Value is IParameterDefinition)
+			{
+				var argument = op.Value as IParameterDefinition;
+				source = parameters[argument];
+			}
+
+			var dest = stack.Push();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
 			return instruction;
 		}
 
@@ -647,7 +676,16 @@ namespace Backend
 			var local = op.Value as ILocalDefinition;
 			var source = locals[local];
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			return instruction;
+		}
+
+		private Instruction ProcessLoadLocalAddress(IOperation op)
+		{
+			var local = op.Value as ILocalDefinition;
+			var source = locals[local];
+			var dest = stack.Push();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
 			return instruction;
 		}
 
@@ -662,7 +700,7 @@ namespace Backend
 			}
 			
 			var source = stack.Pop();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
 			return instruction;
 		}
 
@@ -671,7 +709,7 @@ namespace Backend
 			var local = op.Value as ILocalDefinition;
 			var dest = locals[local];
 			var source = stack.Pop();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
 			return instruction;
 		}
 
@@ -709,6 +747,14 @@ namespace Backend
 			var operand = stack.Pop();
 			var result = stack.Push();
 			var instruction = new ConvertInstruction(op.Offset, result, type, operand);
+			return instruction;
+		}
+
+		private Instruction ProcessDup(IOperation op)
+		{
+			var source = stack.Peek();
+			var dest = stack.Push();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
 			return instruction;
 		}
 

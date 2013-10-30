@@ -25,7 +25,8 @@ namespace Backend
 
 	public enum UnaryOperation
 	{
-		Copy,
+		Assign,
+		AddressOf,
 		Not,
 		Neg,
 		Conv
@@ -81,7 +82,7 @@ namespace Backend
 				case BinaryOperation.Xor: operation = "^"; break;
 			}
 
-			return string.Format("{0}:\t{1} = {2} {3} {4};", this.Label, this.Result, this.LeftOperand, operation, this.RightOperand);
+			return string.Format("{0}:  {1} = {2} {3} {4};", this.Label, this.Result, this.LeftOperand, operation, this.RightOperand);
 		}
 	}
 
@@ -105,12 +106,13 @@ namespace Backend
 
 			switch (this.Operation)
 			{
-				case UnaryOperation.Copy: operation = string.Empty; break;
+				case UnaryOperation.Assign: operation = string.Empty; break;
+				case UnaryOperation.AddressOf: operation = "&"; break;
 				case UnaryOperation.Neg: operation = "-"; break;
 				case UnaryOperation.Not: operation = "!"; break;
 			}
 
-			return string.Format("{0}:\t{1} = {2}{3};", this.Label, this.Result, operation, this.Operand);
+			return string.Format("{0}:  {1} = {2}{3};", this.Label, this.Result, operation, this.Operand);
 		}
 	}
 
@@ -134,7 +136,7 @@ namespace Backend
 				case EmptyOperation.Break: operation = "break"; break;
 			}
 
-			return string.Format("{0}:\t{1};", this.Label, operation);
+			return string.Format("{0}:  {1};", this.Label, operation);
 		}
 	}
 
@@ -156,7 +158,7 @@ namespace Backend
 
 		public override string ToString()
 		{
-			return string.Format("{0}:\t{1} = ({2}){3};", this.Label, this.Result, this.Type, this.Operand);
+			return string.Format("{0}:  {1} = ({2}) {3};", this.Label, this.Result, this.Type, this.Operand);
 		}
 	}
 }
