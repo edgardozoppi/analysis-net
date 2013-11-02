@@ -232,35 +232,53 @@ namespace Backend
 					//    statement = this.ParseArraySet(currentOperation);
 					//    break;
 
-					//case OperationCode.Beq:
-					//case OperationCode.Beq_S:
-					//case OperationCode.Bge:
-					//case OperationCode.Bge_S:
-					//case OperationCode.Bge_Un:
-					//case OperationCode.Bge_Un_S:
-					//case OperationCode.Bgt:
-					//case OperationCode.Bgt_S:
-					//case OperationCode.Bgt_Un:
-					//case OperationCode.Bgt_Un_S:
-					//case OperationCode.Ble:
-					//case OperationCode.Ble_S:
-					//case OperationCode.Ble_Un:
-					//case OperationCode.Ble_Un_S:
-					//case OperationCode.Blt:
-					//case OperationCode.Blt_S:
-					//case OperationCode.Blt_Un:
-					//case OperationCode.Blt_Un_S:
-					//case OperationCode.Bne_Un:
-					//case OperationCode.Bne_Un_S:
-					//    statement = this.ParseBinaryConditionalBranch(currentOperation);
-					//    break;
+					case OperationCode.Beq:
+					case OperationCode.Beq_S:
+						instruction = this.ProcessBinaryConditionalBranch(op, BranchCondition.Eq);
+						break;
 
-					//case OperationCode.Br:
-					//case OperationCode.Br_S:
-					//case OperationCode.Leave:
-					//case OperationCode.Leave_S:
-					//    statement = this.ParseUnconditionalBranch(currentOperation);
-					//    break;
+					case OperationCode.Bne_Un:
+					case OperationCode.Bne_Un_S:
+						instruction = this.ProcessBinaryConditionalBranch(op, BranchCondition.Neq);
+						break;
+
+					case OperationCode.Bge:
+					case OperationCode.Bge_S:
+					case OperationCode.Bge_Un:
+					case OperationCode.Bge_Un_S:
+						instruction = this.ProcessBinaryConditionalBranch(op, BranchCondition.Ge);
+						break;
+
+					case OperationCode.Bgt:
+					case OperationCode.Bgt_S:
+					case OperationCode.Bgt_Un:
+					case OperationCode.Bgt_Un_S:
+						instruction = this.ProcessBinaryConditionalBranch(op, BranchCondition.Gt);
+						break;
+
+					case OperationCode.Ble:
+					case OperationCode.Ble_S:
+					case OperationCode.Ble_Un:
+					case OperationCode.Ble_Un_S:
+						instruction = this.ProcessBinaryConditionalBranch(op, BranchCondition.Le);
+						break;
+
+					case OperationCode.Blt:
+					case OperationCode.Blt_S:
+					case OperationCode.Blt_Un:
+					case OperationCode.Blt_Un_S:
+						instruction = this.ProcessBinaryConditionalBranch(op, BranchCondition.Lt);
+						break;
+
+					case OperationCode.Br:
+					case OperationCode.Br_S:
+						instruction = this.ProcessUnconditionalBranch(op);
+						break;
+
+					case OperationCode.Leave:
+					case OperationCode.Leave_S:
+						instruction = this.ProcessLeave(op);
+						break;
 
 					case OperationCode.Break:
 						instruction = this.ProcessEmptyOperation(op, EmptyOperation.Break);
@@ -270,12 +288,15 @@ namespace Backend
 						instruction = this.ProcessEmptyOperation(op, EmptyOperation.Nop);
 						break;
 
-					//case OperationCode.Brfalse:
-					//case OperationCode.Brfalse_S:
-					//case OperationCode.Brtrue:
-					//case OperationCode.Brtrue_S:
-					//    statement = this.ParseUnaryConditionalBranch(currentOperation);
-					//    break;
+					case OperationCode.Brfalse:
+					case OperationCode.Brfalse_S:
+						instruction = this.ProcessUnaryConditionalBranch(op, false);
+						break;
+
+					case OperationCode.Brtrue:
+					case OperationCode.Brtrue_S:
+						instruction = this.ProcessUnaryConditionalBranch(op, true);
+						break;
 
 					//case OperationCode.Call:
 					//case OperationCode.Callvirt:
@@ -555,17 +576,17 @@ namespace Backend
 					//    expression = this.ParseGetValueOfTypedReference(currentOperation);
 					//    break;
 
-					//case OperationCode.Ret:
-					//    statement = this.ParseReturn();
-					//    break;
+					case OperationCode.Ret:
+						instruction = this.ProcessReturn(op);
+						break;
 
 					//case OperationCode.Rethrow:
 					//    statement = new RethrowStatement();
 					//    break;
 
-					//case OperationCode.Sizeof:
-					//    expression = ParseSizeOf(currentOperation);
-					//    break;
+					case OperationCode.Sizeof:
+						instruction = this.ProcessSizeOf(op);
+						break;
 
 					case OperationCode.Starg:
 					case OperationCode.Starg_S:
@@ -631,6 +652,58 @@ namespace Backend
 			}
 
 			return body;
+		}
+
+		private Instruction ProcessSizeOf(IOperation op)
+		{
+			var type = op.Value as ITypeReference;
+			var result = stack.Push();
+			var instruction = new SizeOfInstruction(op.Offset, result, type);
+			return instruction;
+		}
+
+		private Instruction ProcessUnaryConditionalBranch(IOperation op, bool value)
+		{
+			var right = new Constant(value);
+			var left = stack.Pop();
+			var target = (uint)op.Value;
+			var instruction = new ConditionalBranchInstruction(op.Offset, left, BranchCondition.Eq, right, target);
+			return instruction;
+		}
+
+		private Instruction ProcessBinaryConditionalBranch(IOperation op, BranchCondition condition)
+		{
+			var right = stack.Pop();
+			var left = stack.Pop();
+			var target = (uint)op.Value;
+			var instruction = new ConditionalBranchInstruction(op.Offset, left, condition, right, target);
+			return instruction;
+		}
+
+		private Instruction ProcessLeave(IOperation op)
+		{
+			stack.Clear();
+			var target = (uint)op.Value;
+			var instruction = new UnconditionalBranchInstruction(op.Offset, target);
+			return instruction;
+		}
+
+		private Instruction ProcessUnconditionalBranch(IOperation op)
+		{
+			var target = (uint)op.Value;
+			var instruction = new UnconditionalBranchInstruction(op.Offset, target);
+			return instruction;
+		}
+
+		private Instruction ProcessReturn(IOperation op)
+		{
+			Operand operand = null;
+
+			if (method.Type.TypeCode != PrimitiveTypeCode.Void)
+				operand = stack.Pop();
+
+			var instruction = new ReturnInstruction(op.Offset, operand);
+			return instruction;
 		}
 
 		private Instruction ProcessLoadConstant(IOperation op)

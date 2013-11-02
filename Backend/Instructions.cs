@@ -12,15 +12,18 @@ namespace Backend
 		Sub,
 		Mul,
 		Div,
-		And,
-		Gt,
-		Lt,
-		Eq,
-		Or,
 		Rem,
+		And,
+		Or,
+		Xor,
 		Shl,
 		Shr,
-		Xor
+		Eq,
+		Neq,
+		Lt,
+		Le,
+		Gt,
+		Ge
 	}
 
 	public enum UnaryOperation
@@ -28,14 +31,23 @@ namespace Backend
 		Assign,
 		AddressOf,
 		Not,
-		Neg,
-		Conv
+		Neg
 	}
 
 	public enum EmptyOperation
 	{
 		Nop,
 		Break
+	}
+
+	public enum BranchCondition
+	{
+		Eq,
+		Neq,
+		Lt,
+		Le,
+		Gt,
+		Ge
 	}
 
 	public abstract class Instruction
@@ -71,15 +83,18 @@ namespace Backend
 				case BinaryOperation.Sub: operation = "-"; break;
 				case BinaryOperation.Mul: operation = "*"; break;
 				case BinaryOperation.Div: operation = "/"; break;
-				case BinaryOperation.And: operation = "&"; break;
-				case BinaryOperation.Gt: operation = ">"; break;
-				case BinaryOperation.Lt: operation = "<"; break;
-				case BinaryOperation.Eq: operation = "=="; break;
-				case BinaryOperation.Or: operation = "|"; break;
 				case BinaryOperation.Rem: operation = "%"; break;
+				case BinaryOperation.And: operation = "&"; break;
+				case BinaryOperation.Or: operation = "|"; break;
+				case BinaryOperation.Xor: operation = "^"; break;
 				case BinaryOperation.Shl: operation = "<<"; break;
 				case BinaryOperation.Shr: operation = ">>"; break;
-				case BinaryOperation.Xor: operation = "^"; break;
+				case BinaryOperation.Eq: operation = "=="; break;
+				case BinaryOperation.Neq: operation = "!="; break;
+				case BinaryOperation.Gt: operation = ">"; break;
+				case BinaryOperation.Ge: operation = "<="; break;
+				case BinaryOperation.Lt: operation = ">"; break;
+				case BinaryOperation.Le: operation = "<="; break;
 			}
 
 			return string.Format("{0}:  {1} = {2} {3} {4};", this.Label, this.Result, this.LeftOperand, operation, this.RightOperand);
@@ -158,7 +173,101 @@ namespace Backend
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} = ({2}) {3};", this.Label, this.Result, this.Type, this.Operand);
+			return string.Format("{0}:  {1} = {2} as {3};", this.Label, this.Result, this.Operand, this.Type);
+		}
+	}
+
+	public class ReturnInstruction : Instruction
+	{
+		public Operand Operand { get; set; }
+
+		public ReturnInstruction(uint label, Operand operand)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Operand = operand;
+		}
+
+		public bool HasOperand
+		{
+			get { return this.Operand != null; }
+		}
+
+		public override string ToString()
+		{
+			var operand = string.Empty;
+
+			if (this.HasOperand)
+				operand = string.Format(" {0}", this.Operand);
+
+			return string.Format("{0}:  ret{1};", this.Label, operand);
+		}
+	}
+
+	public class UnconditionalBranchInstruction : Instruction
+	{
+		public string Target { get; set; }
+
+		public UnconditionalBranchInstruction(uint label, uint target)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Target = string.Format("L_{0:X4}", target);
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  goto {1};", this.Label, this.Target);
+		}
+	}
+
+	public class ConditionalBranchInstruction : Instruction
+	{
+		public Operand LeftOperand { get; set; }
+		public Operand RightOperand { get; set; }
+		public BranchCondition Condition { get; set; }
+		public string Target { get; set; }
+
+		public ConditionalBranchInstruction(uint label, Operand left, BranchCondition condition, Operand right, uint target)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Target = string.Format("L_{0:X4}", target);
+			this.LeftOperand = left;
+			this.Condition = condition;
+			this.RightOperand = right;
+		}
+
+		public override string ToString()
+		{
+			var condition = "??";
+
+			switch (this.Condition)
+			{
+				case BranchCondition.Eq: condition = "=="; break;
+				case BranchCondition.Neq: condition = "!="; break;
+				case BranchCondition.Gt: condition = ">"; break;
+				case BranchCondition.Ge: condition = "<="; break;
+				case BranchCondition.Lt: condition = ">"; break;
+				case BranchCondition.Le: condition = "<="; break;
+			}
+
+			return string.Format("{0}:  if {1} {2} {3} goto {4};", this.Label, this.LeftOperand, condition, this.RightOperand, this.Target);
+		}
+	}
+
+	public class SizeOfInstruction : Instruction
+	{
+		public ITypeReference Type { get; set; }
+		public Variable Result { get; set; }
+
+		public SizeOfInstruction(uint label, Variable result, ITypeReference type)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Result = result;
+			this.Type = type;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  sizeOf {1};", this.Label, this.Result, this.Type);
 		}
 	}
 }

@@ -24,6 +24,8 @@ namespace Console
 			var methodBody = disassembler.Execute();
 
 			System.Console.WriteLine(methodBody);
+			System.Console.WriteLine();
+
 			return base.Rewrite(methodDefinition);
 		}
 	}

@@ -48,7 +48,7 @@ namespace Backend
 
 		public TemporalVariable(uint index)
 		{
-			this.Name = string.Format("temp_{0}", index);
+			this.Name = string.Format("t{0}", index);
 			this.Index = index;
 		}
 	}
