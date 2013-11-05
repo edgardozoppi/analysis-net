@@ -270,4 +270,32 @@ namespace Backend
 			return string.Format("{0}:  sizeOf {1};", this.Label, this.Result, this.Type);
 		}
 	}
+
+	public class CallInstruction : Instruction
+	{
+		public IMethodReference Method { get; set; }
+		public Variable Result { get; set; }
+		public List<Operand> Arguments { get; private set; }
+
+		public CallInstruction(uint label, Variable result, IMethodReference method, IEnumerable<Operand> arguments)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Arguments = new List<Operand>(arguments);
+			this.Result = result;
+			this.Method = method;
+		}
+
+		public override string ToString()
+		{
+			var result = string.Empty;
+			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
+			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+			var arguments = string.Join(", ", this.Arguments);
+
+			if (this.Result != null)
+				result = string.Format("{0} = ", this.Result);			
+
+			return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, type, method, arguments);
+		}
+	}
 }

@@ -298,19 +298,10 @@ namespace Backend
 						instruction = this.ProcessUnaryConditionalBranch(op, true);
 						break;
 
-					//case OperationCode.Call:
-					//case OperationCode.Callvirt:
-					//    MethodCall call = this.ParseCall(currentOperation);
-					//    if (call.MethodToCall.Type.TypeCode == PrimitiveTypeCode.Void)
-					//    {
-					//        call.Locations.Add(currentOperation.Location); // turning it into a statement prevents the location from being attached to the expresssion
-					//        ExpressionStatement es = new ExpressionStatement();
-					//        es.Expression = call;
-					//        statement = es;
-					//    }
-					//    else
-					//        expression = call;
-					//    break;
+					case OperationCode.Call:
+					case OperationCode.Callvirt:
+						instruction = this.ProcessCall(op);
+						break;
 
 					//case OperationCode.Calli:
 					//    expression = this.ParsePointerCall(currentOperation);
@@ -652,6 +643,39 @@ namespace Backend
 			}
 
 			return body;
+		}
+
+		private Instruction ProcessCall(IOperation op)
+		{
+			var callee = op.Value as IMethodReference;
+			var arguments = new List<Operand>();
+			Variable result = null;
+
+			foreach (var par in callee.Parameters)
+			{
+				var arg = stack.Pop();
+				arguments.Add(arg);
+			}
+
+			foreach (var par in callee.ExtraParameters)
+			{
+				var arg = stack.Pop();
+				arguments.Add(arg);
+			}
+
+			if (!callee.IsStatic)
+			{
+				var arg = stack.Pop();
+				arguments.Add(arg);
+			}
+
+			arguments.Reverse();
+
+			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
+				result = stack.Push();
+
+			var instruction = new CallInstruction(op.Offset, result, callee, arguments);
+			return instruction;
 		}
 
 		private Instruction ProcessSizeOf(IOperation op)

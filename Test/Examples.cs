@@ -7,7 +7,7 @@ namespace Test
 {
 	public class Examples
 	{
-		public byte Example1(int arg1)
+		public int Example1(int arg1)
 		{
 			int a = 1;
 			int b = 2;
@@ -16,7 +16,13 @@ namespace Test
 			if (c > 3) c = 4;
 			else c = 5;
 
-			return c;
+			var r = this.Plus(a, b);
+			return r;
+		}
+
+		public int Plus(int a, int b)
+		{
+			return a + b;
 		}
 	}
 }
