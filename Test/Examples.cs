@@ -24,10 +24,17 @@ namespace Test
 
 		public int Plus(int a, int b)
 		{
+			//this.Print(a, b);
+
 			var obj = new Examples();
 			//obj.F1 = 6;
 
 			return a + b;
 		}
+
+		//public void Print(params object[] args)
+		//{
+		//	Console.WriteLine(args);
+		//}
 	}
 }

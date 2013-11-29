@@ -318,7 +318,27 @@ namespace Backend
 			var type = TypeHelper.GetTypeName(this.Constructor.ContainingType);
 			var arguments = string.Join(", ", this.Arguments.Skip(1));
 
-			return string.Format("{0}:  {1} = new {2}({3});", this.Label, this.Result, type, arguments);;
+			return string.Format("{0}:  {1} = new {2}({3});", this.Label, this.Result, type, arguments);
+		}
+	}
+
+	public class CopyMemoryInstruction : Instruction
+	{
+		public Variable NumberOfBytes { get; set; }
+		public Variable SourceAddress { get; set; }
+		public Variable TargetAddress { get; set; }
+
+		public CopyMemoryInstruction(uint label, Variable source, Variable target, Variable numberOfBytes)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.NumberOfBytes = numberOfBytes;
+			this.SourceAddress = source;
+			this.TargetAddress = target;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  copy {1} bytes from {1} to {2};", this.Label, this.NumberOfBytes, this.SourceAddress, this.TargetAddress);
 		}
 	}
 }

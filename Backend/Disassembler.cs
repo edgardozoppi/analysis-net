@@ -395,12 +395,14 @@ namespace Backend
 					//    };
 					//    expression = new MethodCall() { Arguments = new List<IExpression>(1) { operand }, IsStaticCall = true, Type = operand.Type, MethodToCall = chkfinite };
 					//    break;
-
+						
 					//case OperationCode.Constrained_:
 					//    //This prefix is redundant and is not represented in the code model.
 					//    break;
 
-					//case OperationCode.Cpblk:
+					case OperationCode.Cpblk:
+						instruction = this.ProcessCopyMemory(op);
+						break;
 					//    var copyMemory = new CopyMemoryStatement();
 					//    copyMemory.NumberOfBytesToCopy = this.PopOperandStack();
 					//    copyMemory.SourceAddress = this.PopOperandStack();
@@ -643,6 +645,16 @@ namespace Backend
 			}
 
 			return body;
+		}
+
+		private Instruction ProcessCopyMemory(IOperation op)
+		{
+			var numberOfBytes = stack.Pop();
+			var sourceAddress = stack.Pop();
+			var targetAddress = stack.Pop();
+
+			var instruction = new CopyMemoryInstruction(op.Offset, sourceAddress, targetAddress, numberOfBytes);
+			return instruction;
 		}
 
 		private Instruction ProcessNew(IOperation op)
