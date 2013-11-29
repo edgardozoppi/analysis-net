@@ -542,9 +542,9 @@ namespace Backend
 						instruction = this.ProcessUnaryOperation(op, UnaryOperation.Not);
 						break;
 
-					//case OperationCode.Newobj:
-					//    expression = this.ParseCreateObjectInstance(currentOperation);
-					//    break;
+					case OperationCode.Newobj:
+						instruction = this.ProcessNew(op);
+						break;
 
 					case OperationCode.No_:
 						//if code out there actually uses this, I need to know sooner rather than later.
@@ -645,6 +645,32 @@ namespace Backend
 			return body;
 		}
 
+		private Instruction ProcessNew(IOperation op)
+		{
+			var callee = op.Value as IMethodReference;
+			var arguments = new List<Operand>();
+			Variable result = null;
+
+			foreach (var par in callee.Parameters)
+			{
+				var arg = stack.Pop();
+				arguments.Add(arg);
+			}
+
+			foreach (var par in callee.ExtraParameters)
+			{
+				var arg = stack.Pop();
+				arguments.Add(arg);
+			}
+
+			result = stack.Push();
+			arguments.Add(result);
+			arguments.Reverse();
+
+			var instruction = new NewInstruction(op.Offset, result, callee, arguments);
+			return instruction;
+		}
+
 		private Instruction ProcessCall(IOperation op)
 		{
 			var callee = op.Value as IMethodReference;
@@ -665,8 +691,9 @@ namespace Backend
 
 			if (!callee.IsStatic)
 			{
-				var arg = stack.Pop();
-				arguments.Add(arg);
+				// Adding implicit this parameter
+				var argThis = stack.Pop();
+				arguments.Add(argThis);
 			}
 
 			arguments.Reverse();

@@ -298,4 +298,27 @@ namespace Backend
 			return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, type, method, arguments);
 		}
 	}
+
+	public class NewInstruction : Instruction
+	{
+		public IMethodReference Constructor { get; set; }
+		public Variable Result { get; set; }
+		public List<Operand> Arguments { get; private set; }
+
+		public NewInstruction(uint label, Variable result, IMethodReference constructor, IEnumerable<Operand> arguments)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Arguments = new List<Operand>(arguments);
+			this.Result = result;
+			this.Constructor = constructor;
+		}
+
+		public override string ToString()
+		{
+			var type = TypeHelper.GetTypeName(this.Constructor.ContainingType);
+			var arguments = string.Join(", ", this.Arguments.Skip(1));
+
+			return string.Format("{0}:  {1} = new {2}({3});", this.Label, this.Result, type, arguments);;
+		}
+	}
 }

@@ -7,6 +7,8 @@ namespace Test
 {
 	public class Examples
 	{
+		public int F1;
+
 		public int Example1(int arg1)
 		{
 			int a = 1;
@@ -22,6 +24,9 @@ namespace Test
 
 		public int Plus(int a, int b)
 		{
+			var obj = new Examples();
+			//obj.F1 = 6;
+
 			return a + b;
 		}
 	}
