@@ -180,11 +180,14 @@ namespace Backend
 					//    //expression = this.ParseArrayElementAddres(currentOperation, elementType, treatArrayAsSingleDimensioned: true);
 					//    break;
 
-					//case OperationCode.Array_Create:
-					//case OperationCode.Array_Create_WithLowerBound:
-					//case OperationCode.Newarr:
-					//    //expression = this.ParseArrayCreate(currentOperation);
-					//    break;
+					case OperationCode.Array_Create_WithLowerBound:
+						instruction = this.ProcessArrayCreate(op, true);
+						break;
+
+					case OperationCode.Array_Create:
+					case OperationCode.Newarr:
+						instruction = this.ProcessArrayCreate(op, false);
+						break;
 
 					//case OperationCode.Array_Get:
 					//    //elementType = ((IArrayTypeReference)currentOperation.Value).ElementType;
@@ -647,6 +650,45 @@ namespace Backend
 			return body;
 		}
 
+		private Instruction ProcessArrayCreate(IOperation op, bool withLowerBounds)
+		{
+			var arrayType = op.Value as IArrayTypeReference;
+			var elementType = arrayType.ElementType;
+			var rank = arrayType.Rank;
+			var lowerBounds = new List<Operand>();
+			var sizes = new List<Operand>();
+
+			if (withLowerBounds)
+			{
+				for (uint i = 0; i < arrayType.Rank; i++)
+				{
+					var operand = stack.Pop();
+					lowerBounds.Add(operand);
+				}
+			}
+			else
+			{
+				for (uint i = 0; i < arrayType.Rank; i++)
+				{
+					var operand = new Constant(0);
+					lowerBounds.Add(operand);
+				}
+			}
+
+			for (uint i = 0; i < arrayType.Rank; i++)
+			{
+				var operand = stack.Pop();
+				sizes.Add(operand);
+			}
+
+			lowerBounds.Reverse();
+			sizes.Reverse();
+
+			var result = stack.Push();
+			var instruction = new NewArrayInstruction(op.Offset, result, elementType, rank, lowerBounds, sizes);
+			return instruction;
+		}
+
 		private Instruction ProcessCopyMemory(IOperation op)
 		{
 			var numberOfBytes = stack.Pop();
@@ -661,7 +703,6 @@ namespace Backend
 		{
 			var callee = op.Value as IMethodReference;
 			var arguments = new List<Operand>();
-			Variable result = null;
 
 			foreach (var par in callee.Parameters)
 			{
@@ -675,7 +716,7 @@ namespace Backend
 				arguments.Add(arg);
 			}
 
-			result = stack.Push();
+			var result = stack.Push();
 			arguments.Add(result);
 			arguments.Reverse();
 

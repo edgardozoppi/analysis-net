@@ -26,6 +26,9 @@ namespace Test
 		{
 			//this.Print(a, b);
 
+			var arr = new int[a, 3, 4];
+			var arr2 = new int[2][][];
+			
 			var obj = new Examples();
 			//obj.F1 = 6;
 

@@ -341,4 +341,31 @@ namespace Backend
 			return string.Format("{0}:  copy {1} bytes from {1} to {2};", this.Label, this.NumberOfBytes, this.SourceAddress, this.TargetAddress);
 		}
 	}
+
+	public class NewArrayInstruction : Instruction
+	{
+		public Variable Result { get; set; }
+		public ITypeReference ElementType { get; set; }
+		public uint Rank { get; set; }
+		public List<Operand> LowerBounds { get; private set; }
+		public List<Operand> Sizes { get; private set; }
+
+		public NewArrayInstruction(uint label, Variable result, ITypeReference elementType, uint rank, IEnumerable<Operand> lowerBounds, IEnumerable<Operand> sizes)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Result = result;
+			this.ElementType = elementType;
+			this.Rank = rank;
+			this.LowerBounds = new List<Operand>(lowerBounds);
+			this.Sizes = new List<Operand>(sizes);
+		}
+
+		public override string ToString()
+		{
+			var elementType = TypeHelper.GetTypeName(this.ElementType);
+			var sizes = string.Join(", ", this.Sizes);
+
+			return string.Format("{0}:  {1} = new {2}[{3}];", this.Label, this.Result, elementType, sizes);
+		}
+	}
 }
