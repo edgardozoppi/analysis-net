@@ -324,11 +324,11 @@ namespace Backend
 
 	public class CopyMemoryInstruction : Instruction
 	{
-		public Variable NumberOfBytes { get; set; }
-		public Variable SourceAddress { get; set; }
-		public Variable TargetAddress { get; set; }
+		public Operand NumberOfBytes { get; set; }
+		public Operand SourceAddress { get; set; }
+		public Operand TargetAddress { get; set; }
 
-		public CopyMemoryInstruction(uint label, Variable source, Variable target, Variable numberOfBytes)
+		public CopyMemoryInstruction(uint label, Operand target, Operand source, Operand numberOfBytes)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.NumberOfBytes = numberOfBytes;
@@ -339,6 +339,44 @@ namespace Backend
 		public override string ToString()
 		{
 			return string.Format("{0}:  copy {1} bytes from {1} to {2};", this.Label, this.NumberOfBytes, this.SourceAddress, this.TargetAddress);
+		}
+	}
+
+	public class FillMemoryInstruction : Instruction
+	{
+		public Operand NumberOfBytes { get; set; }
+		public Operand Value { get; set; }
+		public Operand TargetAddress { get; set; }
+
+		public FillMemoryInstruction(uint label, Operand target, Operand value, Operand numberOfBytes)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.NumberOfBytes = numberOfBytes;
+			this.TargetAddress = target;
+			this.Value = value;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  fill {1} bytes at {2} with {3};", this.Label, this.NumberOfBytes, this.TargetAddress, this.Value);
+		}
+	}
+
+	public class CopyObjectInstruction : Instruction
+	{
+		public Operand SourceAddress { get; set; }
+		public Operand TargetAddress { get; set; }
+
+		public CopyObjectInstruction(uint label, Operand target, Operand source)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.SourceAddress = source;
+			this.TargetAddress = target;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  copy object from {1} to {2};", this.Label, this.SourceAddress, this.TargetAddress);
 		}
 	}
 

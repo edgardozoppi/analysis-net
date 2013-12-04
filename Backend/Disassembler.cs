@@ -177,7 +177,7 @@ namespace Backend
 
 					//case OperationCode.Ldelema:
 					//    //elementType = (ITypeReference)currentOperation.Value;
-					//    //expression = this.ParseArrayElementAddres(currentOperation, elementType, treatArrayAsSingleDimensioned: true);
+					//    //expression = this.ParseArrayElementAddress(currentOperation, elementType, treatArrayAsSingleDimensioned: true);
 					//    break;
 
 					case OperationCode.Array_Create_WithLowerBound:
@@ -406,16 +406,10 @@ namespace Backend
 					case OperationCode.Cpblk:
 						instruction = this.ProcessCopyMemory(op);
 						break;
-					//    var copyMemory = new CopyMemoryStatement();
-					//    copyMemory.NumberOfBytesToCopy = this.PopOperandStack();
-					//    copyMemory.SourceAddress = this.PopOperandStack();
-					//    copyMemory.TargetAddress = this.PopOperandStack();
-					//    statement = copyMemory;
-					//    break;
 
-					//case OperationCode.Cpobj:
-					//    expression = this.ParseCopyObject();
-					//    break;
+					case OperationCode.Cpobj:
+						instruction = this.ProcessCopyObject(op);
+						break;
 
 					case OperationCode.Dup:
 						instruction = this.ProcessDup(op);
@@ -429,7 +423,9 @@ namespace Backend
 					//    statement = new EndFinally();
 					//    break;
 
-					//case OperationCode.Initblk:
+					case OperationCode.Initblk:
+						instruction = this.ProcessFillMemory(op);
+						break;
 					//    var fillMemory = new FillMemoryStatement();
 					//    fillMemory.NumberOfBytesToFill = this.PopOperandStack();
 					//    fillMemory.FillValue = this.PopOperandStack();
@@ -650,6 +646,16 @@ namespace Backend
 			return body;
 		}
 
+		private Instruction ProcessFillMemory(IOperation op)
+		{
+			var numberOfBytes = stack.Pop();
+			var fillValue = stack.Pop();
+			var targetAddress = stack.Pop();
+
+			var instruction = new FillMemoryInstruction(op.Offset, targetAddress, fillValue, numberOfBytes);
+			return instruction;
+		}
+
 		private Instruction ProcessArrayCreate(IOperation op, bool withLowerBounds)
 		{
 			var arrayType = op.Value as IArrayTypeReference;
@@ -689,13 +695,22 @@ namespace Backend
 			return instruction;
 		}
 
+		private Instruction ProcessCopyObject(IOperation op)
+		{
+			var sourceAddress = stack.Pop();
+			var targetAddress = stack.Pop();
+
+			var instruction = new CopyObjectInstruction(op.Offset, targetAddress, sourceAddress);
+			return instruction;
+		}
+
 		private Instruction ProcessCopyMemory(IOperation op)
 		{
 			var numberOfBytes = stack.Pop();
 			var sourceAddress = stack.Pop();
 			var targetAddress = stack.Pop();
 
-			var instruction = new CopyMemoryInstruction(op.Offset, sourceAddress, targetAddress, numberOfBytes);
+			var instruction = new CopyMemoryInstruction(op.Offset, targetAddress, sourceAddress, numberOfBytes);
 			return instruction;
 		}
 

@@ -5,6 +5,17 @@ using System.Text;
 
 namespace Test
 {
+	struct Point
+	{
+		int x, y;
+
+		public Point(int a, int b)
+		{
+			x = a;
+			y = b;
+		}
+	}
+
 	public class Examples
 	{
 		public int F1;
@@ -26,8 +37,11 @@ namespace Test
 		{
 			//this.Print(a, b);
 
-			var arr = new int[a, 3, 4];
-			var arr2 = new int[2][][];
+			var p1 = new Point(a, b);
+			var p2 = p1;
+
+			//var arr = new int[a, 3, 4];
+			//var arr2 = new int[2][][];
 			
 			var obj = new Examples();
 			//obj.F1 = 6;
