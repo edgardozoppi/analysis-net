@@ -284,11 +284,11 @@ namespace Backend
 						break;
 
 					case OperationCode.Break:
-						instruction = this.ProcessEmptyOperation(op, EmptyOperation.Break);
+						instruction = this.ProcessBreakpointOperation(op);
 						break;
 
 					case OperationCode.Nop:
-						instruction = this.ProcessEmptyOperation(op, EmptyOperation.Nop);
+						instruction = this.ProcessEmptyOperation(op);
 						break;
 
 					case OperationCode.Brfalse:
@@ -306,11 +306,16 @@ namespace Backend
 						instruction = this.ProcessCall(op);
 						break;
 
+					case OperationCode.Jmp:
+						instruction = this.ProcessJumpCall(op);
+						break;
+
 					//case OperationCode.Calli:
 					//    expression = this.ParsePointerCall(currentOperation);
 					//    break;
 
 					case OperationCode.Castclass:
+					case OperationCode.Isinst:
 					case OperationCode.Box:
 					case OperationCode.Unbox:
 					case OperationCode.Unbox_Any:
@@ -426,24 +431,9 @@ namespace Backend
 					case OperationCode.Initblk:
 						instruction = this.ProcessFillMemory(op);
 						break;
-					//    var fillMemory = new FillMemoryStatement();
-					//    fillMemory.NumberOfBytesToFill = this.PopOperandStack();
-					//    fillMemory.FillValue = this.PopOperandStack();
-					//    fillMemory.TargetAddress = this.PopOperandStack();
-					//    statement = fillMemory;
-					//    break;
 
 					//case OperationCode.Initobj:
 					//    statement = this.ParseInitObject(currentOperation);
-					//    break;
-
-					//case OperationCode.Isinst:
-					//    expression = this.ParseCastIfPossible(currentOperation);
-					//    break;
-
-					//case OperationCode.Jmp:
-					//    var methodToCall = (IMethodReference)currentOperation.Value;
-					//    expression = new MethodCall() { IsJumpCall = true, MethodToCall = methodToCall, Type = methodToCall.Type };
 					//    break;
 
 					case OperationCode.Ldarg:
@@ -773,6 +763,25 @@ namespace Backend
 			return instruction;
 		}
 
+		private Instruction ProcessJumpCall(IOperation op)
+		{
+			var callee = op.Value as IMethodReference;
+			var arguments = new List<Operand>();
+			Variable result = null;
+
+			foreach (var par in parameters)
+			{
+				var arg = par.Value;
+				arguments.Add(arg);
+			}
+
+			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
+				result = stack.Push();
+
+			var instruction = new CallInstruction(op.Offset, result, callee, arguments);
+			return instruction;
+		}
+
 		private Instruction ProcessSizeOf(IOperation op)
 		{
 			var type = op.Value as ITypeReference;
@@ -905,9 +914,15 @@ namespace Backend
 			return instruction;
 		}
 
-		private Instruction ProcessEmptyOperation(IOperation op, EmptyOperation operation)
+		private Instruction ProcessEmptyOperation(IOperation op)
 		{
-			var instruction = new EmptyInstruction(op.Offset, operation);
+			var instruction = new EmptyInstruction(op.Offset);
+			return instruction;
+		}
+
+		private Instruction ProcessBreakpointOperation(IOperation op)
+		{
+			var instruction = new BreakpointInstruction(op.Offset);
 			return instruction;
 		}
 

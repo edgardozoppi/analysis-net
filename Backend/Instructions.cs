@@ -34,12 +34,6 @@ namespace Backend
 		Neg
 	}
 
-	public enum EmptyOperation
-	{
-		Nop,
-		Break
-	}
-
 	public enum BranchCondition
 	{
 		Eq,
@@ -133,25 +127,27 @@ namespace Backend
 
 	public class EmptyInstruction : Instruction
 	{
-		public EmptyOperation Operation { get; set; }
-
-		public EmptyInstruction(uint label, EmptyOperation operation)
+		public EmptyInstruction(uint label)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
-			this.Operation = operation;
 		}
 
 		public override string ToString()
 		{
-			var operation = "??";
+			return string.Format("{0}:  nop;", this.Label);
+		}
+	}
 
-			switch (this.Operation)
-			{
-				case EmptyOperation.Nop: operation = "nop"; break;
-				case EmptyOperation.Break: operation = "break"; break;
-			}
+	public class BreakpointInstruction : Instruction
+	{
+		public BreakpointInstruction(uint label)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+		}
 
-			return string.Format("{0}:  {1};", this.Label, operation);
+		public override string ToString()
+		{
+			return string.Format("{0}:  breakpoint;", this.Label);
 		}
 	}
 
