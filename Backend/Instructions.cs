@@ -113,18 +113,20 @@ namespace Backend
 
 		public override string ToString()
 		{
-			var operation = "??";
+			var rightOperation = string.Empty;
+			var leftOperation = string.Empty;
 
 			switch (this.Operation)
 			{
-				case UnaryOperation.Assign: operation = string.Empty; break;
-				case UnaryOperation.AddressOf: operation = "&"; break;
-				case UnaryOperation.GetValueAt: operation = "*"; break;
-				case UnaryOperation.Neg: operation = "-"; break;
-				case UnaryOperation.Not: operation = "!"; break;
+				case UnaryOperation.Assign: break;
+				case UnaryOperation.AddressOf: leftOperation = "&"; break;
+				case UnaryOperation.GetValueAt: leftOperation = "*"; break;
+				case UnaryOperation.SetValueAt: rightOperation = "*"; break;
+				case UnaryOperation.Neg: leftOperation = "-"; break;
+				case UnaryOperation.Not: leftOperation = "!"; break;
 			}
 
-			return string.Format("{0}:  {1} = {2}{3};", this.Label, this.Result, operation, this.Operand);
+			return string.Format("{0}:  {1}{2} = {3}{4};", this.Label, rightOperation, this.Result, leftOperation, this.Operand);
 		}
 	}
 
