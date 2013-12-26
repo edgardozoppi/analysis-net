@@ -30,6 +30,8 @@ namespace Backend
 	{
 		Assign,
 		AddressOf,
+		GetValueAt,
+		SetValueAt,
 		Not,
 		Neg
 	}
@@ -117,6 +119,7 @@ namespace Backend
 			{
 				case UnaryOperation.Assign: operation = string.Empty; break;
 				case UnaryOperation.AddressOf: operation = "&"; break;
+				case UnaryOperation.GetValueAt: operation = "*"; break;
 				case UnaryOperation.Neg: operation = "-"; break;
 				case UnaryOperation.Not: operation = "!"; break;
 			}

@@ -494,20 +494,20 @@ namespace Backend
 						instruction = this.ProcessLoadConstant(op);
 						break;
 
-					//case OperationCode.Ldind_I:
-					//case OperationCode.Ldind_I1:
-					//case OperationCode.Ldind_I2:
-					//case OperationCode.Ldind_I4:
-					//case OperationCode.Ldind_I8:
-					//case OperationCode.Ldind_R4:
-					//case OperationCode.Ldind_R8:
-					//case OperationCode.Ldind_Ref:
-					//case OperationCode.Ldind_U1:
-					//case OperationCode.Ldind_U2:
-					//case OperationCode.Ldind_U4:
-					//case OperationCode.Ldobj:
-					//    expression = this.ParseAddressDereference(currentOperation);
-					//    break;
+					case OperationCode.Ldind_I:
+					case OperationCode.Ldind_I1:
+					case OperationCode.Ldind_I2:
+					case OperationCode.Ldind_I4:
+					case OperationCode.Ldind_I8:
+					case OperationCode.Ldind_R4:
+					case OperationCode.Ldind_R8:
+					case OperationCode.Ldind_Ref:
+					case OperationCode.Ldind_U1:
+					case OperationCode.Ldind_U2:
+					case OperationCode.Ldind_U4:
+					case OperationCode.Ldobj:
+						instruction = this.ProcessIndirectLoad(op);
+						break;
 
 					//case OperationCode.Ldlen:
 					//    expression = this.ParseVectorLength();
@@ -585,14 +585,17 @@ namespace Backend
 					//case OperationCode.Stelem_R8:
 					//case OperationCode.Stelem_Ref:
 					//case OperationCode.Stfld:
-					//case OperationCode.Stind_I:
-					//case OperationCode.Stind_I1:
-					//case OperationCode.Stind_I2:
-					//case OperationCode.Stind_I4:
-					//case OperationCode.Stind_I8:
-					//case OperationCode.Stind_R4:
-					//case OperationCode.Stind_R8:
-					//case OperationCode.Stind_Ref:
+
+					case OperationCode.Stind_I:
+					case OperationCode.Stind_I1:
+					case OperationCode.Stind_I2:
+					case OperationCode.Stind_I4:
+					case OperationCode.Stind_I8:
+					case OperationCode.Stind_R4:
+					case OperationCode.Stind_R8:
+					case OperationCode.Stind_Ref:
+						instruction = this.ProcessIndirectStore(op);
+					    break;
 
 					case OperationCode.Stloc:
 					case OperationCode.Stloc_0:
@@ -628,6 +631,10 @@ namespace Backend
 					//case OperationCode.Volatile_:
 					//    this.sawVolatile = true;
 					//    break;
+
+					default:
+						Console.WriteLine("Unknown bytecode: {0}", op.OperationCode);
+						break;
 				}
 
 				body.Instructions.Add(instruction);
@@ -890,6 +897,14 @@ namespace Backend
 			return instruction;
 		}
 
+		private Instruction ProcessIndirectLoad(IOperation op)
+		{
+			var source = stack.Pop();
+			var dest = stack.Push();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.GetValueAt, source);
+			return instruction;
+		}
+
 		private Instruction ProcessStoreArgument(IOperation op)
 		{
 			var dest = thisParameter;
@@ -911,6 +926,14 @@ namespace Backend
 			var dest = locals[local];
 			var source = stack.Pop();
 			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			return instruction;
+		}
+
+		private Instruction ProcessIndirectStore(IOperation op)
+		{
+			var source = stack.Pop();
+			var dest = stack.Pop();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.SetValueAt, source);
 			return instruction;
 		}
 
