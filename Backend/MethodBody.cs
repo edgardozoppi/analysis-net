@@ -8,7 +8,7 @@ namespace Backend
 {
 	public class MethodBody
 	{
-		public IMethodDefinition MethodDefinition;
+		public IMethodDefinition MethodDefinition { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
 
 		public MethodBody(IMethodDefinition methodDefinition)

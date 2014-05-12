@@ -464,7 +464,10 @@ namespace Backend
 						instruction = this.ProcessLoadLocalAddress(op);
 					    break;
 
-					//case OperationCode.Ldfld:
+					case OperationCode.Ldfld:
+						instruction = this.ProcessLoadField(op);
+						break;
+
 					//case OperationCode.Ldsfld:
 
 					//case OperationCode.Ldflda:
@@ -584,7 +587,9 @@ namespace Backend
 					//case OperationCode.Stelem_R4:
 					//case OperationCode.Stelem_R8:
 					//case OperationCode.Stelem_Ref:
-					//case OperationCode.Stfld:
+					case OperationCode.Stfld:
+						instruction = this.ProcessStoreField(op);
+						break;
 
 					case OperationCode.Stind_I:
 					case OperationCode.Stind_I1:
@@ -633,7 +638,8 @@ namespace Backend
 					//    break;
 
 					default:
-						Console.WriteLine("Unknown bytecode: {0}", op.OperationCode);
+						//throw new UnknownBytecodeException(op);
+						System.Console.WriteLine("Unknown bytecode: {0}", op.OperationCode);
 						break;
 				}
 
@@ -905,6 +911,16 @@ namespace Backend
 			return instruction;
 		}
 
+		private Instruction ProcessLoadField(IOperation op)
+		{
+			var field = op.Value as IFieldDefinition;
+			var obj = stack.Pop();
+			var dest = stack.Push();
+			var source = new FieldAccess(obj, field.Name.Value);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			return instruction;
+		}
+
 		private Instruction ProcessStoreArgument(IOperation op)
 		{
 			var dest = thisParameter;
@@ -934,6 +950,16 @@ namespace Backend
 			var source = stack.Pop();
 			var dest = stack.Pop();
 			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.SetValueAt, source);
+			return instruction;
+		}
+
+		private Instruction ProcessStoreField(IOperation op)
+		{
+			var field = op.Value as IFieldDefinition;
+			var source = stack.Pop();
+			var obj = stack.Pop();
+			var dest = new FieldAccess(obj, field.Name.Value);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
 			return instruction;
 		}
 

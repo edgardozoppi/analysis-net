@@ -55,9 +55,9 @@ namespace Backend
 
 	public class FieldAccess : Variable
 	{
-		public LocalVariable Instance { get; set; }
+		public Variable Instance { get; set; }
 
-		public FieldAccess(LocalVariable instance, string name)
+		public FieldAccess(Variable instance, string name)
 		{
 			this.Instance = instance;
 			this.Name = name;

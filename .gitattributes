@@ -1,6 +1,7 @@
 * text=auto !eol
 Backend/Backend.csproj -text
 Backend/Disassembler.cs -text
+Backend/Exceptions.cs -text
 Backend/Instructions.cs -text
 Backend/MethodBody.cs -text
 Backend/Operands.cs -text

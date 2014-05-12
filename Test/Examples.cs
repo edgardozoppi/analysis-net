@@ -44,7 +44,7 @@ namespace Test
 			//var arr2 = new int[2][][];
 			
 			var obj = new Examples();
-			//obj.F1 = 6;
+			obj.F1 = 6 * obj.F1;
 
 			return a + b;
 		}
