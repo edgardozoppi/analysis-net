@@ -7,7 +7,7 @@ namespace Test
 {
 	struct Point
 	{
-		int x, y;
+		public int x, y;
 
 		public Point(int a, int b)
 		{
@@ -19,6 +19,7 @@ namespace Test
 	public class Examples
 	{
 		public int F1;
+		private static int F2;
 
 		public int Example1(int arg1)
 		{
@@ -44,9 +45,18 @@ namespace Test
 			//var arr2 = new int[2][][];
 			
 			var obj = new Examples();
-			obj.F1 = 6 * obj.F1;
+			obj.F1 = 6 * obj.F1 + Examples.F2;
+
+			var array = new int[3];
+			var tamanio = array.Length;
 
 			return a + b;
+		}
+
+		public T Example2<T>()
+		{
+			var a = default(T);
+			return a;
 		}
 
 		//public void Print(params object[] args)

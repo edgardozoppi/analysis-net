@@ -181,12 +181,12 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Array_Create_WithLowerBound:
-						instruction = this.ProcessArrayCreate(op, true);
+						instruction = this.ProcessCreateArray(op, true);
 						break;
 
 					case OperationCode.Array_Create:
 					case OperationCode.Newarr:
-						instruction = this.ProcessArrayCreate(op, false);
+						instruction = this.ProcessCreateArray(op, false);
 						break;
 
 					//case OperationCode.Array_Get:
@@ -303,7 +303,7 @@ namespace Backend
 
 					case OperationCode.Call:
 					case OperationCode.Callvirt:
-						instruction = this.ProcessCall(op);
+						instruction = this.ProcessMethodCall(op);
 						break;
 
 					case OperationCode.Jmp:
@@ -429,12 +429,12 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Initblk:
-						instruction = this.ProcessFillMemory(op);
+						instruction = this.ProcessInitializeMemory(op);
 						break;
 
-					//case OperationCode.Initobj:
-					//    statement = this.ParseInitObject(currentOperation);
-					//    break;
+					case OperationCode.Initobj:
+						instruction = this.ProcessInitializeObject(op);
+						break;
 
 					case OperationCode.Ldarg:
 					case OperationCode.Ldarg_0:
@@ -465,10 +465,12 @@ namespace Backend
 					    break;
 
 					case OperationCode.Ldfld:
-						instruction = this.ProcessLoadField(op);
+						instruction = this.ProcessLoadInstanceField(op);
 						break;
 
-					//case OperationCode.Ldsfld:
+					case OperationCode.Ldsfld:
+						instruction = this.ProcessLoadStaticField(op);
+						break;
 
 					//case OperationCode.Ldflda:
 					//case OperationCode.Ldsflda:
@@ -509,20 +511,20 @@ namespace Backend
 					case OperationCode.Ldind_U2:
 					case OperationCode.Ldind_U4:
 					case OperationCode.Ldobj:
-						instruction = this.ProcessIndirectLoad(op);
+						instruction = this.ProcessLoadIndirect(op);
 						break;
 
-					//case OperationCode.Ldlen:
-					//    expression = this.ParseVectorLength();
-					//    break;
+					case OperationCode.Ldlen:
+						instruction = this.ProcessLoadArrayLength(op);
+						break;
 
 					//case OperationCode.Ldtoken:
 					//    expression = ParseToken(currentOperation);
 					//    break;
 
-					//case OperationCode.Localloc:
-					//    expression = this.ParseStackArrayCreate();
-					//    break;
+					case OperationCode.Localloc:
+						instruction = this.ProcessLocalAllocation(op);
+						break;
 
 					//case OperationCode.Mkrefany:
 					//    expression = this.ParseMakeTypedReference(currentOperation);
@@ -537,7 +539,7 @@ namespace Backend
 						break;
 
 					case OperationCode.Newobj:
-						instruction = this.ProcessNew(op);
+						instruction = this.ProcessCreateObject(op);
 						break;
 
 					case OperationCode.No_:
@@ -588,7 +590,11 @@ namespace Backend
 					//case OperationCode.Stelem_R8:
 					//case OperationCode.Stelem_Ref:
 					case OperationCode.Stfld:
-						instruction = this.ProcessStoreField(op);
+						instruction = this.ProcessStoreInstanceField(op);
+						break;
+
+					case OperationCode.Stsfld:
+						instruction = this.ProcessStoreStaticField(op);
 						break;
 
 					case OperationCode.Stind_I:
@@ -599,7 +605,8 @@ namespace Backend
 					case OperationCode.Stind_R4:
 					case OperationCode.Stind_R8:
 					case OperationCode.Stind_Ref:
-						instruction = this.ProcessIndirectStore(op);
+					case OperationCode.Stobj:
+						instruction = this.ProcessStoreIndirect(op);
 					    break;
 
 					case OperationCode.Stloc:
@@ -610,9 +617,6 @@ namespace Backend
 					case OperationCode.Stloc_S:
 					    instruction = this.ProcessStoreLocal(op);
 					    break;
-
-					//case OperationCode.Stobj:
-					//case OperationCode.Stsfld:
 
 					//case OperationCode.Switch:
 					//    statement = this.ParseSwitchInstruction(currentOperation);
@@ -649,17 +653,33 @@ namespace Backend
 			return body;
 		}
 
-		private Instruction ProcessFillMemory(IOperation op)
+		private Instruction ProcessLocalAllocation(IOperation op)
+		{
+			var numberOfBytes = stack.Pop();
+			var targetAddress = stack.Push();
+
+			var instruction = new LocalAllocationInstruction(op.Offset, targetAddress, numberOfBytes);
+			return instruction;
+		}
+
+		private Instruction ProcessInitializeMemory(IOperation op)
 		{
 			var numberOfBytes = stack.Pop();
 			var fillValue = stack.Pop();
 			var targetAddress = stack.Pop();
 
-			var instruction = new FillMemoryInstruction(op.Offset, targetAddress, fillValue, numberOfBytes);
+			var instruction = new InitializeMemoryInstruction(op.Offset, targetAddress, fillValue, numberOfBytes);
 			return instruction;
 		}
 
-		private Instruction ProcessArrayCreate(IOperation op, bool withLowerBounds)
+		private Instruction ProcessInitializeObject(IOperation op)
+		{
+			var targetAddress = stack.Pop();
+			var instruction = new InitializeObjectInstruction(op.Offset, targetAddress);
+			return instruction;
+		}
+
+		private Instruction ProcessCreateArray(IOperation op, bool withLowerBounds)
 		{
 			var arrayType = op.Value as IArrayTypeReference;
 			var elementType = arrayType.ElementType;
@@ -694,7 +714,7 @@ namespace Backend
 			sizes.Reverse();
 
 			var result = stack.Push();
-			var instruction = new NewArrayInstruction(op.Offset, result, elementType, rank, lowerBounds, sizes);
+			var instruction = new CreateArrayInstruction(op.Offset, result, elementType, rank, lowerBounds, sizes);
 			return instruction;
 		}
 
@@ -717,7 +737,7 @@ namespace Backend
 			return instruction;
 		}
 
-		private Instruction ProcessNew(IOperation op)
+		private Instruction ProcessCreateObject(IOperation op)
 		{
 			var callee = op.Value as IMethodReference;
 			var arguments = new List<Operand>();
@@ -738,11 +758,11 @@ namespace Backend
 			arguments.Add(result);
 			arguments.Reverse();
 
-			var instruction = new NewInstruction(op.Offset, result, callee, arguments);
+			var instruction = new CreateObjectInstruction(op.Offset, result, callee, arguments);
 			return instruction;
 		}
 
-		private Instruction ProcessCall(IOperation op)
+		private Instruction ProcessMethodCall(IOperation op)
 		{
 			var callee = op.Value as IMethodReference;
 			var arguments = new List<Operand>();
@@ -772,7 +792,7 @@ namespace Backend
 			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
 				result = stack.Push();
 
-			var instruction = new CallInstruction(op.Offset, result, callee, arguments);
+			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
 			return instruction;
 		}
 
@@ -791,7 +811,7 @@ namespace Backend
 			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
 				result = stack.Push();
 
-			var instruction = new CallInstruction(op.Offset, result, callee, arguments);
+			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
 			return instruction;
 		}
 
@@ -799,7 +819,7 @@ namespace Backend
 		{
 			var type = op.Value as ITypeReference;
 			var result = stack.Push();
-			var instruction = new SizeOfInstruction(op.Offset, result, type);
+			var instruction = new SizeofInstruction(op.Offset, result, type);
 			return instruction;
 		}
 
@@ -903,7 +923,7 @@ namespace Backend
 			return instruction;
 		}
 
-		private Instruction ProcessIndirectLoad(IOperation op)
+		private Instruction ProcessLoadIndirect(IOperation op)
 		{
 			var source = stack.Pop();
 			var dest = stack.Push();
@@ -911,13 +931,31 @@ namespace Backend
 			return instruction;
 		}
 
-		private Instruction ProcessLoadField(IOperation op)
+		private Instruction ProcessLoadInstanceField(IOperation op)
 		{
 			var field = op.Value as IFieldDefinition;
 			var obj = stack.Pop();
 			var dest = stack.Push();
-			var source = new FieldAccess(obj, field.Name.Value);
+			var source = new InstanceFieldAccess(obj, field.Name.Value);
 			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			return instruction;
+		}
+
+		private Instruction ProcessLoadStaticField(IOperation op)
+		{
+			var field = op.Value as IFieldDefinition;
+			var dest = stack.Push();
+			var source = new StaticFieldAccess(field.ContainingType, field.Name.Value);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			return instruction;
+		}
+
+		private Instruction ProcessLoadArrayLength(IOperation op)
+		{
+			var array = stack.Pop();
+			var dest = stack.Push();
+			var length = new InstanceFieldAccess(array, "Length");
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, length);
 			return instruction;
 		}
 
@@ -945,7 +983,7 @@ namespace Backend
 			return instruction;
 		}
 
-		private Instruction ProcessIndirectStore(IOperation op)
+		private Instruction ProcessStoreIndirect(IOperation op)
 		{
 			var source = stack.Pop();
 			var dest = stack.Pop();
@@ -953,12 +991,21 @@ namespace Backend
 			return instruction;
 		}
 
-		private Instruction ProcessStoreField(IOperation op)
+		private Instruction ProcessStoreInstanceField(IOperation op)
 		{
 			var field = op.Value as IFieldDefinition;
 			var source = stack.Pop();
 			var obj = stack.Pop();
-			var dest = new FieldAccess(obj, field.Name.Value);
+			var dest = new InstanceFieldAccess(obj, field.Name.Value);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			return instruction;
+		}
+
+		private Instruction ProcessStoreStaticField(IOperation op)
+		{
+			var field = op.Value as IFieldDefinition;
+			var source = stack.Pop();
+			var dest = new StaticFieldAccess(field.ContainingType, field.Name.Value);
 			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
 			return instruction;
 		}

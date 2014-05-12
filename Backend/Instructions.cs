@@ -174,7 +174,8 @@ namespace Backend
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} = {2} as {3};", this.Label, this.Result, this.Operand, this.Type);
+			var type = TypeHelper.GetTypeName(this.Type);
+			return string.Format("{0}:  {1} = {2} as {3};", this.Label, this.Result, this.Operand, type);
 		}
 	}
 
@@ -254,12 +255,12 @@ namespace Backend
 		}
 	}
 
-	public class SizeOfInstruction : Instruction
+	public class SizeofInstruction : Instruction
 	{
 		public ITypeReference Type { get; set; }
 		public Variable Result { get; set; }
 
-		public SizeOfInstruction(uint label, Variable result, ITypeReference type)
+		public SizeofInstruction(uint label, Variable result, ITypeReference type)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Result = result;
@@ -268,17 +269,18 @@ namespace Backend
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  sizeOf {1};", this.Label, this.Result, this.Type);
+			var type = TypeHelper.GetTypeName(this.Type);
+			return string.Format("{0}:  sizeof {1};", this.Label, this.Result, type);
 		}
 	}
 
-	public class CallInstruction : Instruction
+	public class MethodCallInstruction : Instruction
 	{
 		public IMethodReference Method { get; set; }
 		public Variable Result { get; set; }
 		public List<Operand> Arguments { get; private set; }
 
-		public CallInstruction(uint label, Variable result, IMethodReference method, IEnumerable<Operand> arguments)
+		public MethodCallInstruction(uint label, Variable result, IMethodReference method, IEnumerable<Operand> arguments)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Arguments = new List<Operand>(arguments);
@@ -300,13 +302,13 @@ namespace Backend
 		}
 	}
 
-	public class NewInstruction : Instruction
+	public class CreateObjectInstruction : Instruction
 	{
 		public IMethodReference Constructor { get; set; }
 		public Variable Result { get; set; }
 		public List<Operand> Arguments { get; private set; }
 
-		public NewInstruction(uint label, Variable result, IMethodReference constructor, IEnumerable<Operand> arguments)
+		public CreateObjectInstruction(uint label, Variable result, IMethodReference constructor, IEnumerable<Operand> arguments)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Arguments = new List<Operand>(arguments);
@@ -343,13 +345,31 @@ namespace Backend
 		}
 	}
 
-	public class FillMemoryInstruction : Instruction
+	public class LocalAllocationInstruction : Instruction
+	{
+		public Operand NumberOfBytes { get; set; }
+		public Operand TargetAddress { get; set; }
+
+		public LocalAllocationInstruction(uint label, Operand target, Operand numberOfBytes)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.NumberOfBytes = numberOfBytes;
+			this.TargetAddress = target;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  allocate {1} bytes at {2};", this.Label, this.NumberOfBytes, this.TargetAddress);
+		}
+	}
+
+	public class InitializeMemoryInstruction : Instruction
 	{
 		public Operand NumberOfBytes { get; set; }
 		public Operand Value { get; set; }
 		public Operand TargetAddress { get; set; }
 
-		public FillMemoryInstruction(uint label, Operand target, Operand value, Operand numberOfBytes)
+		public InitializeMemoryInstruction(uint label, Operand target, Operand value, Operand numberOfBytes)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.NumberOfBytes = numberOfBytes;
@@ -359,7 +379,23 @@ namespace Backend
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  fill {1} bytes at {2} with {3};", this.Label, this.NumberOfBytes, this.TargetAddress, this.Value);
+			return string.Format("{0}:  init {1} bytes at {2} with {3};", this.Label, this.NumberOfBytes, this.TargetAddress, this.Value);
+		}
+	}
+
+	public class InitializeObjectInstruction : Instruction
+	{
+		public Operand TargetAddress { get; set; }
+
+		public InitializeObjectInstruction(uint label, Operand target)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.TargetAddress = target;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  init object at {1};", this.Label, this.TargetAddress);
 		}
 	}
 
@@ -381,7 +417,7 @@ namespace Backend
 		}
 	}
 
-	public class NewArrayInstruction : Instruction
+	public class CreateArrayInstruction : Instruction
 	{
 		public Variable Result { get; set; }
 		public ITypeReference ElementType { get; set; }
@@ -389,7 +425,7 @@ namespace Backend
 		public List<Operand> LowerBounds { get; private set; }
 		public List<Operand> Sizes { get; private set; }
 
-		public NewArrayInstruction(uint label, Variable result, ITypeReference elementType, uint rank, IEnumerable<Operand> lowerBounds, IEnumerable<Operand> sizes)
+		public CreateArrayInstruction(uint label, Variable result, ITypeReference elementType, uint rank, IEnumerable<Operand> lowerBounds, IEnumerable<Operand> sizes)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Result = result;

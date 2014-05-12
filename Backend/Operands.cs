@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Cci;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -48,24 +49,34 @@ namespace Backend
 
 		public TemporalVariable(uint index)
 		{
-			this.Name = string.Format("t{0}", index);
 			this.Index = index;
+			this.Name = string.Format("t{0}", this.Index);
 		}
 	}
 
-	public class FieldAccess : Variable
+	public class StaticFieldAccess : Variable
 	{
-		public Variable Instance { get; set; }
+		public string FieldName { get; private set; }
+		public ITypeReference ContainingType { get; set; }
 
-		public FieldAccess(Variable instance, string name)
+		public StaticFieldAccess(ITypeReference containingType, string fieldName)
+		{
+			this.ContainingType = containingType;
+			this.FieldName = fieldName;
+			this.Name = string.Format("{0}::{1}", this.ContainingType, this.FieldName);
+		}
+	}
+
+	public class InstanceFieldAccess : Variable
+	{
+		public string FieldName { get; private set; }
+		public Variable Instance { get; private set; }
+
+		public InstanceFieldAccess(Variable instance, string fieldName)
 		{
 			this.Instance = instance;
-			this.Name = name;
-		}
-
-		public override string ToString()
-		{
-			return string.Format("{0}.{1}", this.Instance, this.Name);
+			this.FieldName = fieldName;
+			this.Name = string.Format("{0}.{1}", this.Instance, this.FieldName);
 		}
 	}
 }
