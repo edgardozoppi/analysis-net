@@ -310,9 +310,9 @@ namespace Backend
 						instruction = this.ProcessJumpCall(op);
 						break;
 
-					//case OperationCode.Calli:
-					//    expression = this.ParsePointerCall(currentOperation);
-					//    break;
+					case OperationCode.Calli:
+						instruction = this.ProcessMethodCallIndirect(op);
+						break;
 
 					case OperationCode.Castclass:
 					case OperationCode.Isinst:
@@ -472,12 +472,21 @@ namespace Backend
 						instruction = this.ProcessLoadStaticField(op);
 						break;
 
-					//case OperationCode.Ldflda:
-					//case OperationCode.Ldsflda:
-					//case OperationCode.Ldftn:
-					//case OperationCode.Ldvirtftn:
-					//    expression = this.ParseAddressOf(instruction);
-					//    break;
+					case OperationCode.Ldflda:
+						instruction = this.ProcessLoadInstanceFieldAddress(op);
+						break;
+
+					case OperationCode.Ldsflda:
+						instruction = this.ProcessLoadStaticFieldAddress(op);
+						break;
+
+					case OperationCode.Ldftn:
+						instruction = this.ProcessLoadMethodAddress(op);
+						break;
+
+					case OperationCode.Ldvirtftn:
+						instruction = this.ProcessLoadVirtualMethodAddress(op);
+						break;
 
 					case OperationCode.Ldc_I4:
 					case OperationCode.Ldc_I4_0:
@@ -572,7 +581,7 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Sizeof:
-						instruction = this.ProcessSizeOf(op);
+						instruction = this.ProcessSizeof(op);
 						break;
 
 					case OperationCode.Starg:
@@ -796,11 +805,46 @@ namespace Backend
 			return instruction;
 		}
 
+		private Instruction ProcessMethodCallIndirect(IOperation op)
+		{
+			var calleeType = op.Value as IFunctionPointerTypeReference;
+			var calleePointer = stack.Pop();
+			var arguments = new List<Operand>();
+			Variable result = null;
+
+			foreach (var par in calleeType.Parameters)
+			{
+				var arg = stack.Pop();
+				arguments.Add(arg);
+			}
+
+			if (!calleeType.IsStatic)
+			{
+				// Adding implicit this parameter
+				var argThis = stack.Pop();
+				arguments.Add(argThis);
+			}
+
+			arguments.Reverse();
+
+			if (calleeType.Type.TypeCode != PrimitiveTypeCode.Void)
+				result = stack.Push();
+
+			var instruction = new IndirectMethodCallInstruction(op.Offset, result, calleePointer, calleeType, arguments);
+			return instruction;
+		}
+
 		private Instruction ProcessJumpCall(IOperation op)
 		{
 			var callee = op.Value as IMethodReference;
 			var arguments = new List<Operand>();
 			Variable result = null;
+
+			if (!callee.IsStatic)
+			{
+				// Adding implicit this parameter
+				arguments.Add(thisParameter);
+			}
 
 			foreach (var par in parameters)
 			{
@@ -815,7 +859,7 @@ namespace Backend
 			return instruction;
 		}
 
-		private Instruction ProcessSizeOf(IOperation op)
+		private Instruction ProcessSizeof(IOperation op)
 		{
 			var type = op.Value as ITypeReference;
 			var result = stack.Push();
@@ -950,12 +994,50 @@ namespace Backend
 			return instruction;
 		}
 
+		private Instruction ProcessLoadInstanceFieldAddress(IOperation op)
+		{
+			var field = op.Value as IFieldDefinition;
+			var obj = stack.Pop();
+			var dest = stack.Push();
+			var source = new InstanceFieldAccess(obj, field.Name.Value);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			return instruction;
+		}
+
+		private Instruction ProcessLoadStaticFieldAddress(IOperation op)
+		{
+			var field = op.Value as IFieldDefinition;
+			var dest = stack.Push();
+			var source = new StaticFieldAccess(field.ContainingType, field.Name.Value);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			return instruction;
+		}
+
 		private Instruction ProcessLoadArrayLength(IOperation op)
 		{
 			var array = stack.Pop();
 			var dest = stack.Push();
 			var length = new InstanceFieldAccess(array, "Length");
 			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, length);
+			return instruction;
+		}
+
+		private Instruction ProcessLoadMethodAddress(IOperation op)
+		{
+			var method = op.Value as IMethodReference;
+			var source = new StaticMethod(method);
+			var dest = stack.Push();
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			return instruction;
+		}
+
+		private Instruction ProcessLoadVirtualMethodAddress(IOperation op)
+		{
+			var method = op.Value as IMethodReference;
+			var obj = stack.Pop();
+			var dest = stack.Push();
+			var source = new VirtualMethod(obj, method);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
 			return instruction;
 		}
 

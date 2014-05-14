@@ -302,6 +302,34 @@ namespace Backend
 		}
 	}
 
+	public class IndirectMethodCallInstruction : Instruction
+	{
+		public IFunctionPointerTypeReference Type { get; set; }
+		public Variable Pointer { get; set; }
+		public Variable Result { get; set; }
+		public List<Operand> Arguments { get; private set; }
+
+		public IndirectMethodCallInstruction(uint label, Variable result, Variable pointer, IFunctionPointerTypeReference type, IEnumerable<Operand> arguments)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Arguments = new List<Operand>(arguments);
+			this.Result = result;
+			this.Pointer = pointer;
+			this.Type = type;
+		}
+
+		public override string ToString()
+		{
+			var result = string.Empty;
+			var arguments = string.Join(", ", this.Arguments);
+
+			if (this.Result != null)
+				result = string.Format("{0} = ", this.Result);
+
+			return string.Format("{0}:  {1}(*{2})({3});", this.Label, result, this.Pointer, arguments);
+		}
+	}
+
 	public class CreateObjectInstruction : Instruction
 	{
 		public IMethodReference Constructor { get; set; }
