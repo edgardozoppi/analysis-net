@@ -1,4 +1,5 @@
 * text=auto !eol
+Backend/Analisis/CFGGenerator.cs -text
 Backend/Backend.csproj -text
 Backend/Disassembler.cs -text
 Backend/Exceptions.cs -text

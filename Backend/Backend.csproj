@@ -67,6 +67,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analisis\CFGGenerator.cs" />
     <Compile Include="Disassembler.cs" />
     <Compile Include="Instructions.cs" />
     <Compile Include="MethodBody.cs" />

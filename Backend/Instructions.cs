@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Cci;
+using Backend.Operands;
 
-namespace Backend
+namespace Backend.Instructions
 {
 	public enum BinaryOperation
 	{
@@ -205,7 +206,12 @@ namespace Backend
 		}
 	}
 
-	public class UnconditionalBranchInstruction : Instruction
+	public interface IBranchInstruction
+	{
+		string Target { get; }
+	}
+
+	public class UnconditionalBranchInstruction : Instruction, IBranchInstruction
 	{
 		public string Target { get; set; }
 
@@ -221,7 +227,7 @@ namespace Backend
 		}
 	}
 
-	public class ConditionalBranchInstruction : Instruction
+	public class ConditionalBranchInstruction : Instruction, IBranchInstruction
 	{
 		public Operand LeftOperand { get; set; }
 		public Operand RightOperand { get; set; }
