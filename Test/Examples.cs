@@ -50,6 +50,9 @@ namespace Test
 			var array = new int[3];
 			var tamanio = array.Length;
 
+			array[a] = b;
+			a = array[b];
+
 			return a + b;
 		}
 

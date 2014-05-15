@@ -170,16 +170,6 @@ namespace Backend
 					//    //expression = new RuntimeArgumentHandleExpression();
 					//    break;
 
-					//case OperationCode.Array_Addr:
-					//    //elementType = ((IArrayTypeReference)currentOperation.Value).ElementType;
-					//    //expression = this.ParseArrayElementAddres(currentOperation, elementType);
-					//    break;
-
-					//case OperationCode.Ldelema:
-					//    //elementType = (ITypeReference)currentOperation.Value;
-					//    //expression = this.ParseArrayElementAddress(currentOperation, elementType, treatArrayAsSingleDimensioned: true);
-					//    break;
-
 					case OperationCode.Array_Create_WithLowerBound:
 						instruction = this.ProcessCreateArray(op, true);
 						break;
@@ -189,51 +179,26 @@ namespace Backend
 						instruction = this.ProcessCreateArray(op, false);
 						break;
 
-					//case OperationCode.Array_Get:
-					//    //elementType = ((IArrayTypeReference)currentOperation.Value).ElementType;
-					//    //expression = this.ParseArrayIndexer(currentOperation, elementType ?? this.platformType.SystemObject, treatArrayAsSingleDimensioned: false);
-					//    break;
+					case OperationCode.Array_Get:
+					case OperationCode.Ldelem:
+					case OperationCode.Ldelem_I:
+					case OperationCode.Ldelem_I1:
+					case OperationCode.Ldelem_I2:
+					case OperationCode.Ldelem_I4:
+					case OperationCode.Ldelem_I8:
+					case OperationCode.Ldelem_R4:
+					case OperationCode.Ldelem_R8:
+					case OperationCode.Ldelem_U1:
+					case OperationCode.Ldelem_U2:
+					case OperationCode.Ldelem_U4:
+					case OperationCode.Ldelem_Ref:
+						instruction = this.ProcessLoadArrayElement(op);
+						break;
 
-					//case OperationCode.Ldelem:
-					//    elementType = (ITypeReference)currentOperation.Value;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_I:
-					//    elementType = this.platformType.SystemIntPtr;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_I1:
-					//    elementType = this.platformType.SystemInt8;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_I2:
-					//    elementType = this.platformType.SystemInt16;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_I4:
-					//    elementType = this.platformType.SystemInt32;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_I8:
-					//    elementType = this.platformType.SystemInt64;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_R4:
-					//    elementType = this.platformType.SystemFloat32;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_R8:
-					//    elementType = this.platformType.SystemFloat64;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_U1:
-					//    elementType = this.platformType.SystemUInt8;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_U2:
-					//    elementType = this.platformType.SystemUInt16;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_U4:
-					//    elementType = this.platformType.SystemUInt32;
-					//    goto case OperationCode.Ldelem_Ref;
-					//case OperationCode.Ldelem_Ref:
-					//    expression = this.ParseArrayIndexer(currentOperation, elementType ?? this.platformType.SystemObject, treatArrayAsSingleDimensioned: true);
-					//    break;
-
-					//case OperationCode.Array_Set:
-					//    statement = this.ParseArraySet(currentOperation);
-					//    break;
+					case OperationCode.Array_Addr:
+					case OperationCode.Ldelema:
+						instruction = this.ProcessLoadArrayElementAddress(op);
+						break;
 
 					case OperationCode.Beq:
 					case OperationCode.Beq_S:
@@ -589,15 +554,19 @@ namespace Backend
 						instruction = this.ProcessStoreArgument(op);
 					    break;
 
-					//case OperationCode.Stelem:
-					//case OperationCode.Stelem_I:
-					//case OperationCode.Stelem_I1:
-					//case OperationCode.Stelem_I2:
-					//case OperationCode.Stelem_I4:
-					//case OperationCode.Stelem_I8:
-					//case OperationCode.Stelem_R4:
-					//case OperationCode.Stelem_R8:
-					//case OperationCode.Stelem_Ref:
+					case OperationCode.Array_Set:
+					case OperationCode.Stelem:
+					case OperationCode.Stelem_I:
+					case OperationCode.Stelem_I1:
+					case OperationCode.Stelem_I2:
+					case OperationCode.Stelem_I4:
+					case OperationCode.Stelem_I8:
+					case OperationCode.Stelem_R4:
+					case OperationCode.Stelem_R8:
+					case OperationCode.Stelem_Ref:
+						instruction = this.ProcessStoreArrayElement(op);
+						break;
+
 					case OperationCode.Stfld:
 						instruction = this.ProcessStoreInstanceField(op);
 						break;
@@ -1022,6 +991,26 @@ namespace Backend
 			return instruction;
 		}
 
+		private Instruction ProcessLoadArrayElement(IOperation op)
+		{
+			var index = stack.Pop();
+			var array = stack.Pop();			
+			var dest = stack.Push();
+			var source = new ArrayElementAccess(array, index);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			return instruction;
+		}
+
+		private Instruction ProcessLoadArrayElementAddress(IOperation op)
+		{
+			var index = stack.Pop();
+			var array = stack.Pop();
+			var dest = stack.Push();
+			var source = new ArrayElementAccess(array, index);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			return instruction;
+		}
+
 		private Instruction ProcessLoadMethodAddress(IOperation op)
 		{
 			var method = op.Value as IMethodReference;
@@ -1089,6 +1078,16 @@ namespace Backend
 			var source = stack.Pop();
 			var dest = new StaticFieldAccess(field.ContainingType, field.Name.Value);
 			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			return instruction;
+		}
+
+		private Instruction ProcessStoreArrayElement(IOperation op)
+		{
+			var operand = stack.Pop();
+			var index = stack.Pop();
+			var array = stack.Pop();
+			var result = new ArrayElementAccess(array, index);
+			var instruction = new UnaryInstruction(op.Offset, result, UnaryOperation.Assign, operand);
 			return instruction;
 		}
 

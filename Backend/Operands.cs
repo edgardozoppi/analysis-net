@@ -134,4 +134,22 @@ namespace Backend
 			this.FieldName = fieldName;
 		}
 	}
+
+	public class ArrayElementAccess : Variable
+	{
+		public Variable Array { get; set; }
+		public Operand Index { get; set; }
+
+		public override string Name
+		{
+			get { return string.Format("{0}[{1}]", this.Array, this.Index); }
+			set { throw new InvalidOperationException(); }
+		}
+
+		public ArrayElementAccess(Variable array, Operand index)
+		{
+			this.Array = array;
+			this.Index = index;
+		}
+	}
 }
