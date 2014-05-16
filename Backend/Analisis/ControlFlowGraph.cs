@@ -67,13 +67,15 @@ namespace Backend.Analisis
 
 			foreach (var instruction in method.Instructions)
 			{
-				if (instruction is IBranchInstruction &&
-					!targets.ContainsKey(instruction.Label))
+				if (instruction is IBranchInstruction)
 				{
 					var branch = instruction as IBranchInstruction;
-					var node = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
 
-					targets.Add(branch.Target, node);
+					if (!targets.ContainsKey(branch.Target))
+					{
+						var node = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
+						targets.Add(branch.Target, node);
+					}
 				}
 			}
 

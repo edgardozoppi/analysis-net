@@ -21,6 +21,26 @@ namespace Test
 		public int F1;
 		private static int F2 = 0;
 
+		public void ExampleTry()
+		{
+			int a = 0;
+
+			try
+			{
+				a = 1;
+			}
+			catch (Exception ex)
+			{
+				a = 2;
+			}
+			finally
+			{
+				a = 3;
+			}
+
+			a = 4;
+		}
+
 		public void ExampleWhile()
 		{
 			var a = 3;
@@ -51,6 +71,17 @@ namespace Test
 			var a = 3;
 
 			for (var x = 0; x < 10; x++)
+			{
+				a += x;
+			}
+		}
+
+		public void ExampleForeach()
+		{
+			var list = new List<int>();
+			var a = 3;
+
+			foreach (var x in list)
 			{
 				a += x;
 			}

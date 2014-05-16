@@ -103,6 +103,17 @@ namespace Backend
 			{
 				Instruction instruction = null;
 
+
+				foreach (var exinf in method.Body.OperationExceptionInformation)
+				{
+					if (exinf.HandlerKind == HandlerKind.Catch &&
+						exinf.HandlerStartOffset == op.Offset)
+					{
+						// push the exception into the stack
+						stack.Push();
+					}
+				}
+
 				switch (op.OperationCode)
 				{
 					case OperationCode.Add:
@@ -370,10 +381,10 @@ namespace Backend
 					//    };
 					//    expression = new MethodCall() { Arguments = new List<IExpression>(1) { operand }, IsStaticCall = true, Type = operand.Type, MethodToCall = chkfinite };
 					//    break;
-						
-					//case OperationCode.Constrained_:
-					//    //This prefix is redundant and is not represented in the code model.
-					//    break;
+
+					case OperationCode.Constrained_:
+						//This prefix is redundant and is not represented in the code model.
+						continue;
 
 					case OperationCode.Cpblk:
 						instruction = this.ProcessCopyMemory(op);
@@ -543,10 +554,6 @@ namespace Backend
 						instruction = this.ProcessReturn(op);
 						break;
 
-					//case OperationCode.Rethrow:
-					//    statement = new RethrowStatement();
-					//    break;
-
 					case OperationCode.Sizeof:
 						instruction = this.ProcessSizeof(op);
 						break;
@@ -608,6 +615,10 @@ namespace Backend
 
 					//case OperationCode.Throw:
 					//    statement = this.ParseThrow();
+					//    break;
+
+					//case OperationCode.Rethrow:
+					//    statement = new RethrowStatement();
 					//    break;
 
 					//case OperationCode.Unaligned_:
@@ -859,9 +870,7 @@ namespace Backend
 		private Instruction ProcessLeave(IOperation op)
 		{
 			stack.Clear();
-			var target = (uint)op.Value;
-			var instruction = new UnconditionalBranchInstruction(op.Offset, target);
-			return instruction;
+			return ProcessUnconditionalBranch(op);
 		}
 
 		private Instruction ProcessUnconditionalBranch(IOperation op)
