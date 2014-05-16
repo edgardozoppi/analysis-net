@@ -6,6 +6,7 @@ using Microsoft.Cci.MutableCodeModel;
 using Microsoft.Cci;
 using Backend;
 using Backend.Analisis;
+using Backend.Serialization;
 
 namespace Console
 {
@@ -28,7 +29,8 @@ namespace Console
 			System.Console.WriteLine();
 
 			var cfg = new ControlFlowGraph(methodBody);
-			var dot = cfg.SerializeToDot();
+			//var dot = DOTSerializer.Serialize(cfg);
+			var dgml = DGMLSerializer.Serialize(cfg);
 			
 			return base.Rewrite(methodDefinition);
 		}

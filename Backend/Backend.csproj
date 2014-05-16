@@ -67,13 +67,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Analisis\CFGGenerator.cs" />
+    <Compile Include="Analisis\ControlFlowGraph.cs" />
     <Compile Include="Disassembler.cs" />
     <Compile Include="Instructions.cs" />
     <Compile Include="MethodBody.cs" />
     <Compile Include="Operands.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Exceptions.cs" />
+    <Compile Include="Serialization\DGMLSerializer.cs" />
+    <Compile Include="Serialization\DOTSerializer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

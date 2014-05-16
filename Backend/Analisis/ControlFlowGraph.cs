@@ -30,21 +30,6 @@ namespace Backend.Analisis
 			this.Instructions = new List<Instruction>();
 		}
 
-		public string SerializeToDot()
-		{
-			string result;
-
-			switch (this.Kind)
-			{
-				case CFGNodeKind.Enter: result = "enter"; break;
-				case CFGNodeKind.Exit: result = "exit"; break;
-				case CFGNodeKind.BasicBlock: result = string.Join("\\l", this.Instructions) + "\\l"; break;
-				default: throw new Exception("Unknown Control Flow Graph node kind: " + this.Kind);
-			}
-
-			return result;
-		}
-
 		public override string ToString()
 		{
 			string result;
@@ -150,27 +135,6 @@ namespace Backend.Analisis
 			predecessor.Successors.Add(successor);
 			this.Nodes.Add(predecessor);
 			this.Nodes.Add(successor);
-		}
-
-		public string SerializeToDot()
-		{
-			var sb = new StringBuilder();
-			sb.AppendLine("digraph ControlFlow\n{");
-			sb.AppendLine("\tnode[shape=\"rect\"];");
-
-			foreach (var node in this.Nodes)
-			{
-				var label = node.SerializeToDot();
-				sb.AppendFormat("\t{0}[label=\"{1}\"];\n", node.Id, label);
-
-				foreach (var successor in node.Successors)
-				{
-					sb.AppendFormat("\t{0} -> {1};\n", node.Id, successor.Id);
-				}
-			}
-
-			sb.AppendLine("}");
-			return sb.ToString();
 		}
 	}
 }

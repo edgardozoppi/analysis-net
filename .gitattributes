@@ -1,5 +1,5 @@
 * text=auto !eol
-Backend/Analisis/CFGGenerator.cs -text
+Backend/Analisis/ControlFlowGraph.cs -text
 Backend/Backend.csproj -text
 Backend/Disassembler.cs -text
 Backend/Exceptions.cs -text
@@ -7,6 +7,8 @@ Backend/Instructions.cs -text
 Backend/MethodBody.cs -text
 Backend/Operands.cs -text
 Backend/Properties/AssemblyInfo.cs -text
+Backend/Serialization/DGMLSerializer.cs -text
+Backend/Serialization/DOTSerializer.cs -text
 /CCI[!!-~]Backend.sln -text
 Console/Assembly.cs -text
 Console/Console.csproj -text
