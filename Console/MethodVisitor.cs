@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.Cci.MutableCodeModel;
 using Microsoft.Cci;
 using Backend;
+using Backend.Analisis;
 
 namespace Console
 {
@@ -26,6 +27,9 @@ namespace Console
 			System.Console.WriteLine(methodBody);
 			System.Console.WriteLine();
 
+			var cfg = new ControlFlowGraph(methodBody);
+			var dot = cfg.SerializeToDot();
+			
 			return base.Rewrite(methodDefinition);
 		}
 	}

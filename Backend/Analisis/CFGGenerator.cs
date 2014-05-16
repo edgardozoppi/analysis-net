@@ -15,17 +15,34 @@ namespace Backend.Analisis
 
 	public class CFGNode
 	{
+		public int Id { get; private set; }
 		public CFGNodeKind Kind { get; private set; }
 		public ISet<CFGNode> Predecessors { get; private set; }
 		public ISet<CFGNode> Successors { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
 
-		public CFGNode(CFGNodeKind kind)
+		public CFGNode(int id, CFGNodeKind kind)
 		{
+			this.Id = id;
 			this.Kind = kind;
 			this.Predecessors = new HashSet<CFGNode>();
 			this.Successors = new HashSet<CFGNode>();
 			this.Instructions = new List<Instruction>();
+		}
+
+		public string SerializeToDot()
+		{
+			string result;
+
+			switch (this.Kind)
+			{
+				case CFGNodeKind.Enter: result = "enter"; break;
+				case CFGNodeKind.Exit: result = "exit"; break;
+				case CFGNodeKind.BasicBlock: result = string.Join("\\l", this.Instructions) + "\\l"; break;
+				default: throw new Exception("Unknown Control Flow Graph node kind: " + this.Kind);
+			}
+
+			return result;
 		}
 
 		public override string ToString()
@@ -36,7 +53,7 @@ namespace Backend.Analisis
 			{
 				case CFGNodeKind.Enter: result = "enter"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
-				case CFGNodeKind.BasicBlock: result = string.Join("\n\t", this.Instructions); break;
+				case CFGNodeKind.BasicBlock: result = string.Join("\n", this.Instructions); break;
 				default: throw new Exception("Unknown Control Flow Graph node kind: " + this.Kind);
 			}
 
@@ -52,9 +69,79 @@ namespace Backend.Analisis
 
 		public ControlFlowGraph()
 		{
-			this.Enter = new CFGNode(CFGNodeKind.Enter);
-			this.Exit = new CFGNode(CFGNodeKind.Exit);
+			this.Enter = new CFGNode(0, CFGNodeKind.Enter);
+			this.Exit = new CFGNode(1, CFGNodeKind.Exit);
 			this.Nodes = new HashSet<CFGNode>() { this.Enter, this.Exit };
+		}
+
+		public ControlFlowGraph(MethodBody method)
+			: this()
+		{
+			var targets = new Dictionary<string, CFGNode>();
+			var nodeId = 2;
+
+			foreach (var instruction in method.Instructions)
+			{
+				if (instruction is IBranchInstruction &&
+					!targets.ContainsKey(instruction.Label))
+				{
+					var branch = instruction as IBranchInstruction;
+					var node = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
+
+					targets.Add(branch.Target, node);
+				}
+			}
+
+			var createNewNode = true;
+			var connectWithPreviousNode = true;
+			var current = this.Enter;
+			CFGNode previous;
+
+			foreach (var instruction in method.Instructions)
+			{
+				if (targets.ContainsKey(instruction.Label))
+				{
+					previous = current;
+					current = targets[instruction.Label];
+
+					if (connectWithPreviousNode)
+					{
+						this.ConnectNodes(previous, current);
+					}
+				}
+				else if (createNewNode)
+				{
+					previous = current;
+					current = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
+
+					if (connectWithPreviousNode)
+					{
+						this.ConnectNodes(previous, current);
+					}
+				}
+
+				createNewNode = false;
+				connectWithPreviousNode = true;
+				current.Instructions.Add(instruction);
+
+				if (instruction is IBranchInstruction)
+				{
+					var branch = instruction as IBranchInstruction;
+					var target = targets[branch.Target];
+
+					this.ConnectNodes(current, target);
+					createNewNode = true;
+					connectWithPreviousNode = instruction is ConditionalBranchInstruction;
+				}
+				else if (instruction is ReturnInstruction)
+				{
+					this.ConnectNodes(current, this.Exit);
+					createNewNode = true;
+					connectWithPreviousNode = false;
+				}
+			}
+
+			this.ConnectNodes(current, this.Exit);
 		}
 
 		public void ConnectNodes(CFGNode predecessor, CFGNode successor)
@@ -64,52 +151,26 @@ namespace Backend.Analisis
 			this.Nodes.Add(predecessor);
 			this.Nodes.Add(successor);
 		}
-	}
 
-	public class CFGGenerator
-	{
-		public MethodBody Method { get; private set; }
-
-		public CFGGenerator(MethodBody method)
+		public string SerializeToDot()
 		{
-			this.Method = method;
-		}
+			var sb = new StringBuilder();
+			sb.AppendLine("digraph ControlFlow\n{");
+			sb.AppendLine("\tnode[shape=\"rect\"];");
 
-		public ControlFlowGraph Generate()
-		{
-			var targets = new Dictionary<string, Instruction>();
-			var cfg = new ControlFlowGraph();
-			var node = new CFGNode(CFGNodeKind.BasicBlock);
-
-			cfg.ConnectNodes(cfg.Enter, node);
-
-			foreach (var instruction in this.Method.Instructions)
+			foreach (var node in this.Nodes)
 			{
-				var createNewNode = false;
+				var label = node.SerializeToDot();
+				sb.AppendFormat("\t{0}[label=\"{1}\"];\n", node.Id, label);
 
-				if (instruction is IBranchInstruction)
+				foreach (var successor in node.Successors)
 				{
-					var branch = instruction as IBranchInstruction;
-					targets.Add(branch.Target, instruction);
-					createNewNode = true;
-				}
-				
-				if (targets.ContainsKey(instruction.Label))
-				{
-					createNewNode = true;
-
-					//TODO: terminar esto!!!
-				}
-
-				node.Instructions.Add(instruction);
-
-				if (createNewNode)
-				{
-					node = new CFGNode(CFGNodeKind.BasicBlock);
+					sb.AppendFormat("\t{0} -> {1};\n", node.Id, successor.Id);
 				}
 			}
 
-			return cfg;
+			sb.AppendLine("}");
+			return sb.ToString();
 		}
 	}
 }

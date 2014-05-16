@@ -19,7 +19,42 @@ namespace Test
 	public class Examples
 	{
 		public int F1;
-		private static int F2;
+		private static int F2 = 0;
+
+		public void ExampleWhile()
+		{
+			var a = 3;
+			var x = 0;
+
+			while (x < 10)
+			{
+				a += x;
+				x++;
+			}
+		}
+
+		public void ExampleDoWhile()
+		{
+			var a = 3;
+			var x = 0;
+
+			do
+			{
+				a += x;
+				x++;
+			}
+			while (x < 10);
+		}
+
+		public void ExampleFor()
+		{
+			var a = 3;
+
+			for (var x = 0; x < 10; x++)
+			{
+				a += x;
+			}
+		}
 
 		public int Example1(int arg1)
 		{
