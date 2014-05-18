@@ -167,12 +167,12 @@ namespace Backend.Instructions
 	{
 		public TryInstruction(uint label)
 		{
-			this.Label = string.Format("L_{0:X4}", label);
+			this.Label = string.Format("L_{0:X4}'", label);
 		}
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  try;", this.Label);
+			return string.Format("{0}: try;", this.Label);
 		}
 	}
 
@@ -180,12 +180,12 @@ namespace Backend.Instructions
 	{
 		public FinallyInstruction(uint label)
 		{
-			this.Label = string.Format("L_{0:X4}", label);
+			this.Label = string.Format("L_{0:X4}'", label);
 		}
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  finally;", this.Label);
+			return string.Format("{0}: finally;", this.Label);
 		}
 	}
 
@@ -196,7 +196,7 @@ namespace Backend.Instructions
 
 		public CatchInstruction(uint label, Variable exception, ITypeReference exceptionType)
 		{
-			this.Label = string.Format("L_{0:X4}", label);
+			this.Label = string.Format("L_{0:X4}'", label);
 			this.Exception = exception;
 			this.ExceptionType = exceptionType;
 		}
@@ -204,7 +204,7 @@ namespace Backend.Instructions
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.ExceptionType);
-			return string.Format("{0}:  catch {1} {2};", this.Label, type, this.Exception);
+			return string.Format("{0}: catch {1} {2};", this.Label, type, this.Exception);
 		}
 	}
 

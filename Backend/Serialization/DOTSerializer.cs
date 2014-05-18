@@ -16,8 +16,7 @@ namespace Backend.Serialization
 			{
 				case CFGNodeKind.Enter: result = "enter"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
-				case CFGNodeKind.BasicBlock: result = string.Join("\\l", node.Instructions) + "\\l"; break;
-				default: throw new Exception("Unknown Control Flow Graph node kind: " + node.Kind);
+				default: result = string.Join("\\l", node.Instructions) + "\\l"; break;
 			}
 
 			return result;

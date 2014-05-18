@@ -18,8 +18,7 @@ namespace Backend.Serialization
 			{
 				case CFGNodeKind.Enter: result = "enter"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
-				case CFGNodeKind.BasicBlock: result = string.Join(Environment.NewLine, node.Instructions); break;
-				default: throw new Exception("Unknown Control Flow Graph node kind: " + node.Kind);
+				default: result = string.Join(Environment.NewLine, node.Instructions); break;
 			}
 
 			return result;
@@ -44,7 +43,8 @@ namespace Backend.Serialization
 					xmlWriter.WriteAttributeString("Id", nodeId);
 					xmlWriter.WriteAttributeString("Label", label);
 
-					if (node.Kind != CFGNodeKind.BasicBlock)
+					if (node.Kind == CFGNodeKind.Enter ||
+						node.Kind == CFGNodeKind.Exit)
 					{
 						xmlWriter.WriteAttributeString("Background", "Yellow");
 					}

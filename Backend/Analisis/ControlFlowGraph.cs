@@ -10,7 +10,10 @@ namespace Backend.Analisis
 	{
 		Enter,
 		Exit,
-		BasicBlock
+		BasicBlock,
+		Try,
+		Catch,
+		Finally
 	}
 
 	public class CFGNode
@@ -38,8 +41,7 @@ namespace Backend.Analisis
 			{
 				case CFGNodeKind.Enter: result = "enter"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
-				case CFGNodeKind.BasicBlock: result = string.Join("\n", this.Instructions); break;
-				default: throw new Exception("Unknown Control Flow Graph node kind: " + this.Kind);
+				default: result = string.Join("\n", this.Instructions); break;
 			}
 
 			return result;
@@ -62,44 +64,74 @@ namespace Backend.Analisis
 		public ControlFlowGraph(MethodBody method)
 			: this()
 		{
-			var targets = new Dictionary<string, CFGNode>();
+			var leaders = new Dictionary<string, CFGNode>();
+			var nextIsLeader = true;
+			var nodeKind = CFGNodeKind.BasicBlock;
 			var nodeId = 2;
 
 			foreach (var instruction in method.Instructions)
 			{
+				var isLeader = false;
+
+				if (instruction is TryInstruction)
+				{
+					isLeader = true;
+					nextIsLeader = false;
+					nodeKind = CFGNodeKind.Try;
+				}
+				else if (instruction is CatchInstruction)
+				{
+					isLeader = true;
+					nextIsLeader = false;
+					nodeKind = CFGNodeKind.Catch;
+				}
+				else if (instruction is FinallyInstruction)
+				{
+					isLeader = true;
+					nextIsLeader = false;
+					nodeKind = CFGNodeKind.Finally;
+				}
+				else if (nextIsLeader)
+				{
+					isLeader = true;
+					nextIsLeader = false;
+					nodeKind = CFGNodeKind.BasicBlock;
+				}
+
+				if (isLeader && !leaders.ContainsKey(instruction.Label))
+				{
+					var node = new CFGNode(nodeId++, nodeKind);
+					leaders.Add(instruction.Label, node);
+				}
+
 				if (instruction is IBranchInstruction)
 				{
+					nextIsLeader = true;
 					var branch = instruction as IBranchInstruction;
 
-					if (!targets.ContainsKey(branch.Target))
+					if (!leaders.ContainsKey(branch.Target))
 					{
 						var node = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
-						targets.Add(branch.Target, node);
+						leaders.Add(branch.Target, node);
 					}
+				}
+				else if (instruction is ReturnInstruction)
+				//TODO: || instruction is ThrowInstruction
+				{
+					nextIsLeader = true;
 				}
 			}
 
-			var createNewNode = true;
 			var connectWithPreviousNode = true;
 			var current = this.Enter;
 			CFGNode previous;
 
 			foreach (var instruction in method.Instructions)
 			{
-				if (targets.ContainsKey(instruction.Label))
+				if (leaders.ContainsKey(instruction.Label))
 				{
 					previous = current;
-					current = targets[instruction.Label];
-
-					if (connectWithPreviousNode)
-					{
-						this.ConnectNodes(previous, current);
-					}
-				}
-				else if (createNewNode || instruction is TryInstruction)
-				{
-					previous = current;
-					current = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
+					current = leaders[instruction.Label];
 
 					if (connectWithPreviousNode)
 					{
@@ -107,27 +139,22 @@ namespace Backend.Analisis
 					}
 				}
 
-				createNewNode = false;
 				connectWithPreviousNode = true;
 				current.Instructions.Add(instruction);
 
 				if (instruction is IBranchInstruction)
 				{
 					var branch = instruction as IBranchInstruction;
-					var target = targets[branch.Target];
+					var target = leaders[branch.Target];
 
 					this.ConnectNodes(current, target);
-					createNewNode = true;
-					connectWithPreviousNode = instruction is ConditionalBranchInstruction ||
-											  instruction is ExceptionalBranchInstruction;
+					connectWithPreviousNode = instruction is ConditionalBranchInstruction;
 				}
 				else if (instruction is ReturnInstruction)
 				{
+					//TODO: not always connect to exit, could exists a finally block
 					this.ConnectNodes(current, this.Exit);
-					createNewNode = true;
-					connectWithPreviousNode = false;
 				}
-				//TODO: else if (instruction is ThrowInstruction)
 			}
 
 			this.ConnectNodes(current, this.Exit);
