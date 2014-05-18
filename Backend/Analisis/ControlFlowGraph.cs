@@ -96,7 +96,7 @@ namespace Backend.Analisis
 						this.ConnectNodes(previous, current);
 					}
 				}
-				else if (createNewNode)
+				else if (createNewNode || instruction is TryInstruction)
 				{
 					previous = current;
 					current = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
@@ -118,7 +118,8 @@ namespace Backend.Analisis
 
 					this.ConnectNodes(current, target);
 					createNewNode = true;
-					connectWithPreviousNode = instruction is ConditionalBranchInstruction;
+					connectWithPreviousNode = instruction is ConditionalBranchInstruction ||
+											  instruction is ExceptionalBranchInstruction;
 				}
 				else if (instruction is ReturnInstruction)
 				{
@@ -126,6 +127,7 @@ namespace Backend.Analisis
 					createNewNode = true;
 					connectWithPreviousNode = false;
 				}
+				//TODO: else if (instruction is ThrowInstruction)
 			}
 
 			this.ConnectNodes(current, this.Exit);

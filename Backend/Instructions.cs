@@ -47,6 +47,12 @@ namespace Backend.Instructions
 		Ge
 	}
 
+	public enum BranchKind
+	{
+		Goto,
+		Leave
+	}
+
 	public abstract class Instruction
 	{
 		public string Label { get; set; }
@@ -157,6 +163,51 @@ namespace Backend.Instructions
 		}
 	}
 
+	public class TryInstruction : Instruction
+	{
+		public TryInstruction(uint label)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  try;", this.Label);
+		}
+	}
+
+	public class FinallyInstruction : Instruction
+	{
+		public FinallyInstruction(uint label)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  finally;", this.Label);
+		}
+	}
+
+	public class CatchInstruction : Instruction
+	{
+		public Variable Exception { get; set; }
+		public ITypeReference ExceptionType { get; set; }
+
+		public CatchInstruction(uint label, Variable exception, ITypeReference exceptionType)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Exception = exception;
+			this.ExceptionType = exceptionType;
+		}
+
+		public override string ToString()
+		{
+			var type = TypeHelper.GetTypeName(this.ExceptionType);
+			return string.Format("{0}:  catch {1} {2};", this.Label, type, this.Exception);
+		}
+	}
+
 	public class ConvertInstruction : Instruction
 	{
 		public Operand Operand { get; set; }
@@ -209,6 +260,22 @@ namespace Backend.Instructions
 	public interface IBranchInstruction
 	{
 		string Target { get; }
+	}
+
+	public class ExceptionalBranchInstruction : Instruction, IBranchInstruction
+	{
+		public string Target { get; set; }
+
+		public ExceptionalBranchInstruction(uint label, uint target)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Target = string.Format("L_{0:X4}", target);
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  leave {1};", this.Label, this.Target);
+		}
 	}
 
 	public class UnconditionalBranchInstruction : Instruction, IBranchInstruction

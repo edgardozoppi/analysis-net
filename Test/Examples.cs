@@ -29,16 +29,20 @@ namespace Test
 			{
 				a = 1;
 			}
-			catch (Exception ex)
+			catch (NotImplementedException ex1)
 			{
 				a = 2;
 			}
-			finally
+			catch (NullReferenceException ex2)
 			{
 				a = 3;
 			}
+			finally
+			{
+				a = 4;
+			}
 
-			a = 4;
+			a = 5;
 		}
 
 		public void ExampleWhile()
