@@ -10,10 +10,7 @@ namespace Backend.Analisis
 	{
 		Enter,
 		Exit,
-		BasicBlock,
-		Try,
-		Catch,
-		Finally
+		BasicBlock
 	}
 
 	public class CFGNode
@@ -73,25 +70,10 @@ namespace Backend.Analisis
 			{
 				var isLeader = false;
 
-				if (instruction is TryInstruction)
-				{
-					isLeader = true;
-					nextIsLeader = false;
-					nodeKind = CFGNodeKind.Try;
-				}
-				else if (instruction is CatchInstruction)
-				{
-					isLeader = true;
-					nextIsLeader = false;
-					nodeKind = CFGNodeKind.Catch;
-				}
-				else if (instruction is FinallyInstruction)
-				{
-					isLeader = true;
-					nextIsLeader = false;
-					nodeKind = CFGNodeKind.Finally;
-				}
-				else if (nextIsLeader)
+				if (instruction is TryInstruction ||
+					instruction is CatchInstruction ||
+					instruction is FinallyInstruction ||
+					nextIsLeader)
 				{
 					isLeader = true;
 					nextIsLeader = false;
@@ -104,7 +86,8 @@ namespace Backend.Analisis
 					leaders.Add(instruction.Label, node);
 				}
 
-				if (instruction is IBranchInstruction)
+				if (instruction is UnconditionalBranchInstruction ||
+					instruction is ConditionalBranchInstruction)
 				{
 					nextIsLeader = true;
 					var branch = instruction as IBranchInstruction;
@@ -148,7 +131,8 @@ namespace Backend.Analisis
 					var target = leaders[branch.Target];
 
 					this.ConnectNodes(current, target);
-					connectWithPreviousNode = instruction is ConditionalBranchInstruction;
+					connectWithPreviousNode = instruction is ConditionalBranchInstruction ||
+											  instruction is ExceptionalBranchInstruction;
 				}
 				else if (instruction is ReturnInstruction)
 				{

@@ -21,7 +21,43 @@ namespace Test
 		public int F1;
 		private static int F2 = 0;
 
-		public void ExampleTry()
+		public void ExampleTryCatch()
+		{
+			int a = 0;
+
+			try
+			{
+				a = 1;
+			}
+			catch (NotImplementedException ex1)
+			{
+				a = 2;
+			}
+			catch (NullReferenceException ex2)
+			{
+				a = 3;
+			}
+
+			a = 5;
+		}
+
+		public void ExampleTryFinally()
+		{
+			int a = 0;
+
+			try
+			{
+				a = 1;
+			}
+			finally
+			{
+				a = 4;
+			}
+
+			a = 5;
+		}
+
+		public void ExampleTryCatchFinally()
 		{
 			int a = 0;
 

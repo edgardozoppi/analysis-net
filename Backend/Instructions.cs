@@ -264,17 +264,20 @@ namespace Backend.Instructions
 
 	public class ExceptionalBranchInstruction : Instruction, IBranchInstruction
 	{
+		public ITypeReference ExceptionType { get; set; }
 		public string Target { get; set; }
 
-		public ExceptionalBranchInstruction(uint label, uint target)
+		public ExceptionalBranchInstruction(uint label, uint target, ITypeReference exceptionType)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
-			this.Target = string.Format("L_{0:X4}", target);
+			this.Target = string.Format("L_{0:X4}'", target);
+			this.ExceptionType = exceptionType;
 		}
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  leave {1};", this.Label, this.Target);
+			var type = TypeHelper.GetTypeName(this.ExceptionType);
+			return string.Format("{0}:  on {1} goto {2};", this.Label, type, this.Target);
 		}
 	}
 

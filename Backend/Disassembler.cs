@@ -61,12 +61,55 @@ namespace Backend
 
 		#endregion
 
-		#region enum ExceptionKind
+		#region enum ContextKind
 
-		enum ExceptionKind
+		enum ContextKind
 		{
+			None,
 			Try,
+			Catch,
 			Finally
+		}
+
+		class TryInformation
+		{
+			public uint BeginOffset { get; set; }
+			public uint EndOffset { get; set; }
+			public IDictionary<uint, CatchInformation> ExceptionHandlers { get; private set; }
+			public FinallyInformation Finally { get; set; }
+
+			public TryInformation(uint begin, uint end)
+			{
+				this.BeginOffset = begin;
+				this.EndOffset = end;
+				this.ExceptionHandlers = new Dictionary<uint, CatchInformation>();
+			}
+		}
+
+		class CatchInformation
+		{
+			public ITypeReference ExceptionType { get; set; }
+			public uint BeginOffset { get; set; }
+			public uint EndOffset { get; set; }
+
+			public CatchInformation(uint begin, uint end, ITypeReference exceptionType)
+			{
+				this.BeginOffset = begin;
+				this.EndOffset = end;
+				this.ExceptionType = exceptionType;
+			}
+		}
+
+		class FinallyInformation
+		{
+			public uint BeginOffset { get; set; }
+			public uint EndOffset { get; set; }
+
+			public FinallyInformation(uint begin, uint end)
+			{
+				this.BeginOffset = begin;
+				this.EndOffset = end;
+			}
 		}
 
 		#endregion
@@ -77,8 +120,7 @@ namespace Backend
 		private LocalVariable thisParameter;
 		private IDictionary<IParameterDefinition, LocalVariable> parameters;
 		private IDictionary<ILocalDefinition, LocalVariable> locals;
-		private IDictionary<uint, ExceptionKind> exceptionInformation;
-		private IDictionary<uint, ITypeReference> catchInformation;
+		private IDictionary<uint, TryInformation> trys;
 		private OperandStack stack;
 
 		public Disassembler(IMetadataHost host, IMethodDefinition methodDefinition, ISourceLocationProvider sourceLocationProvider)
@@ -88,8 +130,7 @@ namespace Backend
 			this.sourceLocationProvider = sourceLocationProvider;
 			this.parameters = new Dictionary<IParameterDefinition, LocalVariable>();
 			this.locals = new Dictionary<ILocalDefinition, LocalVariable>();
-			this.exceptionInformation = new Dictionary<uint, ExceptionKind>();
-			this.catchInformation = new Dictionary<uint, ITypeReference>();
+			this.trys = new Dictionary<uint, TryInformation>();
 			this.stack = new OperandStack(method.Body.MaxStack);
 
 			if (!method.IsStatic)
@@ -112,19 +153,27 @@ namespace Backend
 
 			foreach (var exinf in method.Body.OperationExceptionInformation)
 			{
-				if (!this.exceptionInformation.ContainsKey(exinf.TryStartOffset))
+				TryInformation tryInfo;
+
+				if (this.trys.ContainsKey(exinf.TryStartOffset))
 				{
-					this.exceptionInformation.Add(exinf.TryStartOffset, ExceptionKind.Try);
+					tryInfo = this.trys[exinf.TryStartOffset];
+				}
+				else
+				{
+					tryInfo = new TryInformation(exinf.TryStartOffset, exinf.TryEndOffset);
+					this.trys.Add(tryInfo.BeginOffset, tryInfo);
 				}
 
 				switch (exinf.HandlerKind)
 				{
 					case HandlerKind.Finally:
-						this.exceptionInformation.Add(exinf.HandlerStartOffset, ExceptionKind.Finally);
+						tryInfo.Finally = new FinallyInformation(exinf.HandlerStartOffset, exinf.HandlerEndOffset);
 						break;
 
 					case HandlerKind.Catch:
-						this.catchInformation.Add(exinf.HandlerStartOffset, exinf.ExceptionType);
+						var catchInfo = new CatchInformation(exinf.HandlerStartOffset, exinf.HandlerEndOffset, exinf.ExceptionType);
+						tryInfo.ExceptionHandlers.Add(catchInfo.BeginOffset, catchInfo);
 						break;
 				}
 			}
@@ -133,37 +182,41 @@ namespace Backend
 		public MethodBody Execute()
 		{
 			var body = new MethodBody(method);
+			TryInformation tryInfo = null;
+			var contextKind = ContextKind.None;
 
 			foreach (var op in method.Body.Operations)
 			{
 				Instruction instruction;
 
-				if (this.exceptionInformation.ContainsKey(op.Offset))
+				if (this.trys.ContainsKey(op.Offset))
 				{
-					var exceptionKind = this.exceptionInformation[op.Offset];
+					contextKind = ContextKind.Try;
+					tryInfo = this.trys[op.Offset];					
 
-					switch (exceptionKind)
-					{
-						case ExceptionKind.Try:
-							instruction = new TryInstruction(op.Offset);
-							body.Instructions.Add(instruction);
-							break;
-
-						case ExceptionKind.Finally:
-							instruction = new FinallyInstruction(op.Offset);
-							body.Instructions.Add(instruction);
-							break;
-					}
+					instruction = new TryInstruction(op.Offset);
+					body.Instructions.Add(instruction);
 				}
 
-				if (this.catchInformation.ContainsKey(op.Offset))
+				if (tryInfo != null)
 				{
-					var exceptionType = this.catchInformation[op.Offset];
-					// push the exception into the stack
-					var ex = stack.Push();
+					if (tryInfo.ExceptionHandlers.ContainsKey(op.Offset))
+					{
+						contextKind = ContextKind.Catch;
+						var catchInfo = tryInfo.ExceptionHandlers[op.Offset];						
+						// push the exception into the stack
+						var ex = stack.Push();
 
-					instruction = new CatchInstruction(op.Offset, ex, exceptionType);
-					body.Instructions.Add(instruction);
+						instruction = new CatchInstruction(op.Offset, ex, catchInfo.ExceptionType);
+						body.Instructions.Add(instruction);
+					}
+
+					if (tryInfo.Finally != null && tryInfo.Finally.BeginOffset == op.Offset)
+					{
+						contextKind = ContextKind.Finally;
+						instruction = new FinallyInstruction(op.Offset);
+						body.Instructions.Add(instruction);
+					}
 				}
 
 				instruction = null;
@@ -312,7 +365,26 @@ namespace Backend
 
 					case OperationCode.Leave:
 					case OperationCode.Leave_S:
-						instruction = this.ProcessLeave(op);
+						uint target = (uint)op.Value;
+
+						if (contextKind == ContextKind.Try)
+						{
+							foreach (var catchInfo in tryInfo.ExceptionHandlers)
+							{
+								instruction = new ExceptionalBranchInstruction(op.Offset, catchInfo.Value.BeginOffset, catchInfo.Value.ExceptionType);
+								body.Instructions.Add(instruction);
+							}
+
+							if (tryInfo.Finally != null)
+							{
+								target = tryInfo.Finally.BeginOffset;
+							}
+
+							contextKind = ContextKind.None;
+						}
+
+						//instruction = this.ProcessLeave(op);
+						instruction = this.ProcessEndFinally(op, target);
 						break;
 
 					case OperationCode.Break:
@@ -457,8 +529,18 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Endfinally:
-						stack.Clear();
-						continue;
+						//stack.Clear();
+						//continue;
+						target = 0;
+
+						if (contextKind == ContextKind.Finally)
+						{
+							target = tryInfo.Finally.EndOffset;
+							contextKind = ContextKind.None;
+						}
+
+						instruction = this.ProcessEndFinally(op, target);
+						break;
 
 					case OperationCode.Initblk:
 						instruction = this.ProcessInitializeMemory(op);
@@ -925,7 +1007,14 @@ namespace Backend
 		{
 			stack.Clear();
 			var target = (uint)op.Value;
-			var instruction = new ExceptionalBranchInstruction(op.Offset, target);
+			var instruction = new UnconditionalBranchInstruction(op.Offset, target);
+			return instruction;
+		}
+
+		private Instruction ProcessEndFinally(IOperation op, uint target)
+		{
+			stack.Clear();
+			var instruction = new UnconditionalBranchInstruction(op.Offset, target);
 			return instruction;
 		}
 
