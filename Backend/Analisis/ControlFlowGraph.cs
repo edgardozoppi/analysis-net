@@ -19,6 +19,7 @@ namespace Backend.Analisis
 		public CFGNodeKind Kind { get; private set; }
 		public ISet<CFGNode> Predecessors { get; private set; }
 		public ISet<CFGNode> Successors { get; private set; }
+		public ISet<CFGNode> Dominators { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
 
 		public CFGNode(int id, CFGNodeKind kind)
@@ -27,6 +28,7 @@ namespace Backend.Analisis
 			this.Kind = kind;
 			this.Predecessors = new HashSet<CFGNode>();
 			this.Successors = new HashSet<CFGNode>();
+			this.Dominators = new HashSet<CFGNode>();
 			this.Instructions = new List<Instruction>();
 		}
 
@@ -157,6 +159,48 @@ namespace Backend.Analisis
 
 			cfg.ConnectNodes(current, cfg.Exit);
 			return cfg;
+		}
+
+		#endregion
+
+		#region Dominators
+
+		public static void ComputeDominators(ControlFlowGraph cfg)
+		{
+			cfg.Enter.Dominators.Add(cfg.Enter);
+
+			foreach (var node in cfg.Nodes)
+			{
+				if (node.Kind == CFGNodeKind.Enter)
+					continue;
+
+				node.Dominators.UnionWith(cfg.Nodes);
+			}
+
+			bool changed;
+
+			do
+			{
+				changed = false;
+
+				foreach (var node in cfg.Nodes)
+				{
+					if (node.Kind == CFGNodeKind.Enter)
+						continue;
+
+					var oldCount = node.Dominators.Count;
+
+					foreach (var predecessor in node.Predecessors)
+						node.Dominators.IntersectWith(predecessor.Dominators);
+
+					node.Dominators.Add(node);
+					var newCount = node.Dominators.Count;
+
+					if (newCount != oldCount)
+						changed = true;
+				}
+			}
+			while (changed);
 		}
 
 		#endregion
