@@ -365,7 +365,7 @@ namespace Backend
 
 					case OperationCode.Leave:
 					case OperationCode.Leave_S:
-						uint target = (uint)op.Value;
+						string target = string.Format("L_{0:X4}", op.Value);
 
 						if (contextKind == ContextKind.Try)
 						{
@@ -374,17 +374,16 @@ namespace Backend
 								instruction = new ExceptionalBranchInstruction(op.Offset, catchInfo.Value.BeginOffset, catchInfo.Value.ExceptionType);
 								body.Instructions.Add(instruction);
 							}
-
-							if (tryInfo.Finally != null)
-							{
-								target = tryInfo.Finally.BeginOffset;
-							}
-
-							contextKind = ContextKind.None;
+						}
+						
+						if (contextKind == ContextKind.None ||
+							tryInfo.ExceptionHandlers.Count == 0)
+						{
+							target = string.Format("L_{0:X4}'", tryInfo.Finally.BeginOffset);
 						}
 
-						//instruction = this.ProcessLeave(op);
-						instruction = this.ProcessEndFinally(op, target);
+						contextKind = ContextKind.None;
+						instruction = this.ProcessLeave(op, target);
 						break;
 
 					case OperationCode.Break:
@@ -531,15 +530,9 @@ namespace Backend
 					case OperationCode.Endfinally:
 						//stack.Clear();
 						//continue;
-						target = 0;
-
-						if (contextKind == ContextKind.Finally)
-						{
-							target = tryInfo.Finally.EndOffset;
-							contextKind = ContextKind.None;
-						}
-
-						instruction = this.ProcessEndFinally(op, target);
+						target = string.Format("L_{0:X4}", tryInfo.Finally.EndOffset);
+						contextKind = ContextKind.None;
+						instruction = this.ProcessLeave(op, target);
 						break;
 
 					case OperationCode.Initblk:
@@ -1003,18 +996,11 @@ namespace Backend
 			return instruction;
 		}
 
-		private Instruction ProcessLeave(IOperation op)
+		private Instruction ProcessLeave(IOperation op, string target)
 		{
 			stack.Clear();
-			var target = (uint)op.Value;
-			var instruction = new UnconditionalBranchInstruction(op.Offset, target);
-			return instruction;
-		}
-
-		private Instruction ProcessEndFinally(IOperation op, uint target)
-		{
-			stack.Clear();
-			var instruction = new UnconditionalBranchInstruction(op.Offset, target);
+			var instruction = new UnconditionalBranchInstruction(op.Offset, 0);
+			instruction.Target = target;
 			return instruction;
 		}
 
