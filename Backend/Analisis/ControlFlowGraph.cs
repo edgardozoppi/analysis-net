@@ -58,8 +58,16 @@ namespace Backend.Analisis
 			this.Nodes = new HashSet<CFGNode>() { this.Enter, this.Exit };
 		}
 
-		public ControlFlowGraph(MethodBody method)
-			: this()
+		#region Generate
+
+		public static ControlFlowGraph Generate(MethodBody method)
+		{			
+			var leaders = ControlFlowGraph.CreateNodes(method);
+			var cfg = ControlFlowGraph.ConnectNodes(method, leaders);
+			return cfg;
+		}
+
+		private static IDictionary<string, CFGNode> CreateNodes(MethodBody method)
 		{
 			var leaders = new Dictionary<string, CFGNode>();
 			var nextIsLeader = true;
@@ -105,8 +113,14 @@ namespace Backend.Analisis
 				}
 			}
 
+			return leaders;
+		}
+
+		private static ControlFlowGraph ConnectNodes(MethodBody method, IDictionary<string, CFGNode> leaders)
+		{
+			var cfg = new ControlFlowGraph();
 			var connectWithPreviousNode = true;
-			var current = this.Enter;
+			var current = cfg.Enter;
 			CFGNode previous;
 
 			foreach (var instruction in method.Instructions)
@@ -118,7 +132,7 @@ namespace Backend.Analisis
 
 					if (connectWithPreviousNode)
 					{
-						this.ConnectNodes(previous, current);
+						cfg.ConnectNodes(previous, current);
 					}
 				}
 
@@ -130,19 +144,22 @@ namespace Backend.Analisis
 					var branch = instruction as IBranchInstruction;
 					var target = leaders[branch.Target];
 
-					this.ConnectNodes(current, target);
+					cfg.ConnectNodes(current, target);
 					connectWithPreviousNode = instruction is ConditionalBranchInstruction ||
 											  instruction is ExceptionalBranchInstruction;
 				}
 				else if (instruction is ReturnInstruction)
 				{
 					//TODO: not always connect to exit, could exists a finally block
-					this.ConnectNodes(current, this.Exit);
+					cfg.ConnectNodes(current, cfg.Exit);
 				}
 			}
 
-			this.ConnectNodes(current, this.Exit);
+			cfg.ConnectNodes(current, cfg.Exit);
+			return cfg;
 		}
+
+		#endregion
 
 		public void ConnectNodes(CFGNode predecessor, CFGNode successor)
 		{

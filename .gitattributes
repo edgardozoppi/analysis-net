@@ -28,3 +28,8 @@ Test/Examples.cs -text
 Test/LinkedList.cs -text
 Test/Properties/AssemblyInfo.cs -text
 Test/Test.csproj -text
+/dowhile.dgml -text
+/for.dgml -text
+/foreach.dgml -text
+/loops.txt -text
+/while.dgml -text

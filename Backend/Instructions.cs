@@ -253,7 +253,7 @@ namespace Backend.Instructions
 			if (this.HasOperand)
 				operand = string.Format(" {0}", this.Operand);
 
-			return string.Format("{0}:  ret{1};", this.Label, operand);
+			return string.Format("{0}:  return{1};", this.Label, operand);
 		}
 	}
 

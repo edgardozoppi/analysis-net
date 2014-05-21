@@ -28,7 +28,7 @@ namespace Console
 			System.Console.WriteLine(methodBody);
 			System.Console.WriteLine();
 
-			var cfg = new ControlFlowGraph(methodBody);
+			var cfg = ControlFlowGraph.Generate(methodBody);
 			//var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);
 			
