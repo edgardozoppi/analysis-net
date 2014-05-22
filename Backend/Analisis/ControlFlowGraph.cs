@@ -108,6 +108,7 @@ namespace Backend.Analisis
 		{			
 			var leaders = ControlFlowGraph.CreateNodes(method);
 			var cfg = ControlFlowGraph.ConnectNodes(method, leaders);
+
 			return cfg;
 		}
 
@@ -209,6 +210,7 @@ namespace Backend.Analisis
 
 		public static void ComputeDominators(ControlFlowGraph cfg)
 		{
+			cfg.Enter.Dominators.Clear();
 			cfg.Enter.Dominators.Add(cfg.Enter);
 
 			foreach (var node in cfg.Nodes)
@@ -216,6 +218,7 @@ namespace Backend.Analisis
 				if (node.Kind == CFGNodeKind.Enter)
 					continue;
 
+				node.Dominators.Clear();
 				node.Dominators.UnionWith(cfg.Nodes);
 			}
 
@@ -251,6 +254,7 @@ namespace Backend.Analisis
 
 		public static void IdentifyLoops(ControlFlowGraph cfg)
 		{
+			cfg.Loops.Clear();
 			var backEdges = ControlFlowGraph.IdentifyBackEdges(cfg);
 
 			foreach (var edge in backEdges)
