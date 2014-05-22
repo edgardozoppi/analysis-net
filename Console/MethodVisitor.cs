@@ -30,6 +30,7 @@ namespace Console
 
 			var cfg = ControlFlowGraph.Generate(methodBody);
 			ControlFlowGraph.ComputeDominators(cfg);
+			ControlFlowGraph.IdentifyLoops(cfg);
 
 			//var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);

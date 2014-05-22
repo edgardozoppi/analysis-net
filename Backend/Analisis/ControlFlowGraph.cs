@@ -13,6 +13,46 @@ namespace Backend.Analisis
 		BasicBlock
 	}
 
+	public class CFGLoop
+	{
+		public CFGNode Header { get; set; }
+		public ISet<CFGNode> Body { get; private set; }
+
+		public CFGLoop(CFGNode header)
+		{
+			this.Header = header;
+			this.Body = new HashSet<CFGNode>();
+			this.Body.Add(header);
+		}
+
+		public override string ToString()
+		{
+			var sb = new StringBuilder(" ");
+
+			foreach (var node in this.Body)
+				sb.AppendFormat("B{0} ", node.Id);
+
+			return sb.ToString();
+		}
+	}
+
+	public class CFGEdge
+	{
+		public CFGNode Source { get; set; }
+		public CFGNode Target { get; set; }
+
+		public CFGEdge(CFGNode source, CFGNode target)
+		{
+			this.Source = source;
+			this.Target = target;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0} -> {1}", this.Source, this.Target);
+		}
+	}
+
 	public class CFGNode
 	{
 		public int Id { get; private set; }
@@ -52,12 +92,14 @@ namespace Backend.Analisis
 		public CFGNode Enter { get; private set; }
 		public CFGNode Exit { get; private set; }
 		public ISet<CFGNode> Nodes { get; private set; }
+		public ISet<CFGLoop> Loops { get; private set; }
 
 		public ControlFlowGraph()
 		{
 			this.Enter = new CFGNode(0, CFGNodeKind.Enter);
 			this.Exit = new CFGNode(1, CFGNodeKind.Exit);
 			this.Nodes = new HashSet<CFGNode>() { this.Enter, this.Exit };
+			this.Loops = new HashSet<CFGLoop>();
 		}
 
 		#region Generate
@@ -201,6 +243,63 @@ namespace Backend.Analisis
 				}
 			}
 			while (changed);
+		}
+
+		#endregion
+
+		#region Loops
+
+		public static void IdentifyLoops(ControlFlowGraph cfg)
+		{
+			var backEdges = ControlFlowGraph.IdentifyBackEdges(cfg);
+
+			foreach (var edge in backEdges)
+			{
+				var loop = ControlFlowGraph.IdentifyLoop(edge);
+				cfg.Loops.Add(loop);
+			}
+		}
+
+		private static ISet<CFGEdge> IdentifyBackEdges(ControlFlowGraph cfg)
+		{
+			var backEdges = new HashSet<CFGEdge>();
+
+			foreach (var node in cfg.Nodes)
+			{
+				foreach (var successor in node.Successors)
+				{
+					if (node.Dominators.Contains(successor))
+					{
+						var edge = new CFGEdge(node, successor);
+						backEdges.Add(edge);
+					}
+				}
+			}
+
+			return backEdges;
+		}
+
+		private static CFGLoop IdentifyLoop(CFGEdge backEdge)
+		{			
+			var loop = new CFGLoop(backEdge.Target);
+			var nodes = new Stack<CFGNode>();
+
+			nodes.Push(backEdge.Source);
+
+			do
+			{
+				var node = nodes.Pop();
+				var newNode = loop.Body.Add(node);
+
+				if (newNode)
+				{
+					foreach (var predecessor in node.Predecessors)
+						nodes.Push(predecessor);
+				}
+			}
+			while (nodes.Count > 0);
+
+			return loop;
 		}
 
 		#endregion
