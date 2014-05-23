@@ -31,6 +31,7 @@ Test/Properties/AssemblyInfo.cs -text
 Test/Test.csproj -text
 /dowhile.dgml -text
 /for.dgml -text
-/foreach.dgml -text
+/foreach_array.dgml -text
+/foreach_collection.dgml -text
 /loops.txt -text
 /while.dgml -text

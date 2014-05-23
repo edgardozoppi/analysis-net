@@ -116,7 +116,18 @@ namespace Test
 			}
 		}
 
-		public void ExampleForeach()
+		public void ExampleForeachOverArray()
+		{
+			var array = new int[5];
+			var a = 3;
+
+			foreach (var x in array)
+			{
+				a += x;
+			}
+		}
+
+		public void ExampleForeachOverCollection()
 		{
 			var list = new List<int>();
 			var a = 3;
