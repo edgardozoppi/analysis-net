@@ -8,7 +8,7 @@ namespace Backend.Utils
 {
 	public static class Extensions
 	{
-		public static bool Different(this BitArray left, BitArray right)
+		public static bool NotEquals(this BitArray left, BitArray right)
 		{
 			if (left.Length != right.Length)
 				return true;

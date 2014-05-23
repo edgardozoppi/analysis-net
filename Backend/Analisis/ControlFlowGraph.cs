@@ -248,9 +248,10 @@ namespace Backend.Analisis
 					}
 
 					newDominators[node.Id] = true;
-					var different = dominators[node.Id].Different(newDominators);
+					var oldDominators = dominators[node.Id];
+					var notEquals = oldDominators.NotEquals(newDominators);
 
-					if (different)
+					if (notEquals)
 					{
 						dominators[node.Id] = newDominators;
 						changed = true;
