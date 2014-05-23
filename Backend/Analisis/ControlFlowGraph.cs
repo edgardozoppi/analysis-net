@@ -3,6 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Collections;
+
+using Backend.Utils;
 
 namespace Backend.Analisis
 {
@@ -210,16 +213,19 @@ namespace Backend.Analisis
 
 		public static void ComputeDominators(ControlFlowGraph cfg)
 		{
-			cfg.Enter.Dominators.Clear();
-			cfg.Enter.Dominators.Add(cfg.Enter);
+			var cfgNodes = cfg.Nodes.ToArray();
+			var dominators = new BitArray[cfgNodes.Length];
+
+			var enterDominators = new BitArray(cfgNodes.Length);
+			enterDominators[cfg.Enter.Id] = true;
+			dominators[cfg.Enter.Id] = enterDominators;
 
 			foreach (var node in cfg.Nodes)
 			{
 				if (node.Kind == CFGNodeKind.Enter)
 					continue;
 
-				node.Dominators.Clear();
-				node.Dominators.UnionWith(cfg.Nodes);
+				dominators[node.Id] = new BitArray(cfgNodes.Length, true);
 			}
 
 			bool changed;
@@ -228,24 +234,38 @@ namespace Backend.Analisis
 			{
 				changed = false;
 
-				foreach (var node in cfg.Nodes)
+				foreach (var node in cfgNodes)
 				{
 					if (node.Kind == CFGNodeKind.Enter)
 						continue;
 
-					var oldCount = node.Dominators.Count;
+					var newDominators = new BitArray(cfgNodes.Length, true);
 
 					foreach (var predecessor in node.Predecessors)
-						node.Dominators.IntersectWith(predecessor.Dominators);
+					{
+						var preDominators = dominators[predecessor.Id];
+						newDominators.And(preDominators);
+					}
 
-					node.Dominators.Add(node);
-					var newCount = node.Dominators.Count;
+					newDominators[node.Id] = true;
+					var different = dominators[node.Id].Different(newDominators);
 
-					if (newCount != oldCount)
+					if (different)
+					{
+						dominators[node.Id] = newDominators;
 						changed = true;
+					}
 				}
 			}
 			while (changed);
+
+			for (var i = 0; i < cfgNodes.Length; ++i)
+			{
+				var node = cfgNodes[i];
+				var nodeDominators = dominators[i];
+
+				node.Dominators.FromBitArray(cfgNodes, nodeDominators);
+			}
 		}
 
 		#endregion
