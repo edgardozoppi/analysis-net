@@ -10,6 +10,7 @@ Backend/Properties/AssemblyInfo.cs -text
 Backend/Serialization/DGMLSerializer.cs -text
 Backend/Serialization/DOTSerializer.cs -text
 Backend/Utils/Extensions.cs -text
+Backend/Utils/Subset.cs -text
 /CCI[!!-~]Backend.sln -text
 Console/Assembly.cs -text
 Console/Console.csproj -text

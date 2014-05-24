@@ -213,19 +213,17 @@ namespace Backend.Analisis
 
 		public static void ComputeDominators(ControlFlowGraph cfg)
 		{
-			var cfgNodes = cfg.Nodes.ToArray();
-			var dominators = new BitArray[cfgNodes.Length];
+			var nodes = cfg.Nodes.ToArray();
+			var dominators = new Subset<CFGNode>[nodes.Length];
 
-			var enterDominators = new BitArray(cfgNodes.Length);
-			enterDominators[cfg.Enter.Id] = true;
+			var enterDominators = nodes.Subset();
+			enterDominators.Add(cfg.Enter.Id);
 			dominators[cfg.Enter.Id] = enterDominators;
 
-			foreach (var node in cfg.Nodes)
+			// Skip first node (enter)
+			for (var i = 1; i < nodes.Length; ++i)
 			{
-				if (node.Kind == CFGNodeKind.Enter)
-					continue;
-
-				dominators[node.Id] = new BitArray(cfgNodes.Length, true);
+				dominators[i] = nodes.Subset(true);
 			}
 
 			bool changed;
@@ -234,38 +232,37 @@ namespace Backend.Analisis
 			{
 				changed = false;
 
-				foreach (var node in cfgNodes)
+				// Skip first node (enter)
+				for (var i = 1; i < nodes.Length; ++i)
 				{
-					if (node.Kind == CFGNodeKind.Enter)
-						continue;
-
-					var newDominators = new BitArray(cfgNodes.Length, true);
+					var node = nodes[i];
+					var oldDominators = dominators[i];
+					var newDominators = nodes.Subset(true);
 
 					foreach (var predecessor in node.Predecessors)
 					{
 						var preDominators = dominators[predecessor.Id];
-						newDominators.And(preDominators);
+						newDominators.Intersect(preDominators);
 					}
 
-					newDominators[node.Id] = true;
-					var oldDominators = dominators[node.Id];
-					var notEquals = oldDominators.NotEquals(newDominators);
+					newDominators.Add(i);					
+					var equals = oldDominators.Equals(newDominators);
 
-					if (notEquals)
+					if (!equals)
 					{
-						dominators[node.Id] = newDominators;
+						dominators[i] = newDominators;
 						changed = true;
 					}
 				}
 			}
 			while (changed);
 
-			for (var i = 0; i < cfgNodes.Length; ++i)
+			for (var i = 0; i < nodes.Length; ++i)
 			{
-				var node = cfgNodes[i];
+				var node = nodes[i];
 				var nodeDominators = dominators[i];
 
-				node.Dominators.FromBitArray(cfgNodes, nodeDominators);
+				nodeDominators.ToSet(node.Dominators);
 			}
 		}
 
