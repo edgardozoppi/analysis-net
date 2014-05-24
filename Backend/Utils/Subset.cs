@@ -11,10 +11,10 @@ namespace Backend.Utils
 		private T[] universe;
 		private BitArray data;
 
-		public Subset(T[] universe, bool addAll = false)
+		public Subset(T[] universe, bool empty = true)
 		{
 			this.universe = universe;
-			this.data = new BitArray(universe.Length, addAll);
+			this.data = new BitArray(universe.Length, !empty);
 		}
 
 		public T[] Universe

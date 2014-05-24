@@ -216,14 +216,14 @@ namespace Backend.Analisis
 			var nodes = cfg.Nodes.ToArray();
 			var dominators = new Subset<CFGNode>[nodes.Length];
 
-			var enterDominators = nodes.Subset();
+			var enterDominators = nodes.ToEmptySubset();
 			enterDominators.Add(cfg.Enter.Id);
 			dominators[cfg.Enter.Id] = enterDominators;
 
 			// Skip first node (enter)
 			for (var i = 1; i < nodes.Length; ++i)
 			{
-				dominators[i] = nodes.Subset(true);
+				dominators[i] = nodes.ToSubset();
 			}
 
 			bool changed;
@@ -237,7 +237,7 @@ namespace Backend.Analisis
 				{
 					var node = nodes[i];
 					var oldDominators = dominators[i];
-					var newDominators = nodes.Subset(true);
+					var newDominators = nodes.ToSubset();
 
 					foreach (var predecessor in node.Predecessors)
 					{

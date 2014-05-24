@@ -7,9 +7,14 @@ namespace Backend.Utils
 {
 	public static class Extensions
 	{
-		public static Subset<T> Subset<T>(this T[] universe, bool addAll = false)
+		public static Subset<T> ToSubset<T>(this T[] universe)
 		{
-			return new Subset<T>(universe, addAll);
+			return new Subset<T>(universe, false);
+		}
+
+		public static Subset<T> ToEmptySubset<T>(this T[] universe)
+		{
+			return new Subset<T>(universe, true);
 		}
 	}
 }
