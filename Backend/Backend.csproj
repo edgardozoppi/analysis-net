@@ -67,7 +67,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Analisis\ControlFlowGraph.cs" />
+    <Compile Include="Analysis\ControlFlowGraph.cs" />
+    <Compile Include="Analysis\CopyPropagationAnalysis.cs" />
+    <Compile Include="Analysis\DataFlowAnalyzer.cs" />
     <Compile Include="Disassembler.cs" />
     <Compile Include="Instructions.cs" />
     <Compile Include="MethodBody.cs" />

@@ -1,8 +1,8 @@
-﻿using Backend.Analisis;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Backend.Analysis;
 
 namespace Backend.Serialization
 {
@@ -14,7 +14,7 @@ namespace Backend.Serialization
 
 			switch (node.Kind)
 			{
-				case CFGNodeKind.Enter: result = "enter"; break;
+				case CFGNodeKind.Entry: result = "entry"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
 				default: result = string.Join("\\l", node.Instructions) + "\\l"; break;
 			}

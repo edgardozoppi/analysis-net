@@ -1,10 +1,10 @@
-﻿using Backend.Analisis;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using Backend.Analysis;
 
 namespace Backend.Serialization
 {
@@ -16,7 +16,7 @@ namespace Backend.Serialization
 
 			switch (node.Kind)
 			{
-				case CFGNodeKind.Enter: result = "enter"; break;
+				case CFGNodeKind.Entry: result = "entry"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
 				default: result = string.Join(Environment.NewLine, node.Instructions); break;
 			}
@@ -43,7 +43,7 @@ namespace Backend.Serialization
 					xmlWriter.WriteAttributeString("Id", nodeId);
 					xmlWriter.WriteAttributeString("Label", label);
 
-					if (node.Kind == CFGNodeKind.Enter ||
+					if (node.Kind == CFGNodeKind.Entry ||
 						node.Kind == CFGNodeKind.Exit)
 					{
 						xmlWriter.WriteAttributeString("Background", "Yellow");

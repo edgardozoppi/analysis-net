@@ -5,7 +5,7 @@ using System.Text;
 using Microsoft.Cci.MutableCodeModel;
 using Microsoft.Cci;
 using Backend;
-using Backend.Analisis;
+using Backend.Analysis;
 using Backend.Serialization;
 
 namespace Console
@@ -31,6 +31,9 @@ namespace Console
 			var cfg = ControlFlowGraph.Generate(methodBody);
 			ControlFlowGraph.ComputeDominators(cfg);
 			ControlFlowGraph.IdentifyLoops(cfg);
+
+			var analysis = new CopyPropagationAnalysis(cfg);
+			var result = DataFlowAnalyzer.Analyze(analysis);
 
 			//var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);

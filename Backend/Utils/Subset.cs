@@ -17,6 +17,12 @@ namespace Backend.Utils
 			this.data = new BitArray(universe.Length, !empty);
 		}
 
+		public Subset(Subset<T> subset)
+		{
+			this.universe = subset.universe;
+			this.data = new BitArray(subset.data);
+		}
+
 		public T[] Universe
 		{
 			get { return this.universe; }
@@ -25,6 +31,11 @@ namespace Backend.Utils
 		public bool IsMember(int index)
 		{
 			return this.data[index];
+		}
+
+		public Subset<T> Clone()
+		{
+			return new Subset<T>(this);
 		}
 
 		public void Clear()
@@ -52,26 +63,26 @@ namespace Backend.Utils
 			this.data.Not();
 		}
 
-		public void Union(Subset<T> set)
+		public void Union(Subset<T> subset)
 		{
-			this.data.Or(set.data);
+			this.data.Or(subset.data);
 		}
 
-		public void Intersect(Subset<T> set)
+		public void Intersect(Subset<T> subset)
 		{
-			this.data.And(set.data);
+			this.data.And(subset.data);
 		}
 
-		public void Except(Subset<T> set)
+		public void Except(Subset<T> subset)
 		{
-			set.data.Not();
-			this.data.And(set.data);
-			set.data.Not();
+			subset.data.Not();
+			this.data.And(subset.data);
+			subset.data.Not();
 		}
 
-		public void SymmetricExcept(Subset<T> set)
+		public void SymmetricExcept(Subset<T> subset)
 		{
-			this.data.Xor(set.data);
+			this.data.Xor(subset.data);
 		}
 
 		public ISet<T> ToSet()

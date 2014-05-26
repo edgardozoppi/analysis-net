@@ -7,11 +7,11 @@ using System.Collections;
 
 using Backend.Utils;
 
-namespace Backend.Analisis
+namespace Backend.Analysis
 {
 	public enum CFGNodeKind
 	{
-		Enter,
+		Entry,
 		Exit,
 		BasicBlock
 	}
@@ -81,7 +81,7 @@ namespace Backend.Analisis
 
 			switch (this.Kind)
 			{
-				case CFGNodeKind.Enter: result = "enter"; break;
+				case CFGNodeKind.Entry: result = "entry"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
 				default: result = string.Join("\n", this.Instructions); break;
 			}
@@ -92,16 +92,16 @@ namespace Backend.Analisis
 
 	public class ControlFlowGraph
 	{
-		public CFGNode Enter { get; private set; }
+		public CFGNode Entry { get; private set; }
 		public CFGNode Exit { get; private set; }
 		public ISet<CFGNode> Nodes { get; private set; }
 		public ISet<CFGLoop> Loops { get; private set; }
 
 		public ControlFlowGraph()
 		{
-			this.Enter = new CFGNode(0, CFGNodeKind.Enter);
+			this.Entry = new CFGNode(0, CFGNodeKind.Entry);
 			this.Exit = new CFGNode(1, CFGNodeKind.Exit);
-			this.Nodes = new HashSet<CFGNode>() { this.Enter, this.Exit };
+			this.Nodes = new HashSet<CFGNode>() { this.Entry, this.Exit };
 			this.Loops = new HashSet<CFGLoop>();
 		}
 
@@ -168,7 +168,7 @@ namespace Backend.Analisis
 		{
 			var cfg = new ControlFlowGraph();
 			var connectWithPreviousNode = true;
-			var current = cfg.Enter;
+			var current = cfg.Entry;
 			CFGNode previous;
 
 			foreach (var instruction in method.Instructions)
@@ -217,10 +217,10 @@ namespace Backend.Analisis
 			var dominators = new Subset<CFGNode>[nodes.Length];
 
 			var enterDominators = nodes.ToEmptySubset();
-			enterDominators.Add(cfg.Enter.Id);
-			dominators[cfg.Enter.Id] = enterDominators;
+			enterDominators.Add(cfg.Entry.Id);
+			dominators[cfg.Entry.Id] = enterDominators;
 
-			// Skip first node (enter)
+			// Skip first node (entry)
 			for (var i = 1; i < nodes.Length; ++i)
 			{
 				dominators[i] = nodes.ToSubset();
@@ -232,7 +232,7 @@ namespace Backend.Analisis
 			{
 				changed = false;
 
-				// Skip first node (enter)
+				// Skip first node (entry)
 				for (var i = 1; i < nodes.Length; ++i)
 				{
 					var node = nodes[i];
