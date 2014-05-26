@@ -105,7 +105,7 @@ namespace Backend.Analisis
 			this.Loops = new HashSet<CFGLoop>();
 		}
 
-		#region Generate
+		#region Generation
 
 		public static ControlFlowGraph Generate(MethodBody method)
 		{			

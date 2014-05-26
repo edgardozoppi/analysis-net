@@ -1,5 +1,6 @@
 * text=auto !eol
 Backend/Analisis/ControlFlowGraph.cs -text
+Backend/Analisis/CopyPropagation.cs -text
 Backend/Backend.csproj -text
 Backend/Disassembler.cs -text
 Backend/Exceptions.cs -text
