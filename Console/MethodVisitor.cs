@@ -33,7 +33,7 @@ namespace Console
 			ControlFlowGraph.IdentifyLoops(cfg);
 
 			var analysis = new CopyPropagationAnalysis(cfg);
-			var result = DataFlowAnalyzer.Analyze(analysis);
+			analysis.Analyze();
 
 			//var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);

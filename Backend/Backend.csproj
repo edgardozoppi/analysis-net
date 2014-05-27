@@ -69,7 +69,7 @@
   <ItemGroup>
     <Compile Include="Analysis\ControlFlowGraph.cs" />
     <Compile Include="Analysis\CopyPropagationAnalysis.cs" />
-    <Compile Include="Analysis\DataFlowAnalyzer.cs" />
+    <Compile Include="Analysis\DataFlowAnalysis.cs" />
     <Compile Include="Disassembler.cs" />
     <Compile Include="Instructions.cs" />
     <Compile Include="MethodBody.cs" />

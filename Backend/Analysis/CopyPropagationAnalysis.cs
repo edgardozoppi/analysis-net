@@ -7,9 +7,8 @@ using Backend.Utils;
 
 namespace Backend.Analysis
 {
-	public class CopyPropagationAnalysis : IDataFlowAnalysis<Subset<UnaryInstruction>> 
+	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<Subset<UnaryInstruction>> 
 	{
-		private ControlFlowGraph cfg;
 		private UnaryInstruction[] copies;
 		private Subset<UnaryInstruction>[] GEN;
 		private Subset<UnaryInstruction>[] KILL;
@@ -25,29 +24,24 @@ namespace Backend.Analysis
 			this.ComputeKill();
 		}
 
-		public DataFlowDirection Direction
-		{
-			get { return DataFlowDirection.Forward; }
-		}
-
-		public Subset<UnaryInstruction> InitialValue
+		public override Subset<UnaryInstruction> EntryInitialValue
 		{
 			get { return GEN[cfg.Entry.Id]; }
 		}
 
-		public Subset<UnaryInstruction> DefaultValue
+		public override Subset<UnaryInstruction> DefaultValue
 		{
 			get { return copies.ToSubset(); }
 		}
 
-		public Subset<UnaryInstruction> Meet(Subset<UnaryInstruction> left, Subset<UnaryInstruction> right)
+		public override Subset<UnaryInstruction> Meet(Subset<UnaryInstruction> left, Subset<UnaryInstruction> right)
 		{
 			var result = left.Clone();
 			result.Intersect(right);
 			return result;
 		}
 
-		public Subset<UnaryInstruction> Transfer(CFGNode node, Subset<UnaryInstruction> nodeIN)
+		public override Subset<UnaryInstruction> Transfer(CFGNode node, Subset<UnaryInstruction> nodeIN)
 		{
 			var generatedByNode = GEN[node.Id];
 			var killedByNode = KILL[node.Id];
