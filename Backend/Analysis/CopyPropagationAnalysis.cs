@@ -16,9 +16,6 @@ namespace Backend.Analysis
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
-			this.GEN = new Subset<UnaryInstruction>[cfg.Nodes.Count];
-			this.KILL = new Subset<UnaryInstruction>[cfg.Nodes.Count];
-
 			this.FindCopyInstructions();
 			this.ComputeGen();
 			this.ComputeKill();
@@ -74,12 +71,33 @@ namespace Backend.Analysis
 
 		private void ComputeGen()
 		{
-			throw new NotImplementedException();
+			var copyId = 0;
+			GEN = new Subset<UnaryInstruction>[cfg.Nodes.Count];
+
+			foreach (var node in cfg.Nodes)
+			{
+				var generatedCopies = this.copies.ToEmptySubset();
+
+				foreach (var instruction in node.Instructions)
+				{
+					var copy = instruction as UnaryInstruction;
+
+					if (copy != null && copy.Operation == UnaryOperation.Assign)
+					{
+						generatedCopies.Add(copyId);
+						copyId++;
+					}
+				}
+
+				GEN[node.Id] = generatedCopies;
+			}
 		}
 
 		private void ComputeKill()
 		{
-			throw new NotImplementedException();
+			KILL = new Subset<UnaryInstruction>[cfg.Nodes.Count];
+
+
 		}
 	}
 }

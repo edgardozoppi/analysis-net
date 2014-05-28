@@ -346,7 +346,7 @@ namespace Backend.Instructions
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.Type);
-			return string.Format("{0}:  sizeof {1};", this.Label, this.Result, type);
+			return string.Format("{0}:  {1} = sizeof {2};", this.Label, this.Result, type);
 		}
 	}
 
