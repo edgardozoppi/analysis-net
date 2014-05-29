@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Cci;
 using Backend.Instructions;
+using Backend.Operands;
 
 namespace Backend
 {
@@ -11,11 +12,13 @@ namespace Backend
 	{
 		public IMethodDefinition MethodDefinition { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
+		public IList<Variable> Variables { get; private set; }
 
 		public MethodBody(IMethodDefinition methodDefinition)
 		{
 			this.MethodDefinition = methodDefinition;
 			this.Instructions = new List<Instruction>();
+			this.Variables = new List<Variable>();
 		}
 
 		public override string ToString()

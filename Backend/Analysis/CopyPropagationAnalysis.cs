@@ -4,100 +4,94 @@ using System.Linq;
 using System.Text;
 using Backend.Instructions;
 using Backend.Utils;
+using Backend.Operands;
 
 namespace Backend.Analysis
 {
-	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<Subset<UnaryInstruction>> 
+	struct Copy
 	{
-		private UnaryInstruction[] copies;
-		private Subset<UnaryInstruction>[] GEN;
-		private Subset<UnaryInstruction>[] KILL;
+		public Variable Target;
+		public Operand Source;
+
+		public Copy(Variable target, Operand source)
+		{
+			this.Target = target;
+			this.Source = source;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0} = {1}", this.Target, this.Source);
+		}
+	}
+
+	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<ISet<Copy>> 
+	{
+		private ISet<Copy> GEN;
+		private ISet<Copy> KILL;
 
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
-			this.FindCopyInstructions();
-			this.ComputeGen();
-			this.ComputeKill();
 		}
 
-		public override Subset<UnaryInstruction> EntryInitialValue
+		public override ISet<Copy> EntryInitialValue
 		{
-			get { return GEN[cfg.Entry.Id]; }
+			get { return new HashSet<Copy>(); }
 		}
 
-		public override Subset<UnaryInstruction> DefaultValue
+		public override ISet<Copy> DefaultValue(CFGNode node)
 		{
-			get { return copies.ToSubset(); }
+			return GEN;
 		}
 
-		public override Subset<UnaryInstruction> Meet(Subset<UnaryInstruction> left, Subset<UnaryInstruction> right)
+		public override IDictionary<Variable, Operand> Meet(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
 		{
-			var result = left.Clone();
-			result.Intersect(right);
+			var result = new Dictionary<Variable, Operand>();
+			var smaller = left;
+			var bigger = right;
+			
+			if (left.Count > right.Count)
+			{
+				smaller = right;
+				bigger = left;
+			}
+
+			foreach (var entry in smaller)
+			{
+				if (bigger.Contains(entry))
+					result.Add(entry.Key, entry.Value);
+			}
+
 			return result;
 		}
 
-		public override Subset<UnaryInstruction> Transfer(CFGNode node, Subset<UnaryInstruction> nodeIN)
+		public override IDictionary<Variable, Operand> Transfer(CFGNode node, IDictionary<Variable, Operand> nodeIN)
 		{
-			var generatedByNode = GEN[node.Id];
-			var killedByNode = KILL[node.Id];
-			var output = nodeIN.Clone();
+			var nodeOUT = new Dictionary<Variable, Operand>(nodeIN);
 
-			output.Except(killedByNode);
-			output.Union(generatedByNode);
-			return output;
-		}
-
-		private void FindCopyInstructions()
-		{
-			var copies = new List<UnaryInstruction>();
-
-			foreach (var node in this.cfg.Nodes)
+			foreach (var instruction in node.Instructions)
 			{
-				foreach (var instruction in node.Instructions)
+				foreach (var variable in instruction.ModifiedVariables)
 				{
-					var copy = instruction as UnaryInstruction;
+					nodeOUT.Remove(variable);
+					var entriesWithVariable = nodeOUT.Where(e => e.Value == variable);
 
-					if (copy != null && copy.Operation == UnaryOperation.Assign)
-					{
-						copies.Add(copy);
-					}
+					foreach (var entry in entriesWithVariable)
+						nodeOUT.Remove(entry.Key);
+				}
+
+				var copy = instruction as UnaryInstruction;
+
+				if (copy != null &&
+					copy.Operation == UnaryOperation.Assign &&
+					(copy.Operand is Variable || copy.Operand is Constant))
+				{
+					nodeOUT[copy.Result] = copy.Operand;
 				}
 			}
 
-			this.copies = copies.ToArray();
-		}
-
-		private void ComputeGen()
-		{
-			var copyId = 0;
-			GEN = new Subset<UnaryInstruction>[cfg.Nodes.Count];
-
-			foreach (var node in cfg.Nodes)
-			{
-				var generatedCopies = this.copies.ToEmptySubset();
-
-				foreach (var instruction in node.Instructions)
-				{
-					var copy = instruction as UnaryInstruction;
-
-					if (copy != null && copy.Operation == UnaryOperation.Assign)
-					{
-						generatedCopies.Add(copyId);
-						copyId++;
-					}
-				}
-
-				GEN[node.Id] = generatedCopies;
-			}
-		}
-
-		private void ComputeKill()
-		{
-			KILL = new Subset<UnaryInstruction>[cfg.Nodes.Count];
-
-
+			return nodeOUT;
 		}
 	}
 }

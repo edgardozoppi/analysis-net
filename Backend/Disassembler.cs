@@ -25,6 +25,11 @@ namespace Backend
 					stack[i] = new TemporalVariable(i);
 			}
 
+			public IEnumerable<TemporalVariable> Variables
+			{
+				get { return this.stack; }
+			}
+
 			public int Capacity
 			{
 				get { return stack.Length; }
@@ -61,7 +66,7 @@ namespace Backend
 
 		#endregion
 
-		#region enum ContextKind
+		#region Try Catch Finally information
 
 		enum ContextKind
 		{
@@ -182,8 +187,13 @@ namespace Backend
 		public MethodBody Execute()
 		{
 			var body = new MethodBody(method);
-			TryInformation tryInfo = null;
 			var contextKind = ContextKind.None;
+			TryInformation tryInfo = null;
+
+			foreach (var variable in stack.Variables)
+			{
+				body.Variables.Add(variable);
+			}
 
 			foreach (var op in method.Body.Operations)
 			{

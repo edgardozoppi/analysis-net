@@ -13,9 +13,9 @@ namespace Backend.Analysis
 
 		public abstract void Analyze();
 
-		public abstract T DefaultValue { get; }
-
 		public abstract T Meet(T left, T right);
+
+		public abstract T DefaultValue(CFGNode node);
 
 		public abstract T Transfer(CFGNode node, T nodeIN);
 	}
@@ -37,7 +37,8 @@ namespace Backend.Analysis
 			for (var i = 0; i < nodes.Length; ++i)
 			{
 				if (i == cfg.Entry.Id) continue;
-				OUT[i] = this.DefaultValue;
+				var node = nodes[i];
+				OUT[i] = this.DefaultValue(node);
 			}
 
 			do
@@ -48,7 +49,7 @@ namespace Backend.Analysis
 				{
 					if (i == cfg.Entry.Id) continue;
 					var node = nodes[i];
-					var nodeIN = this.DefaultValue;
+					var nodeIN = this.DefaultValue(node);
 
 					foreach (var predecessor in node.Predecessors)
 					{
