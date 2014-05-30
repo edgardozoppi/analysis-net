@@ -35,9 +35,9 @@ namespace Backend.Analysis
 
 	#endregion
 
-	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<ISet<Copy>> 
+	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, Operand>> 
 	{
-		private ISet<Copy>[] GEN;
+		private IDictionary<Variable, Operand>[] GEN;
 		private ISet<Variable>[] KILL;
 
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
@@ -47,68 +47,88 @@ namespace Backend.Analysis
 			this.GenerateKill();
 		}
 
-		public override ISet<Copy> EntryInitialValue
+		public override IDictionary<Variable, Operand> EntryInitialValue
 		{
-			get { return new HashSet<Copy>(); }
+			get { return new Dictionary<Variable, Operand>(); }
 		}
 
-		public override ISet<Copy> DefaultValue(CFGNode node)
+		public override IDictionary<Variable, Operand> DefaultValue(CFGNode node)
 		{
 			return GEN[node.Id];
 		}
 
-		public override bool CompareValues(ISet<Copy> left, ISet<Copy> right)
+		public override bool CompareValues(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
 		{
-			return left.SetEquals(right);
+			return left.SequenceEqual(right);
 		}
 
-		public override ISet<Copy> Meet(ISet<Copy> left, ISet<Copy> right)
+		public override IDictionary<Variable, Operand> Meet(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
 		{
-			var result = new HashSet<Copy>(left);
+			var result = new Dictionary<Variable, Operand>();
+			var smaller = left;
+			var bigger = right;
 
-			result.IntersectWith(right);
+			if (left.Count > right.Count)
+			{
+				smaller = right;
+				bigger = left;
+			}
+
+			foreach (var entry in smaller)
+			{
+				if (bigger.Contains(entry))
+					result.Add(entry.Key, entry.Value);
+			}
+
 			return result;
 		}
 
-		public override ISet<Copy> Transfer(CFGNode node, ISet<Copy> input)
+		public override IDictionary<Variable, Operand> Transfer(CFGNode node, IDictionary<Variable, Operand> input)
 		{
-			var output = new HashSet<Copy>(input);
-			var gen = GEN[node.Id];
-			var kill = KILL[node.Id];
+			IDictionary<Variable, Operand> result;
 
-			foreach (var variable in kill)
+			if (input == null)
 			{
-				this.RemoveCopiesWithVariable(output, variable);
+				result = new Dictionary<Variable, Operand>();
+			}
+			else
+			{
+				result = new Dictionary<Variable, Operand>(input);
 			}
 
-			output.UnionWith(gen);
-			return output;
+			foreach (var instruction in node.Instructions)
+			{
+				foreach (var variable in instruction.ModifiedVariables)
+				{
+					this.RemoveCopiesWithVariable(result, variable);
+				}
+
+				var unaryInstruction = this.IsCopy(instruction);
+
+				if (unaryInstruction != null)
+				{
+					var operand = unaryInstruction.Operand;
+					var variable = operand as Variable;
+
+					if (variable != null && result.ContainsKey(variable))
+					{
+						operand = result[variable];
+					}
+
+					result.Add(unaryInstruction.Result, operand);
+				}
+			}
+
+			return result;
 		}
 
 		private void GenerateGen()
 		{
-			GEN = new ISet<Copy>[this.cfg.Nodes.Count];
+			GEN = new IDictionary<Variable, Operand>[this.cfg.Nodes.Count];
 
 			foreach (var node in this.cfg.Nodes)
 			{
-				var gen = new HashSet<Copy>();
-
-				foreach (var instruction in node.Instructions)
-				{
-					foreach (var variable in instruction.ModifiedVariables)
-					{
-						this.RemoveCopiesWithVariable(gen, variable);
-					}
-
-					var unaryInstruction = this.IsCopy(instruction);
-
-					if (unaryInstruction != null)
-					{
-						var copy = new Copy(unaryInstruction);
-						gen.Add(copy);
-					}
-				}
-
+				var gen = this.Transfer(node, null);
 				GEN[node.Id] = gen;
 			}
 		}
@@ -123,24 +143,21 @@ namespace Backend.Analysis
 
 				foreach (var instruction in node.Instructions)
 				{
-					foreach (var variable in instruction.ModifiedVariables)
-					{
-						kill.Add(variable);
-					}
+					kill.UnionWith(instruction.ModifiedVariables);
 				}
 
 				KILL[node.Id] = kill;
 			}
 		}
 
-		private void RemoveCopiesWithVariable(ISet<Copy> copies, Variable variable)
+		private void RemoveCopiesWithVariable(IDictionary<Variable, Operand> copies, Variable variable)
 		{
 			var array = copies.ToArray();
 
 			foreach (var copy in array)
 			{
-				if (copy.Target == variable ||
-					copy.Source == variable)
+				if (copy.Key == variable ||
+					copy.Value == variable)
 				{
 					copies.Remove(copy);
 				}
