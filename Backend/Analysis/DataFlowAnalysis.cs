@@ -13,16 +13,18 @@ namespace Backend.Analysis
 
 		public abstract void Analyze();
 
-		public abstract T Meet(T left, T right);
-
 		public abstract T DefaultValue(CFGNode node);
 
-		public abstract T Transfer(CFGNode node, T nodeIN);
+		public abstract T Meet(T left, T right);
+
+		public abstract T Transfer(CFGNode node, T input);
 	}
 
 	public abstract class ForwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
 		public abstract T EntryInitialValue { get; }
+
+		public abstract bool CompareValues(T left, T right);
 
 		public override void Analyze()
 		{
@@ -61,7 +63,7 @@ namespace Backend.Analysis
 
 					var oldOUT = OUT[i];
 					var newOUT = this.Transfer(node, nodeIN);
-					var equals = newOUT.Equals(oldOUT);
+					var equals = this.CompareValues(newOUT, oldOUT);
 
 					if (!equals)
 					{
@@ -91,7 +93,8 @@ namespace Backend.Analysis
 			for (var i = 0; i < nodes.Length; ++i)
 			{
 				if (i == cfg.Exit.Id) continue;
-				IN[i] = this.DefaultValue;
+				var node = nodes[i];
+				IN[i] = this.DefaultValue(node);
 			}
 
 			do
@@ -102,7 +105,7 @@ namespace Backend.Analysis
 				{
 					if (i == cfg.Exit.Id) continue;
 					var node = nodes[i];
-					var nodeOUT = this.DefaultValue;
+					var nodeOUT = this.DefaultValue(node);
 
 					foreach (var successor in node.Successors)
 					{

@@ -56,6 +56,11 @@ namespace Backend.Instructions
 	public abstract class Instruction
 	{
 		public string Label { get; set; }
+
+		public virtual ISet<Variable> ModifiedVariables
+		{
+			get { return new HashSet<Variable>(); }
+		}
 	}
 
 	public class BinaryInstruction : Instruction
@@ -74,6 +79,14 @@ namespace Backend.Instructions
 			this.LeftOperand = left;
 			this.Operation = operation;
 			this.RightOperand = right;
+		}
+
+		public override ISet<Variable> ModifiedVariables
+		{
+			get
+			{
+				return new HashSet<Variable>() { this.Result };
+			}
 		}
 
 		public override string ToString()
@@ -116,6 +129,19 @@ namespace Backend.Instructions
 			this.Result = result;
 			this.Operation = operation;
 			this.Operand = operand;
+		}
+
+		public override ISet<Variable> ModifiedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				if (this.Operation != UnaryOperation.SetValueAt)
+					result.Add(this.Result);
+
+				return result;
+			}
 		}
 
 		public override string ToString()
@@ -201,6 +227,14 @@ namespace Backend.Instructions
 			this.ExceptionType = exceptionType;
 		}
 
+		public override ISet<Variable> ModifiedVariables
+		{
+			get
+			{
+				return new HashSet<Variable>() { this.Exception };
+			}
+		}
+
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.ExceptionType);
@@ -222,6 +256,14 @@ namespace Backend.Instructions
 			this.Result = result;
 			this.Type = type;
 			this.Operand = operand;
+		}
+
+		public override ISet<Variable> ModifiedVariables
+		{
+			get
+			{
+				return new HashSet<Variable>() { this.Result };
+			}
 		}
 
 		public override string ToString()
@@ -343,6 +385,14 @@ namespace Backend.Instructions
 			this.Type = type;
 		}
 
+		public override ISet<Variable> ModifiedVariables
+		{
+			get
+			{
+				return new HashSet<Variable>() { this.Result };
+			}
+		}
+
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.Type);
@@ -362,6 +412,26 @@ namespace Backend.Instructions
 			this.Arguments = new List<Operand>(arguments);
 			this.Result = result;
 			this.Method = method;
+		}
+
+		public override ISet<Variable> ModifiedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				if (this.Result != null)
+					result.Add(this.Result);
+
+				foreach (var argument in this.Arguments)
+				{
+					//TODO: this is true only for reference types
+					if (argument is Variable)
+						result.Add(argument as Variable);
+				}
+
+				return result;
+			}
 		}
 
 		public override string ToString()
@@ -394,6 +464,26 @@ namespace Backend.Instructions
 			this.Type = type;
 		}
 
+		public override ISet<Variable> ModifiedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				if (this.Result != null)
+					result.Add(this.Result);
+
+				foreach (var argument in this.Arguments)
+				{
+					//TODO: this is true only for reference types
+					if (argument is Variable)
+						result.Add(argument as Variable);
+				}
+
+				return result;
+			}
+		}
+
 		public override string ToString()
 		{
 			var result = string.Empty;
@@ -418,6 +508,26 @@ namespace Backend.Instructions
 			this.Arguments = new List<Operand>(arguments);
 			this.Result = result;
 			this.Constructor = constructor;
+		}
+
+		public override ISet<Variable> ModifiedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				if (this.Result != null)
+					result.Add(this.Result);
+
+				foreach (var argument in this.Arguments)
+				{
+					//TODO: this is true only for reference types
+					if (argument is Variable)
+						result.Add(argument as Variable);
+				}
+
+				return result;
+			}
 		}
 
 		public override string ToString()
@@ -537,6 +647,14 @@ namespace Backend.Instructions
 			this.Rank = rank;
 			this.LowerBounds = new List<Operand>(lowerBounds);
 			this.Sizes = new List<Operand>(sizes);
+		}
+
+		public override ISet<Variable> ModifiedVariables
+		{
+			get
+			{
+				return new HashSet<Variable>() { this.Result };
+			}
 		}
 
 		public override string ToString()

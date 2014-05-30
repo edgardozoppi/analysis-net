@@ -8,7 +8,9 @@ using Backend.Operands;
 
 namespace Backend.Analysis
 {
-	struct Copy
+	#region struct Copy
+
+	public struct Copy
 	{
 		public Variable Target;
 		public Operand Source;
@@ -19,20 +21,30 @@ namespace Backend.Analysis
 			this.Source = source;
 		}
 
+		public Copy(UnaryInstruction instruction)
+		{
+			this.Target = instruction.Result;
+			this.Source = instruction.Operand;
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0} = {1}", this.Target, this.Source);
 		}
 	}
 
+	#endregion
+
 	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<ISet<Copy>> 
 	{
-		private ISet<Copy> GEN;
-		private ISet<Copy> KILL;
+		private ISet<Copy>[] GEN;
+		private ISet<Variable>[] KILL;
 
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
+			this.GenerateGen();
+			this.GenerateKill();
 		}
 
 		public override ISet<Copy> EntryInitialValue
@@ -42,56 +54,111 @@ namespace Backend.Analysis
 
 		public override ISet<Copy> DefaultValue(CFGNode node)
 		{
-			return GEN;
+			return GEN[node.Id];
 		}
 
-		public override IDictionary<Variable, Operand> Meet(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
+		public override bool CompareValues(ISet<Copy> left, ISet<Copy> right)
 		{
-			var result = new Dictionary<Variable, Operand>();
-			var smaller = left;
-			var bigger = right;
-			
-			if (left.Count > right.Count)
-			{
-				smaller = right;
-				bigger = left;
-			}
+			return left.SetEquals(right);
+		}
 
-			foreach (var entry in smaller)
-			{
-				if (bigger.Contains(entry))
-					result.Add(entry.Key, entry.Value);
-			}
+		public override ISet<Copy> Meet(ISet<Copy> left, ISet<Copy> right)
+		{
+			var result = new HashSet<Copy>(left);
 
+			result.IntersectWith(right);
 			return result;
 		}
 
-		public override IDictionary<Variable, Operand> Transfer(CFGNode node, IDictionary<Variable, Operand> nodeIN)
+		public override ISet<Copy> Transfer(CFGNode node, ISet<Copy> input)
 		{
-			var nodeOUT = new Dictionary<Variable, Operand>(nodeIN);
+			var output = new HashSet<Copy>(input);
+			var gen = GEN[node.Id];
+			var kill = KILL[node.Id];
 
-			foreach (var instruction in node.Instructions)
+			foreach (var variable in kill)
 			{
-				foreach (var variable in instruction.ModifiedVariables)
-				{
-					nodeOUT.Remove(variable);
-					var entriesWithVariable = nodeOUT.Where(e => e.Value == variable);
-
-					foreach (var entry in entriesWithVariable)
-						nodeOUT.Remove(entry.Key);
-				}
-
-				var copy = instruction as UnaryInstruction;
-
-				if (copy != null &&
-					copy.Operation == UnaryOperation.Assign &&
-					(copy.Operand is Variable || copy.Operand is Constant))
-				{
-					nodeOUT[copy.Result] = copy.Operand;
-				}
+				this.RemoveCopiesWithVariable(output, variable);
 			}
 
-			return nodeOUT;
+			output.UnionWith(gen);
+			return output;
+		}
+
+		private void GenerateGen()
+		{
+			GEN = new ISet<Copy>[this.cfg.Nodes.Count];
+
+			foreach (var node in this.cfg.Nodes)
+			{
+				var gen = new HashSet<Copy>();
+
+				foreach (var instruction in node.Instructions)
+				{
+					foreach (var variable in instruction.ModifiedVariables)
+					{
+						this.RemoveCopiesWithVariable(gen, variable);
+					}
+
+					var unaryInstruction = this.IsCopy(instruction);
+
+					if (unaryInstruction != null)
+					{
+						var copy = new Copy(unaryInstruction);
+						gen.Add(copy);
+					}
+				}
+
+				GEN[node.Id] = gen;
+			}
+		}
+
+		private void GenerateKill()
+		{
+			KILL = new ISet<Variable>[this.cfg.Nodes.Count];
+
+			foreach (var node in this.cfg.Nodes)
+			{
+				var kill = new HashSet<Variable>();
+
+				foreach (var instruction in node.Instructions)
+				{
+					foreach (var variable in instruction.ModifiedVariables)
+					{
+						kill.Add(variable);
+					}
+				}
+
+				KILL[node.Id] = kill;
+			}
+		}
+
+		private void RemoveCopiesWithVariable(ISet<Copy> copies, Variable variable)
+		{
+			var array = copies.ToArray();
+
+			foreach (var copy in array)
+			{
+				if (copy.Target == variable ||
+					copy.Source == variable)
+				{
+					copies.Remove(copy);
+				}
+			}
+		}
+
+		private UnaryInstruction IsCopy(Instruction instruction)
+		{
+			var unaryInstruction = instruction as UnaryInstruction;
+
+			if (unaryInstruction != null &&
+				unaryInstruction.Operation == UnaryOperation.Assign &&
+				(unaryInstruction.Operand is Variable || unaryInstruction.Operand is Constant))
+			{
+				return unaryInstruction;
+			}
+
+			return null;
 		}
 	}
 }
