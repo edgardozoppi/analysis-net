@@ -8,33 +8,6 @@ using Backend.Operands;
 
 namespace Backend.Analysis
 {
-	#region struct Copy
-
-	public struct Copy
-	{
-		public Variable Target;
-		public Operand Source;
-
-		public Copy(Variable target, Operand source)
-		{
-			this.Target = target;
-			this.Source = source;
-		}
-
-		public Copy(UnaryInstruction instruction)
-		{
-			this.Target = instruction.Result;
-			this.Source = instruction.Operand;
-		}
-
-		public override string ToString()
-		{
-			return string.Format("{0} = {1}", this.Target, this.Source);
-		}
-	}
-
-	#endregion
-
 	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, Operand>> 
 	{
 		private IDictionary<Variable, Operand>[] GEN;
