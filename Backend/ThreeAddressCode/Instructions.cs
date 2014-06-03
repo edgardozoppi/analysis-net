@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Cci;
-using Backend.Operands;
 
-namespace Backend.Instructions
+namespace Backend.ThreeAddressCode
 {
 	public enum BinaryOperation
 	{
@@ -29,7 +28,7 @@ namespace Backend.Instructions
 
 	public enum UnaryOperation
 	{
-		Assign,
+		Copy,
 		AddressOf,
 		GetValueAt,
 		SetValueAt,
@@ -45,12 +44,6 @@ namespace Backend.Instructions
 		Le,
 		Gt,
 		Ge
-	}
-
-	public enum BranchKind
-	{
-		Goto,
-		Leave
 	}
 
 	public abstract class Instruction
@@ -151,7 +144,7 @@ namespace Backend.Instructions
 
 			switch (this.Operation)
 			{
-				case UnaryOperation.Assign: break;
+				case UnaryOperation.Copy: break;
 				case UnaryOperation.AddressOf: leftOperation = "&"; break;
 				case UnaryOperation.GetValueAt: leftOperation = "*"; break;
 				case UnaryOperation.SetValueAt: rightOperation = "*"; break;

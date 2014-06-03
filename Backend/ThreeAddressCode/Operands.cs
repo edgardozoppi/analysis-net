@@ -4,10 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Backend.Operands
+namespace Backend.ThreeAddressCode
 {
-	public abstract class Operand
+	public abstract class Operand : IExpression
 	{
+		public virtual ISet<Variable> Variables
+		{
+			get { return new HashSet<Variable>(); }
+		}
 	}
 
 	public class StaticMethod : Operand
@@ -66,6 +70,11 @@ namespace Backend.Operands
 	public abstract class Variable : Operand
 	{
 		public abstract string Name { get; set; }
+
+		public override ISet<Variable> Variables
+		{
+			get { return new HashSet<Variable>() { this }; }
+		}
 
 		public override string ToString()
 		{

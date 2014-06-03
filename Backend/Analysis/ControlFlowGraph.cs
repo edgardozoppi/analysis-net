@@ -1,10 +1,10 @@
-﻿using Backend.Instructions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Collections;
 
+using Backend.ThreeAddressCode;
 using Backend.Utils;
 
 namespace Backend.Analysis

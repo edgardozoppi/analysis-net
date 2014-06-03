@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Cci;
-using Backend.Operands;
-using Backend.Instructions;
+using Backend.ThreeAddressCode;
 
 namespace Backend
 {
@@ -1036,7 +1035,7 @@ namespace Backend
 		{
 			var source = new Constant(op.Value);
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1051,7 +1050,7 @@ namespace Backend
 			}
 
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1075,7 +1074,7 @@ namespace Backend
 			var local = op.Value as ILocalDefinition;
 			var source = locals[local];
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1102,7 +1101,7 @@ namespace Backend
 			var obj = stack.Pop();
 			var dest = stack.Push();
 			var source = new InstanceFieldAccess(obj, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1111,7 +1110,7 @@ namespace Backend
 			var field = op.Value as IFieldDefinition;
 			var dest = stack.Push();
 			var source = new StaticFieldAccess(field.ContainingType, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1139,7 +1138,7 @@ namespace Backend
 			var array = stack.Pop();
 			var dest = stack.Push();
 			var length = new InstanceFieldAccess(array, "Length");
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, length);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, length);
 			return instruction;
 		}
 
@@ -1149,7 +1148,7 @@ namespace Backend
 			var array = stack.Pop();			
 			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, index);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1193,7 +1192,7 @@ namespace Backend
 			}
 			
 			var source = stack.Pop();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1202,7 +1201,7 @@ namespace Backend
 			var local = op.Value as ILocalDefinition;
 			var dest = locals[local];
 			var source = stack.Pop();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1220,7 +1219,7 @@ namespace Backend
 			var source = stack.Pop();
 			var obj = stack.Pop();
 			var dest = new InstanceFieldAccess(obj, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1229,7 +1228,7 @@ namespace Backend
 			var field = op.Value as IFieldDefinition;
 			var source = stack.Pop();
 			var dest = new StaticFieldAccess(field.ContainingType, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 
@@ -1239,7 +1238,7 @@ namespace Backend
 			var index = stack.Pop();
 			var array = stack.Pop();
 			var result = new ArrayElementAccess(array, index);
-			var instruction = new UnaryInstruction(op.Offset, result, UnaryOperation.Assign, operand);
+			var instruction = new UnaryInstruction(op.Offset, result, UnaryOperation.Copy, operand);
 			return instruction;
 		}
 
@@ -1290,7 +1289,7 @@ namespace Backend
 		{
 			var source = stack.Peek();
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Assign, source);
+			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
 			return instruction;
 		}
 

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Backend
+namespace Backend.Utils
 {
 	public class UnknownBytecodeException : Exception
 	{

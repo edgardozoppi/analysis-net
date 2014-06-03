@@ -13,9 +13,11 @@ namespace Backend.Analysis
 
 		public abstract void Analyze();
 
+		public abstract bool CompareValues(T left, T right);
+
 		public abstract T DefaultValue(CFGNode node);
 
-		public abstract T Meet(T left, T right);
+		public abstract T Merge(T left, T right);
 
 		public abstract T Transfer(CFGNode node, T input);
 	}
@@ -23,8 +25,6 @@ namespace Backend.Analysis
 	public abstract class ForwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
 		public abstract T EntryInitialValue { get; }
-
-		public abstract bool CompareValues(T left, T right);
 
 		public override void Analyze()
 		{
@@ -56,7 +56,7 @@ namespace Backend.Analysis
 					foreach (var predecessor in node.Predecessors)
 					{
 						var predOUT = OUT[predecessor.Id];
-						nodeIN = this.Meet(nodeIN, predOUT);
+						nodeIN = this.Merge(nodeIN, predOUT);
 					}
 
 					IN[i] = nodeIN;
@@ -110,7 +110,7 @@ namespace Backend.Analysis
 					foreach (var successor in node.Successors)
 					{
 						var succIN = IN[successor.Id];
-						nodeOUT = this.Meet(nodeOUT, succIN);
+						nodeOUT = this.Merge(nodeOUT, succIN);
 					}
 
 					OUT[i] = nodeOUT;

@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Backend.Instructions;
+
+using Backend.ThreeAddressCode;
 using Backend.Utils;
-using Backend.Operands;
 
 namespace Backend.Analysis
 {
@@ -35,7 +35,7 @@ namespace Backend.Analysis
 			return left.SequenceEqual(right);
 		}
 
-		public override IDictionary<Variable, Operand> Meet(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
+		public override IDictionary<Variable, Operand> Merge(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
 		{
 			var result = new Dictionary<Variable, Operand>();
 			var smaller = left;
@@ -50,7 +50,9 @@ namespace Backend.Analysis
 			foreach (var entry in smaller)
 			{
 				if (bigger.Contains(entry))
+				{
 					result.Add(entry.Key, entry.Value);
+				}
 			}
 
 			return result;
@@ -142,7 +144,7 @@ namespace Backend.Analysis
 			var unaryInstruction = instruction as UnaryInstruction;
 
 			if (unaryInstruction != null &&
-				unaryInstruction.Operation == UnaryOperation.Assign &&
+				unaryInstruction.Operation == UnaryOperation.Copy &&
 				(unaryInstruction.Operand is Variable || unaryInstruction.Operand is Constant))
 			{
 				return unaryInstruction;

@@ -70,12 +70,14 @@
     <Compile Include="Analysis\ControlFlowGraph.cs" />
     <Compile Include="Analysis\CopyPropagationAnalysis.cs" />
     <Compile Include="Analysis\DataFlowAnalysis.cs" />
+    <Compile Include="Analysis\SymbolicAnalysis.cs" />
     <Compile Include="Disassembler.cs" />
-    <Compile Include="Instructions.cs" />
+    <Compile Include="ThreeAddressCode\Expressions.cs" />
+    <Compile Include="ThreeAddressCode\Instructions.cs" />
     <Compile Include="MethodBody.cs" />
-    <Compile Include="Operands.cs" />
+    <Compile Include="ThreeAddressCode\Operands.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Exceptions.cs" />
+    <Compile Include="Utils\Exceptions.cs" />
     <Compile Include="Serialization\DGMLSerializer.cs" />
     <Compile Include="Serialization\DOTSerializer.cs" />
     <Compile Include="Utils\Extensions.cs" />
