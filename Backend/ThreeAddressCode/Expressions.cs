@@ -85,13 +85,8 @@ namespace Backend.ThreeAddressCode
 			switch (this.Operation)
 			{
 				case UnaryOperation.AddressOf: operation = "&"; break;
-				case UnaryOperation.GetValueAt: operation = "*"; break;
 				case UnaryOperation.Neg: operation = "-"; break;
 				case UnaryOperation.Not: operation = "!"; break;
-
-				case UnaryOperation.Copy:
-				case UnaryOperation.SetValueAt:
-					throw new Exception("Invalid unary expression operation.");
 			}
 
 			return string.Format("{0}{1}", operation, this.Operand);

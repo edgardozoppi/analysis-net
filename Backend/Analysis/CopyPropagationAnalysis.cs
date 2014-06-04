@@ -78,11 +78,11 @@ namespace Backend.Analysis
 					this.RemoveCopiesWithVariable(result, variable);
 				}
 
-				var unaryInstruction = this.IsCopy(instruction);
+				var assignment = this.IsCopy(instruction);
 
-				if (unaryInstruction != null)
+				if (assignment != null)
 				{
-					var operand = unaryInstruction.Operand;
+					var operand = assignment.Operand as Operand;
 					var variable = operand as Variable;
 
 					if (variable != null && result.ContainsKey(variable))
@@ -90,7 +90,7 @@ namespace Backend.Analysis
 						operand = result[variable];
 					}
 
-					result.Add(unaryInstruction.Result, operand);
+					result.Add(assignment.Result, operand);
 				}
 			}
 
@@ -139,15 +139,14 @@ namespace Backend.Analysis
 			}
 		}
 
-		private UnaryInstruction IsCopy(Instruction instruction)
+		private AssignmentInstruction IsCopy(Instruction instruction)
 		{
-			var unaryInstruction = instruction as UnaryInstruction;
+			var assignment = instruction as AssignmentInstruction;
 
-			if (unaryInstruction != null &&
-				unaryInstruction.Operation == UnaryOperation.Copy &&
-				(unaryInstruction.Operand is Variable || unaryInstruction.Operand is Constant))
+			if (assignment != null &&
+				(assignment.Operand is Variable || assignment.Operand is Constant))
 			{
-				return unaryInstruction;
+				return assignment;
 			}
 
 			return null;

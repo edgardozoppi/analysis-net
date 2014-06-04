@@ -56,7 +56,7 @@ namespace Backend
 				return stack[--top];
 			}
 
-			public TemporalVariable Peek()
+			public TemporalVariable Top()
 			{
 				if (top <= 0) throw new InvalidOperationException();
 				return stack[top - 1];
@@ -1035,7 +1035,7 @@ namespace Backend
 		{
 			var source = new Constant(op.Value);
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1050,7 +1050,7 @@ namespace Backend
 			}
 
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1065,7 +1065,8 @@ namespace Backend
 			}
 
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1074,7 +1075,7 @@ namespace Backend
 			var local = op.Value as ILocalDefinition;
 			var source = locals[local];
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1083,15 +1084,17 @@ namespace Backend
 			var local = op.Value as ILocalDefinition;
 			var source = locals[local];
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
 		private Instruction ProcessLoadIndirect(IOperation op)
 		{
-			var source = stack.Pop();
+			var address = stack.Pop();
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.GetValueAt, source);
+			var source = new ValueAtAddress(address);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1101,7 +1104,7 @@ namespace Backend
 			var obj = stack.Pop();
 			var dest = stack.Push();
 			var source = new InstanceFieldAccess(obj, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1110,7 +1113,7 @@ namespace Backend
 			var field = op.Value as IFieldDefinition;
 			var dest = stack.Push();
 			var source = new StaticFieldAccess(field.ContainingType, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1120,7 +1123,8 @@ namespace Backend
 			var obj = stack.Pop();
 			var dest = stack.Push();
 			var source = new InstanceFieldAccess(obj, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1129,7 +1133,8 @@ namespace Backend
 			var field = op.Value as IFieldDefinition;
 			var dest = stack.Push();
 			var source = new StaticFieldAccess(field.ContainingType, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1138,7 +1143,7 @@ namespace Backend
 			var array = stack.Pop();
 			var dest = stack.Push();
 			var length = new InstanceFieldAccess(array, "Length");
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, length);
+			var instruction = new AssignmentInstruction(op.Offset, dest, length);
 			return instruction;
 		}
 
@@ -1148,7 +1153,7 @@ namespace Backend
 			var array = stack.Pop();			
 			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, index);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1158,16 +1163,18 @@ namespace Backend
 			var array = stack.Pop();
 			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, index);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
 		private Instruction ProcessLoadMethodAddress(IOperation op)
 		{
 			var method = op.Value as IMethodReference;
-			var source = new StaticMethod(method);
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			var source = new StaticMethod(method);
+			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1177,7 +1184,8 @@ namespace Backend
 			var obj = stack.Pop();
 			var dest = stack.Push();
 			var source = new VirtualMethod(obj, method);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.AddressOf, source);
+			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1192,7 +1200,7 @@ namespace Backend
 			}
 			
 			var source = stack.Pop();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1201,15 +1209,16 @@ namespace Backend
 			var local = op.Value as ILocalDefinition;
 			var dest = locals[local];
 			var source = stack.Pop();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
 		private Instruction ProcessStoreIndirect(IOperation op)
 		{
-			var source = stack.Pop();
+			var address = stack.Pop();
 			var dest = stack.Pop();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.SetValueAt, source);
+			var source = new ValueAtAddress(address);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1219,7 +1228,7 @@ namespace Backend
 			var source = stack.Pop();
 			var obj = stack.Pop();
 			var dest = new InstanceFieldAccess(obj, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1228,7 +1237,7 @@ namespace Backend
 			var field = op.Value as IFieldDefinition;
 			var source = stack.Pop();
 			var dest = new StaticFieldAccess(field.ContainingType, field.Name.Value);
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1238,13 +1247,13 @@ namespace Backend
 			var index = stack.Pop();
 			var array = stack.Pop();
 			var result = new ArrayElementAccess(array, index);
-			var instruction = new UnaryInstruction(op.Offset, result, UnaryOperation.Copy, operand);
+			var instruction = new AssignmentInstruction(op.Offset, result, operand);
 			return instruction;
 		}
 
 		private Instruction ProcessEmptyOperation(IOperation op)
 		{
-			var instruction = new EmptyInstruction(op.Offset);
+			var instruction = new NopInstruction(op.Offset);
 			return instruction;
 		}
 
@@ -1257,8 +1266,9 @@ namespace Backend
 		private Instruction ProcessUnaryOperation(IOperation op, UnaryOperation operation)
 		{
 			var operand = stack.Pop();
-			var result = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, result, operation, operand);
+			var dest = stack.Push();
+			var source = new UnaryExpression(operation, operand);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1266,8 +1276,9 @@ namespace Backend
 		{
 			var right = stack.Pop();
 			var left = stack.Pop();
-			var result = stack.Push();
-			var instruction = new BinaryInstruction(op.Offset, result, left, operation, right);
+			var dest = stack.Push();
+			var source = new BinaryExpression(left, operation, right);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1287,9 +1298,9 @@ namespace Backend
 
 		private Instruction ProcessDup(IOperation op)
 		{
-			var source = stack.Peek();
+			var source = stack.Top();
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, UnaryOperation.Copy, source);
+			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 

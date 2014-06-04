@@ -126,11 +126,10 @@ namespace Backend.Analysis
 
 		private void TransferInstruction(Instruction instruction, IDictionary<Variable, IExpression> equalities)
 		{
-			if (instruction is UnaryInstruction)
+			if (instruction is AssignmentInstruction)
 			{
-				var unary = instruction as UnaryInstruction;
-				var expression = new UnaryExpression(unary.Operation, unary.Operand);
-				equalities.Add(unary.Result, expression);
+				var assignment = instruction as AssignmentInstruction;
+				equalities.Add(assignment.Result, assignment.Operand);
 			}
 		}
 	}

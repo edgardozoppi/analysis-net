@@ -28,10 +28,7 @@ namespace Backend.ThreeAddressCode
 
 	public enum UnaryOperation
 	{
-		Copy,
 		AddressOf,
-		GetValueAt,
-		SetValueAt,
 		Not,
 		Neg
 	}
@@ -56,22 +53,16 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class BinaryInstruction : Instruction
+	public class AssignmentInstruction : Instruction
 	{
-		public Operand LeftOperand { get; set; }
-		public Operand RightOperand { get; set; }
-		public BinaryOperation Operation { get; set; }
+		public IExpression Operand { get; set; }
 		public Variable Result { get; set; }
-		public bool CheckOverflow { get; set; }
-		public bool TreatOperandsAsUnsignedIntegers { get; set; }
 
-		public BinaryInstruction(uint label, Variable result, Operand left, BinaryOperation operation, Operand right)
+		public AssignmentInstruction(uint label, Variable result, IExpression operand)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Result = result;
-			this.LeftOperand = left;
-			this.Operation = operation;
-			this.RightOperand = right;
+			this.Operand = operand;
 		}
 
 		public override ISet<Variable> ModifiedVariables
@@ -84,81 +75,13 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			var operation = "??";
-
-			switch (this.Operation)
-			{
-				case BinaryOperation.Add: operation = "+"; break;
-				case BinaryOperation.Sub: operation = "-"; break;
-				case BinaryOperation.Mul: operation = "*"; break;
-				case BinaryOperation.Div: operation = "/"; break;
-				case BinaryOperation.Rem: operation = "%"; break;
-				case BinaryOperation.And: operation = "&"; break;
-				case BinaryOperation.Or: operation = "|"; break;
-				case BinaryOperation.Xor: operation = "^"; break;
-				case BinaryOperation.Shl: operation = "<<"; break;
-				case BinaryOperation.Shr: operation = ">>"; break;
-				case BinaryOperation.Eq: operation = "=="; break;
-				case BinaryOperation.Neq: operation = "!="; break;
-				case BinaryOperation.Gt: operation = ">"; break;
-				case BinaryOperation.Ge: operation = "<="; break;
-				case BinaryOperation.Lt: operation = ">"; break;
-				case BinaryOperation.Le: operation = "<="; break;
-			}
-
-			return string.Format("{0}:  {1} = {2} {3} {4};", this.Label, this.Result, this.LeftOperand, operation, this.RightOperand);
+			return string.Format("{0}:  {1} = {2};", this.Label, this.Result, this.Operand);
 		}
 	}
 
-	public class UnaryInstruction : Instruction
+	public class NopInstruction : Instruction
 	{
-		public Operand Operand { get; set; }
-		public UnaryOperation Operation { get; set; }
-		public Variable Result { get; set; }
-
-		public UnaryInstruction(uint label, Variable result, UnaryOperation operation, Operand operand)
-		{
-			this.Label = string.Format("L_{0:X4}", label);
-			this.Result = result;
-			this.Operation = operation;
-			this.Operand = operand;
-		}
-
-		public override ISet<Variable> ModifiedVariables
-		{
-			get
-			{
-				var result = new HashSet<Variable>();
-
-				if (this.Operation != UnaryOperation.SetValueAt)
-					result.Add(this.Result);
-
-				return result;
-			}
-		}
-
-		public override string ToString()
-		{
-			var rightOperation = string.Empty;
-			var leftOperation = string.Empty;
-
-			switch (this.Operation)
-			{
-				case UnaryOperation.Copy: break;
-				case UnaryOperation.AddressOf: leftOperation = "&"; break;
-				case UnaryOperation.GetValueAt: leftOperation = "*"; break;
-				case UnaryOperation.SetValueAt: rightOperation = "*"; break;
-				case UnaryOperation.Neg: leftOperation = "-"; break;
-				case UnaryOperation.Not: leftOperation = "!"; break;
-			}
-
-			return string.Format("{0}:  {1}{2} = {3}{4};", this.Label, rightOperation, this.Result, leftOperation, this.Operand);
-		}
-	}
-
-	public class EmptyInstruction : Instruction
-	{
-		public EmptyInstruction(uint label)
+		public NopInstruction(uint label)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 		}

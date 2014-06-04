@@ -161,4 +161,20 @@ namespace Backend.ThreeAddressCode
 			this.Index = index;
 		}
 	}
+
+	public class ValueAtAddress : Variable
+	{
+		public Variable Address { get; set; }
+
+		public override string Name
+		{
+			get { return string.Format("*{0}", this.Address); }
+			set { throw new InvalidOperationException(); }
+		}
+
+		public ValueAtAddress(Variable address)
+		{
+			this.Address = address;
+		}
+	}
 }
