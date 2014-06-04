@@ -32,7 +32,7 @@ namespace Console
 			//ControlFlowGraph.ComputeDominators(cfg);
 			//ControlFlowGraph.IdentifyLoops(cfg);
 
-			var analysis = new CopyPropagationAnalysis(cfg);
+			var analysis = new SymbolicAnalysis(cfg);
 			analysis.Analyze();
 
 			//var dot = DOTSerializer.Serialize(cfg);

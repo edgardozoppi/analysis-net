@@ -1,8 +1,10 @@
-﻿using Backend.ThreeAddressCode;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+
+using Backend.ThreeAddressCode;
+using Backend.Utils;
 
 namespace Backend.Analysis
 {
@@ -129,7 +131,8 @@ namespace Backend.Analysis
 			if (instruction is AssignmentInstruction)
 			{
 				var assignment = instruction as AssignmentInstruction;
-				equalities.Add(assignment.Result, assignment.Operand);
+				var expr = assignment.Operand.ReplaceVariables(equalities);
+				equalities.Add(assignment.Result, expr);
 			}
 		}
 	}

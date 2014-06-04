@@ -9,29 +9,60 @@ namespace Backend.ThreeAddressCode
 	public interface IExpression
 	{
 		ISet<Variable> Variables { get; }
+
+		IExpression Clone();
+		IExpression Replace(IExpression oldValue, IExpression newValue);
 	}
 
 	public class BinaryExpression : IExpression
 	{
 		public BinaryOperation Operation { get; set; }
-		public IExpression LeftOperand { get; set; }
-		public IExpression RightOperand { get; set; }
+		public IExpression Left { get; set; }
+		public IExpression Right { get; set; }
 
 		public BinaryExpression(IExpression left, BinaryOperation operation, IExpression right)
 		{
 			this.Operation = operation;
-			this.LeftOperand = left;
-			this.RightOperand = right;
+			this.Left = left;
+			this.Right = right;
 		}
 
 		public ISet<Variable> Variables
 		{
 			get
 			{
-				var result = new HashSet<Variable>(this.LeftOperand.Variables);
-				result.UnionWith(this.RightOperand.Variables);
+				var result = new HashSet<Variable>(this.Left.Variables);
+				result.UnionWith(this.Right.Variables);
 				return result;
 			}
+		}
+
+		public IExpression Clone()
+		{
+			var result = new BinaryExpression(this.Left.Clone(), this.Operation, this.Right.Clone());
+			return result;
+		}
+
+		public IExpression Replace(IExpression oldValue, IExpression newValue)
+		{
+			if (this.Equals(oldValue))
+				return newValue;
+
+			var left = this.Left.Replace(oldValue, newValue);
+			var right = this.Right.Replace(oldValue, newValue);
+			var result = new BinaryExpression(left, this.Operation, right);
+
+			return result;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as BinaryExpression;
+
+			return other != null &&
+				this.Left.Equals(other.Left) &&
+				this.Operation.Equals(other.Operation) &&
+				this.Right.Equals(other.Right);
 		}
 
 		public override string ToString()
@@ -58,7 +89,7 @@ namespace Backend.ThreeAddressCode
 				case BinaryOperation.Le: operation = "<="; break;
 			}
 
-			return string.Format("{0} {1} {2}", this.LeftOperand, operation, this.RightOperand);
+			return string.Format("{0} {1} {2}", this.Left, operation, this.Right);
 		}
 	}
 
@@ -76,6 +107,32 @@ namespace Backend.ThreeAddressCode
 		public ISet<Variable> Variables
 		{
 			get { return this.Operand.Variables; }
+		}
+
+		public IExpression Clone()
+		{
+			var result = new UnaryExpression(this.Operation, this.Operand.Clone());
+			return result;
+		}
+
+		public IExpression Replace(IExpression oldValue, IExpression newValue)
+		{
+			if (this.Equals(oldValue))
+				return newValue;
+
+			var operand = this.Operand.Replace(oldValue, newValue);
+			var result = new UnaryExpression(this.Operation, operand);
+
+			return result;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as UnaryExpression;
+
+			return other != null &&
+				this.Operation.Equals(other.Operation) &&
+				this.Operand.Equals(other.Operand);
 		}
 
 		public override string ToString()

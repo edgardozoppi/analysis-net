@@ -12,6 +12,17 @@ namespace Backend.ThreeAddressCode
 		{
 			get { return new HashSet<Variable>(); }
 		}
+
+		public IExpression Clone()
+		{
+			return this;
+		}
+
+		public IExpression Replace(IExpression oldValue, IExpression newValue)
+		{
+			if (this.Equals(oldValue)) return newValue;
+			else return this;
+		}
 	}
 
 	public class StaticMethod : Operand
@@ -21,6 +32,13 @@ namespace Backend.ThreeAddressCode
 		public StaticMethod(IMethodReference method)
 		{
 			this.Method = method;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as StaticMethod;
+			return other != null &&
+				this.Method.Equals(other.Method);
 		}
 
 		public override string ToString()
@@ -43,6 +61,14 @@ namespace Backend.ThreeAddressCode
 			this.Method = method;
 		}
 
+		public override bool Equals(object obj)
+		{
+			var other = obj as VirtualMethod;
+			return other != null &&
+				this.Instance.Equals(other.Instance) &&
+				this.Method.Equals(other.Method);
+		}
+
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
@@ -61,6 +87,13 @@ namespace Backend.ThreeAddressCode
 			this.Value = value;
 		}
 
+		public override bool Equals(object obj)
+		{
+			var other = obj as Constant;
+			return other != null &&
+				this.Value.Equals(other.Value);
+		}
+
 		public override string ToString()
 		{
 			return this.Value.ToString();
@@ -74,6 +107,13 @@ namespace Backend.ThreeAddressCode
 		public override ISet<Variable> Variables
 		{
 			get { return new HashSet<Variable>() { this }; }
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as Variable;
+			return other != null &&
+				this.Name.Equals(other.Name);
 		}
 
 		public override string ToString()
