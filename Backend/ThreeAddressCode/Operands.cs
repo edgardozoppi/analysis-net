@@ -41,6 +41,11 @@ namespace Backend.ThreeAddressCode
 				this.Method.Equals(other.Method);
 		}
 
+		public override int GetHashCode()
+		{
+			return this.Method.GetHashCode();
+		}
+
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
@@ -69,6 +74,11 @@ namespace Backend.ThreeAddressCode
 				this.Method.Equals(other.Method);
 		}
 
+		public override int GetHashCode()
+		{
+			return this.Instance.GetHashCode() ^ this.Method.GetHashCode();
+		}
+
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
@@ -94,6 +104,11 @@ namespace Backend.ThreeAddressCode
 				this.Value.Equals(other.Value);
 		}
 
+		public override int GetHashCode()
+		{
+			return this.Value.GetHashCode();
+		}
+
 		public override string ToString()
 		{
 			return this.Value.ToString();
@@ -114,6 +129,11 @@ namespace Backend.ThreeAddressCode
 			var other = obj as Variable;
 			return other != null &&
 				this.Name.Equals(other.Name);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
 		}
 
 		public override string ToString()

@@ -25,7 +25,11 @@ namespace Backend.Utils
 				if (equalities.ContainsKey(variable))
 				{
 					var value = equalities[variable];
-					expr = expr.Replace(variable, value);
+
+					if (value != UnknownExpression.Value)
+					{
+						expr = expr.Replace(variable, value);
+					}
 				}
 			}
 

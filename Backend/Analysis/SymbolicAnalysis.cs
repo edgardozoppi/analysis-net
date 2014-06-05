@@ -37,27 +37,31 @@ namespace Backend.Analysis
 
 		public override IDictionary<Variable, IExpression> Merge(IDictionary<Variable, IExpression> left, IDictionary<Variable, IExpression> right)
 		{
-			var result = new Dictionary<Variable, IExpression>();
-			var smaller = left;
-			var bigger = right;
+			var result = new Dictionary<Variable, IExpression>(left);
 
-			if (left.Count > right.Count)
+			foreach (var equality in right)
 			{
-				smaller = right;
-				bigger = left;
-			}
+				var variable = equality.Key;
+				var rightExpr = equality.Value;
 
-			foreach (var entry in smaller)
-			{
-				if (bigger.Contains(entry))
+				if (left.ContainsKey(variable))
 				{
-					result.Add(entry.Key, entry.Value);
+					var leftExpr = left[variable];
+
+					if (!leftExpr.Equals(rightExpr))
+					{
+						result[variable] = UnknownExpression.Value;
+					}
+				}
+				else
+				{
+					result[variable] = rightExpr;
 				}
 			}
 
 			return result;
 		}
-
+		
 		public override IDictionary<Variable, IExpression> Transfer(CFGNode node, IDictionary<Variable, IExpression> input)
 		{
 			IDictionary<Variable, IExpression> result;
@@ -73,7 +77,7 @@ namespace Backend.Analysis
 
 			foreach (var instruction in node.Instructions)
 			{
-				var entry = this.TransferInstruction(instruction, result);
+				var entry = this.Transfer(instruction, result);
 
 				foreach (var variable in instruction.ModifiedVariables)
 				{
@@ -131,7 +135,7 @@ namespace Backend.Analysis
 			}
 		}
 
-		private KeyValuePair<Variable, IExpression>? TransferInstruction(Instruction instruction, IDictionary<Variable, IExpression> equalities)
+		private KeyValuePair<Variable, IExpression>? Transfer(Instruction instruction, IDictionary<Variable, IExpression> equalities)
 		{
 			KeyValuePair<Variable, IExpression>? result = null;
 
