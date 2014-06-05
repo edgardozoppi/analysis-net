@@ -159,44 +159,4 @@ namespace Backend.ThreeAddressCode
 			return string.Format("{0}{1}", operation, this.Operand);
 		}
 	}
-
-	public class UnknownExpression : IExpression
-	{
-		private static UnknownExpression value;
-
-		private UnknownExpression() { }
-
-		public static UnknownExpression Value
-		{
-			get
-			{
-				if (value == null)
-				{
-					value = new UnknownExpression();
-				}
-
-				return value;
-			}
-		}
-
-		public ISet<Variable> Variables
-		{
-			get { return new HashSet<Variable>(); }
-		}
-
-		public IExpression Clone()
-		{
-			return this;
-		}
-
-		public IExpression Replace(IExpression oldValue, IExpression newValue)
-		{
-			return this;
-		}
-
-		public override string ToString()
-		{
-			return "UNK";
-		}
-	}
 }

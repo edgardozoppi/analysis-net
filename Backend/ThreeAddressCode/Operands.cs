@@ -88,6 +88,31 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
+	public class UnknownOperand : Operand
+	{
+		private static UnknownOperand value;
+
+		private UnknownOperand() { }
+
+		public static UnknownOperand Value
+		{
+			get
+			{
+				if (value == null)
+				{
+					value = new UnknownOperand();
+				}
+
+				return value;
+			}
+		}
+
+		public override string ToString()
+		{
+			return "UNK";
+		}
+	}
+
 	public class Constant : Operand
 	{
 		public object Value { get; set; }

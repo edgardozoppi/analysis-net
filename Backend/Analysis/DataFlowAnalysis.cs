@@ -5,6 +5,12 @@ using System.Text;
 
 namespace Backend.Analysis
 {
+	public class DataFlowAnalysisResult<T>
+	{
+		public T Input { get; set; }
+		public T Output { get; set; }
+	}
+
 	public abstract class DataFlowAnalysis<T>
 	{
 		protected ControlFlowGraph cfg;
@@ -15,6 +21,8 @@ namespace Backend.Analysis
 
 		public abstract bool CompareValues(T left, T right);
 
+		public abstract T InitialValue(CFGNode node);
+
 		public abstract T DefaultValue(CFGNode node);
 
 		public abstract T Merge(T left, T right);
@@ -24,8 +32,6 @@ namespace Backend.Analysis
 
 	public abstract class ForwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
-		public abstract T EntryInitialValue { get; }
-
 		public override void Analyze()
 		{
 			bool changed;
@@ -34,7 +40,7 @@ namespace Backend.Analysis
 			IN = new T[nodes.Length];
 			OUT = new T[nodes.Length];
 
-			OUT[cfg.Entry.Id] = this.EntryInitialValue;
+			OUT[cfg.Entry.Id] = this.InitialValue(cfg.Entry);
 
 			for (var i = 0; i < nodes.Length; ++i)
 			{
@@ -51,7 +57,7 @@ namespace Backend.Analysis
 				{
 					if (i == cfg.Entry.Id) continue;
 					var node = nodes[i];
-					var nodeIN = this.DefaultValue(node);
+					var nodeIN = this.InitialValue(node);
 
 					foreach (var predecessor in node.Predecessors)
 					{
@@ -88,7 +94,7 @@ namespace Backend.Analysis
 			IN = new T[nodes.Length];
 			OUT = new T[nodes.Length];
 
-			IN[cfg.Exit.Id] = this.ExitInitialValue;
+			IN[cfg.Exit.Id] = this.InitialValue(cfg.Exit);
 
 			for (var i = 0; i < nodes.Length; ++i)
 			{
@@ -105,7 +111,7 @@ namespace Backend.Analysis
 				{
 					if (i == cfg.Exit.Id) continue;
 					var node = nodes[i];
-					var nodeOUT = this.DefaultValue(node);
+					var nodeOUT = this.InitialValue(node);
 
 					foreach (var successor in node.Successors)
 					{

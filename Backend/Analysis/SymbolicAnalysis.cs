@@ -20,9 +20,9 @@ namespace Backend.Analysis
 			this.GenerateKill();
 		}
 
-		public override IDictionary<Variable, IExpression> EntryInitialValue
+		public override IDictionary<Variable, IExpression> InitialValue(CFGNode node)
 		{
-			get { return new Dictionary<Variable, IExpression>(); }
+			return new Dictionary<Variable, IExpression>();
 		}
 
 		public override IDictionary<Variable, IExpression> DefaultValue(CFGNode node)
@@ -50,7 +50,7 @@ namespace Backend.Analysis
 
 					if (!leftExpr.Equals(rightExpr))
 					{
-						result[variable] = UnknownExpression.Value;
+						result[variable] = UnknownOperand.Value;
 					}
 				}
 				else
@@ -77,16 +77,16 @@ namespace Backend.Analysis
 
 			foreach (var instruction in node.Instructions)
 			{
-				var entry = this.Transfer(instruction, result);
+				var equality = this.Transfer(instruction, result);
 
 				foreach (var variable in instruction.ModifiedVariables)
 				{
 					this.RemoveEqualitiesWithVariable(result, variable);
 				}
 
-				if (entry.HasValue)
+				if (equality.HasValue)
 				{
-					result.Add(entry.Value);
+					result.Add(equality.Value);
 				}
 			}
 

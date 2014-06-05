@@ -20,9 +20,9 @@ namespace Backend.Analysis
 			this.GenerateKill();
 		}
 
-		public override IDictionary<Variable, Operand> EntryInitialValue
+		public override IDictionary<Variable, Operand> InitialValue(CFGNode node)
 		{
-			get { return new Dictionary<Variable, Operand>(); }
+			return new Dictionary<Variable, Operand>();
 		}
 
 		public override IDictionary<Variable, Operand> DefaultValue(CFGNode node)
@@ -37,21 +37,25 @@ namespace Backend.Analysis
 
 		public override IDictionary<Variable, Operand> Merge(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
 		{
-			var result = new Dictionary<Variable, Operand>();
-			var smaller = left;
-			var bigger = right;
+			var result = new Dictionary<Variable, Operand>(left);
 
-			if (left.Count > right.Count)
+			foreach (var copy in right)
 			{
-				smaller = right;
-				bigger = left;
-			}
+				var variable = copy.Key;
+				var rightOperand = copy.Value;
 
-			foreach (var entry in smaller)
-			{
-				if (bigger.Contains(entry))
+				if (left.ContainsKey(variable))
 				{
-					result.Add(entry.Key, entry.Value);
+					var leftOperand = left[variable];
+
+					if (!leftOperand.Equals(rightOperand))
+					{
+						result[variable] = UnknownOperand.Value;
+					}
+				}
+				else
+				{
+					result[variable] = rightOperand;
 				}
 			}
 
@@ -73,24 +77,16 @@ namespace Backend.Analysis
 
 			foreach (var instruction in node.Instructions)
 			{
+				var copy = this.Transfer(instruction, result);
+
 				foreach (var variable in instruction.ModifiedVariables)
 				{
 					this.RemoveCopiesWithVariable(result, variable);
 				}
 
-				var assignment = this.IsCopy(instruction);
-
-				if (assignment != null)
+				if (copy.HasValue)
 				{
-					var operand = assignment.Operand as Operand;
-					var variable = operand as Variable;
-
-					if (variable != null && result.ContainsKey(variable))
-					{
-						operand = result[variable];
-					}
-
-					result.Add(assignment.Result, operand);
+					result.Add(copy.Value);
 				}
 			}
 
@@ -150,6 +146,27 @@ namespace Backend.Analysis
 			}
 
 			return null;
+		}
+
+		private KeyValuePair<Variable, Operand>? Transfer(Instruction instruction, IDictionary<Variable, Operand> copies)
+		{
+			KeyValuePair<Variable, Operand>? result = null;
+			var assignment = this.IsCopy(instruction);
+
+			if (assignment != null)
+			{
+				var operand = assignment.Operand as Operand;
+				var variable = operand as Variable;
+
+				if (variable != null && copies.ContainsKey(variable))
+				{
+					operand = copies[variable];
+				}
+
+				result = new KeyValuePair<Variable, Operand>(assignment.Result, operand);
+			}
+
+			return result;
 		}
 	}
 }
