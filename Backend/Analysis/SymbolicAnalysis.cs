@@ -73,12 +73,17 @@ namespace Backend.Analysis
 
 			foreach (var instruction in node.Instructions)
 			{
+				var entry = this.TransferInstruction(instruction, result);
+
 				foreach (var variable in instruction.ModifiedVariables)
 				{
 					this.RemoveEqualitiesWithVariable(result, variable);
 				}
 
-				this.TransferInstruction(instruction, result);
+				if (entry.HasValue)
+				{
+					result.Add(entry.Value);
+				}
 			}
 
 			return result;
@@ -126,14 +131,18 @@ namespace Backend.Analysis
 			}
 		}
 
-		private void TransferInstruction(Instruction instruction, IDictionary<Variable, IExpression> equalities)
+		private KeyValuePair<Variable, IExpression>? TransferInstruction(Instruction instruction, IDictionary<Variable, IExpression> equalities)
 		{
+			KeyValuePair<Variable, IExpression>? result = null;
+
 			if (instruction is AssignmentInstruction)
 			{
 				var assignment = instruction as AssignmentInstruction;
 				var expr = assignment.Operand.ReplaceVariables(equalities);
-				equalities.Add(assignment.Result, expr);
+				result = new KeyValuePair<Variable,IExpression>(assignment.Result, expr);
 			}
+
+			return result;
 		}
 	}
 }
