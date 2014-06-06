@@ -8,21 +8,25 @@ namespace Backend.ThreeAddressCode
 {
 	public abstract class Operand : IExpression
 	{
-		public virtual ISet<Variable> Variables
+		#region IExpression
+
+		ISet<Variable> IExpression.Variables
 		{
 			get { return new HashSet<Variable>(); }
 		}
 
-		public IExpression Clone()
+		IExpression IExpression.Clone()
 		{
 			return this;
 		}
 
-		public IExpression Replace(IExpression oldValue, IExpression newValue)
+		IExpression IExpression.Replace(IExpression oldValue, IExpression newValue)
 		{
 			if (this.Equals(oldValue)) return newValue;
 			else return this;
 		}
+
+		#endregion
 	}
 
 	public class StaticMethod : Operand
@@ -88,19 +92,19 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class UnknownOperand : Operand
+	public class UnknownValue : Operand
 	{
-		private static UnknownOperand value;
+		private static UnknownValue value;
 
-		private UnknownOperand() { }
+		private UnknownValue() { }
 
-		public static UnknownOperand Value
+		public static UnknownValue Value
 		{
 			get
 			{
 				if (value == null)
 				{
-					value = new UnknownOperand();
+					value = new UnknownValue();
 				}
 
 				return value;
@@ -140,14 +144,18 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public abstract class Variable : Operand
+	public abstract class Variable : Operand, IExpression
 	{
 		public abstract string Name { get; set; }
 
-		public override ISet<Variable> Variables
+		#region IExpression
+
+		ISet<Variable> IExpression.Variables
 		{
 			get { return new HashSet<Variable>() { this }; }
 		}
+
+		#endregion
 
 		public override bool Equals(object obj)
 		{
@@ -189,6 +197,25 @@ namespace Backend.ThreeAddressCode
 
 		public TemporalVariable(uint index)
 		{
+			this.Index = index;
+		}
+	}
+
+	public class DerivedVariable : Variable
+	{
+		public Variable Original { get; set; }
+
+		public uint Index { get; set; }
+
+		public override string Name
+		{
+			get { return string.Format("{0}{1}", this.Original, this.Index); }
+			set { throw new InvalidOperationException(); }
+		}
+
+		public DerivedVariable(Variable original, uint index)
+		{
+			this.Original = original;
 			this.Index = index;
 		}
 	}
@@ -247,7 +274,7 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class ValueAtAddress : Variable
+	public class IndirectAccess : Variable
 	{
 		public Variable Address { get; set; }
 
@@ -257,7 +284,7 @@ namespace Backend.ThreeAddressCode
 			set { throw new InvalidOperationException(); }
 		}
 
-		public ValueAtAddress(Variable address)
+		public IndirectAccess(Variable address)
 		{
 			this.Address = address;
 		}

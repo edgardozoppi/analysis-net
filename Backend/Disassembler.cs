@@ -1093,7 +1093,7 @@ namespace Backend
 		{
 			var address = stack.Pop();
 			var dest = stack.Push();
-			var source = new ValueAtAddress(address);
+			var source = new IndirectAccess(address);
 			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}
@@ -1217,7 +1217,7 @@ namespace Backend
 		{
 			var address = stack.Pop();
 			var dest = stack.Pop();
-			var source = new ValueAtAddress(address);
+			var source = new IndirectAccess(address);
 			var instruction = new AssignmentInstruction(op.Offset, dest, source);
 			return instruction;
 		}

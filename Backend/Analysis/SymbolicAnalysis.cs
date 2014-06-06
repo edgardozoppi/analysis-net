@@ -50,7 +50,7 @@ namespace Backend.Analysis
 
 					if (!leftExpr.Equals(rightExpr))
 					{
-						result[variable] = UnknownOperand.Value;
+						result[variable] = UnknownValue.Value;
 					}
 				}
 				else
@@ -142,7 +142,7 @@ namespace Backend.Analysis
 			if (instruction is AssignmentInstruction)
 			{
 				var assignment = instruction as AssignmentInstruction;
-				var expr = assignment.Operand.ReplaceVariables(equalities);
+				var expr = assignment.Expression.ReplaceVariables(equalities);
 				result = new KeyValuePair<Variable,IExpression>(assignment.Result, expr);
 			}
 

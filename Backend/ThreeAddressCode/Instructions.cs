@@ -55,14 +55,14 @@ namespace Backend.ThreeAddressCode
 
 	public class AssignmentInstruction : Instruction
 	{
-		public IExpression Operand { get; set; }
+		public IExpression Expression { get; set; }
 		public Variable Result { get; set; }
 
 		public AssignmentInstruction(uint label, Variable result, IExpression operand)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Result = result;
-			this.Operand = operand;
+			this.Expression = operand;
 		}
 
 		public override ISet<Variable> ModifiedVariables
@@ -75,7 +75,7 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} = {2};", this.Label, this.Result, this.Operand);
+			return string.Format("{0}:  {1} = {2};", this.Label, this.Result, this.Expression);
 		}
 	}
 

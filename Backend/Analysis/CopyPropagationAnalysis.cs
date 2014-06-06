@@ -50,7 +50,7 @@ namespace Backend.Analysis
 
 					if (!leftOperand.Equals(rightOperand))
 					{
-						result[variable] = UnknownOperand.Value;
+						result[variable] = UnknownValue.Value;
 					}
 				}
 				else
@@ -143,14 +143,14 @@ namespace Backend.Analysis
 			{
 				var assignment = instruction as AssignmentInstruction;
 
-				if (assignment.Operand is Constant)
+				if (assignment.Expression is Constant)
 				{
-					var constant = assignment.Operand as Constant;
+					var constant = assignment.Expression as Constant;
 					result = new KeyValuePair<Variable, Operand>(assignment.Result, constant);
 				}
-				else if (assignment.Operand is Variable)
+				else if (assignment.Expression is Variable)
 				{
-					var variable = assignment.Operand as Variable;
+					var variable = assignment.Expression as Variable;
 
 					if (copies.ContainsKey(variable))
 					{
@@ -164,7 +164,7 @@ namespace Backend.Analysis
 				}
 				else
 				{
-					result = new KeyValuePair<Variable, Operand>(assignment.Result, UnknownOperand.Value);
+					result = new KeyValuePair<Variable, Operand>(assignment.Result, UnknownValue.Value);
 				}
 			}
 

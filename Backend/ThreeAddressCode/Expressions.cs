@@ -101,22 +101,22 @@ namespace Backend.ThreeAddressCode
 	public class UnaryExpression : IExpression
 	{
 		public UnaryOperation Operation { get; set; }
-		public IExpression Operand { get; set; }
+		public IExpression Expression { get; set; }
 
 		public UnaryExpression(UnaryOperation operation, IExpression operand)
 		{
 			this.Operation = operation;
-			this.Operand = operand;
+			this.Expression = operand;
 		}
 
 		public ISet<Variable> Variables
 		{
-			get { return this.Operand.Variables; }
+			get { return this.Expression.Variables; }
 		}
 
 		public IExpression Clone()
 		{
-			var result = new UnaryExpression(this.Operation, this.Operand.Clone());
+			var result = new UnaryExpression(this.Operation, this.Expression.Clone());
 			return result;
 		}
 
@@ -125,7 +125,7 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldValue))
 				return newValue;
 
-			var operand = this.Operand.Replace(oldValue, newValue);
+			var operand = this.Expression.Replace(oldValue, newValue);
 			var result = new UnaryExpression(this.Operation, operand);
 
 			return result;
@@ -137,12 +137,12 @@ namespace Backend.ThreeAddressCode
 
 			return other != null &&
 				this.Operation.Equals(other.Operation) &&
-				this.Operand.Equals(other.Operand);
+				this.Expression.Equals(other.Expression);
 		}
 
 		public override int GetHashCode()
 		{
-			return this.Operation.GetHashCode() ^ this.Operand.GetHashCode();
+			return this.Operation.GetHashCode() ^ this.Expression.GetHashCode();
 		}
 
 		public override string ToString()
@@ -156,7 +156,7 @@ namespace Backend.ThreeAddressCode
 				case UnaryOperation.Not: operation = "!"; break;
 			}
 
-			return string.Format("{0}{1}", operation, this.Operand);
+			return string.Format("{0}{1}", operation, this.Expression);
 		}
 	}
 }

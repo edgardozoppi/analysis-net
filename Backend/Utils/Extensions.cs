@@ -26,7 +26,7 @@ namespace Backend.Utils
 				{
 					var value = equalities[variable];
 
-					if (value != UnknownOperand.Value)
+					if (value != UnknownValue.Value)
 					{
 						expr = expr.Replace(variable, value);
 					}
