@@ -102,7 +102,6 @@ namespace Backend.Analysis
 			this.Entry = new CFGNode(0, CFGNodeKind.Entry);
 			this.Exit = new CFGNode(1, CFGNodeKind.Exit);
 			this.Nodes = new HashSet<CFGNode>() { this.Entry, this.Exit };
-			this.Loops = new HashSet<CFGLoop>();
 		}
 
 		#region Generation
@@ -272,7 +271,7 @@ namespace Backend.Analysis
 
 		public static void IdentifyLoops(ControlFlowGraph cfg)
 		{
-			cfg.Loops.Clear();
+			cfg.Loops = new HashSet<CFGLoop>();
 			var backEdges = ControlFlowGraph.IdentifyBackEdges(cfg);
 
 			foreach (var edge in backEdges)

@@ -80,7 +80,23 @@ namespace Test
 
 			a = 5;
 		}
-		
+
+		public void ExampleIf()
+		{
+			var a = 0;
+
+			if (a > 0)
+			{
+				a = 1;
+			}
+			else
+			{
+				a = 2;
+			}
+
+			a++;
+		}
+
 		public void ExampleWhile()
 		{
 			var a = 3;

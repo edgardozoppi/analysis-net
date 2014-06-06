@@ -14,8 +14,7 @@ namespace Backend.Analysis
 	public abstract class DataFlowAnalysis<T>
 	{
 		protected ControlFlowGraph cfg;
-		protected T[] IN;
-		protected T[] OUT;
+		protected DataFlowAnalysisResult<T>[] result;
 
 		public abstract void Analyze();
 
@@ -27,7 +26,7 @@ namespace Backend.Analysis
 
 		public abstract T Merge(T left, T right);
 
-		public abstract T Transfer(CFGNode node, T input);
+		public abstract T Flow(CFGNode node, T input);
 	}
 
 	public abstract class ForwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
@@ -37,16 +36,21 @@ namespace Backend.Analysis
 			bool changed;
 			var nodes = this.cfg.Nodes.ToArray();
 
-			IN = new T[nodes.Length];
-			OUT = new T[nodes.Length];
+			this.result = new DataFlowAnalysisResult<T>[nodes.Length];
 
-			OUT[cfg.Entry.Id] = this.InitialValue(cfg.Entry);
+			var entryResult = new DataFlowAnalysisResult<T>();
+			entryResult.Output = this.InitialValue(cfg.Entry);
+			this.result[cfg.Entry.Id] = entryResult;
 
 			for (var i = 0; i < nodes.Length; ++i)
 			{
 				if (i == cfg.Entry.Id) continue;
+
+				var nodeResult = new DataFlowAnalysisResult<T>();
 				var node = nodes[i];
-				OUT[i] = this.DefaultValue(node);
+
+				nodeResult.Output = this.DefaultValue(node);
+				this.result[i]  = nodeResult;
 			}
 
 			do
@@ -56,24 +60,26 @@ namespace Backend.Analysis
 				for (var i = 0; i < nodes.Length; ++i)
 				{
 					if (i == cfg.Entry.Id) continue;
+
 					var node = nodes[i];
-					var nodeIN = this.InitialValue(node);
+					var nodeResult = this.result[i];
+					var nodeInput = this.InitialValue(node);
 
 					foreach (var predecessor in node.Predecessors)
 					{
-						var predOUT = OUT[predecessor.Id];
-						nodeIN = this.Merge(nodeIN, predOUT);
+						var predResult = this.result[predecessor.Id];
+						nodeInput = this.Merge(nodeInput, predResult.Output);
 					}
 
-					IN[i] = nodeIN;
+					nodeResult.Input = nodeInput;
 
-					var oldOUT = OUT[i];
-					var newOUT = this.Transfer(node, nodeIN);
-					var equals = this.CompareValues(newOUT, oldOUT);
+					var oldOutput = nodeResult.Output;
+					var newOutput = this.Flow(node, nodeInput);
+					var equals = this.CompareValues(newOutput, oldOutput);
 
 					if (!equals)
 					{
-						OUT[i] = newOUT;
+						nodeResult.Output = newOutput;
 						changed = true;
 					}
 				}
@@ -84,23 +90,26 @@ namespace Backend.Analysis
 
 	public abstract class BackwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
-		public abstract T ExitInitialValue { get; }
-
 		public override void Analyze()
 		{
 			bool changed;
 			var nodes = cfg.Nodes.ToArray();
 
-			IN = new T[nodes.Length];
-			OUT = new T[nodes.Length];
+			this.result = new DataFlowAnalysisResult<T>[nodes.Length];
 
-			IN[cfg.Exit.Id] = this.InitialValue(cfg.Exit);
+			var exitResult = new DataFlowAnalysisResult<T>();
+			exitResult.Input = this.InitialValue(cfg.Exit);
+			this.result[cfg.Exit.Id] = exitResult;
 
 			for (var i = 0; i < nodes.Length; ++i)
 			{
 				if (i == cfg.Exit.Id) continue;
+
+				var nodeResult = new DataFlowAnalysisResult<T>();
 				var node = nodes[i];
-				IN[i] = this.DefaultValue(node);
+
+				nodeResult.Input = this.DefaultValue(node);
+				this.result[i] = nodeResult;
 			}
 
 			do
@@ -110,24 +119,26 @@ namespace Backend.Analysis
 				for (var i = 0; i < nodes.Length; ++i)
 				{
 					if (i == cfg.Exit.Id) continue;
+
 					var node = nodes[i];
-					var nodeOUT = this.InitialValue(node);
+					var nodeResult = this.result[i];
+					var nodeOutput = this.InitialValue(node);
 
 					foreach (var successor in node.Successors)
 					{
-						var succIN = IN[successor.Id];
-						nodeOUT = this.Merge(nodeOUT, succIN);
+						var succResult = this.result[successor.Id];
+						nodeOutput = this.Merge(nodeOutput, succResult.Input);
 					}
 
-					OUT[i] = nodeOUT;
+					nodeResult.Output = nodeOutput;
 
-					var oldIN = IN[i];
-					var newIN = this.Transfer(node, nodeOUT);
-					var equals = newIN.Equals(oldIN);
+					var oldInput = nodeResult.Input;
+					var newInput = this.Flow(node, nodeOutput);
+					var equals = newInput.Equals(oldInput);
 
 					if (!equals)
 					{
-						IN[i] = newIN;
+						nodeResult.Input = newInput;
 						changed = true;
 					}
 				}

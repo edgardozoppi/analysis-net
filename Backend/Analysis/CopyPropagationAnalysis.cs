@@ -16,8 +16,8 @@ namespace Backend.Analysis
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
-			this.GenerateGen();
-			this.GenerateKill();
+			this.ComputeGen();
+			this.ComputeKill();
 		}
 
 		public override IDictionary<Variable, Operand> InitialValue(CFGNode node)
@@ -62,7 +62,7 @@ namespace Backend.Analysis
 			return result;
 		}
 
-		public override IDictionary<Variable, Operand> Transfer(CFGNode node, IDictionary<Variable, Operand> input)
+		public override IDictionary<Variable, Operand> Flow(CFGNode node, IDictionary<Variable, Operand> input)
 		{
 			IDictionary<Variable, Operand> result;
 
@@ -77,7 +77,7 @@ namespace Backend.Analysis
 
 			foreach (var instruction in node.Instructions)
 			{
-				var copy = this.Transfer(instruction, result);
+				var copy = this.Flow(instruction, result);
 
 				foreach (var variable in instruction.ModifiedVariables)
 				{
@@ -93,18 +93,18 @@ namespace Backend.Analysis
 			return result;
 		}
 
-		private void GenerateGen()
+		private void ComputeGen()
 		{
 			GEN = new IDictionary<Variable, Operand>[this.cfg.Nodes.Count];
 
 			foreach (var node in this.cfg.Nodes)
 			{
-				var gen = this.Transfer(node, null);
+				var gen = this.Flow(node, null);
 				GEN[node.Id] = gen;
 			}
 		}
 
-		private void GenerateKill()
+		private void ComputeKill()
 		{
 			KILL = new ISet<Variable>[this.cfg.Nodes.Count];
 
@@ -135,35 +135,37 @@ namespace Backend.Analysis
 			}
 		}
 
-		private AssignmentInstruction IsCopy(Instruction instruction)
-		{
-			var assignment = instruction as AssignmentInstruction;
-
-			if (assignment != null &&
-				(assignment.Operand is Variable || assignment.Operand is Constant))
-			{
-				return assignment;
-			}
-
-			return null;
-		}
-
-		private KeyValuePair<Variable, Operand>? Transfer(Instruction instruction, IDictionary<Variable, Operand> copies)
+		private KeyValuePair<Variable, Operand>? Flow(Instruction instruction, IDictionary<Variable, Operand> copies)
 		{
 			KeyValuePair<Variable, Operand>? result = null;
-			var assignment = this.IsCopy(instruction);
 
-			if (assignment != null)
+			if (instruction is AssignmentInstruction)
 			{
-				var operand = assignment.Operand as Operand;
-				var variable = operand as Variable;
+				var assignment = instruction as AssignmentInstruction;
 
-				if (variable != null && copies.ContainsKey(variable))
+				if (assignment.Operand is Constant)
 				{
-					operand = copies[variable];
+					var constant = assignment.Operand as Constant;
+					result = new KeyValuePair<Variable, Operand>(assignment.Result, constant);
 				}
+				else if (assignment.Operand is Variable)
+				{
+					var variable = assignment.Operand as Variable;
 
-				result = new KeyValuePair<Variable, Operand>(assignment.Result, operand);
+					if (copies.ContainsKey(variable))
+					{
+						var operand = copies[variable];
+						result = new KeyValuePair<Variable, Operand>(assignment.Result, operand);
+					}
+					else
+					{
+						result = new KeyValuePair<Variable, Operand>(assignment.Result, variable);
+					}
+				}
+				else
+				{
+					result = new KeyValuePair<Variable, Operand>(assignment.Result, UnknownOperand.Value);
+				}
 			}
 
 			return result;

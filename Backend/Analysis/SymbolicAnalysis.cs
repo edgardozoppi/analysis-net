@@ -16,8 +16,8 @@ namespace Backend.Analysis
 		public SymbolicAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
-			this.GenerateGen();
-			this.GenerateKill();
+			this.ComputeGen();
+			this.ComputeKill();
 		}
 
 		public override IDictionary<Variable, IExpression> InitialValue(CFGNode node)
@@ -62,7 +62,7 @@ namespace Backend.Analysis
 			return result;
 		}
 		
-		public override IDictionary<Variable, IExpression> Transfer(CFGNode node, IDictionary<Variable, IExpression> input)
+		public override IDictionary<Variable, IExpression> Flow(CFGNode node, IDictionary<Variable, IExpression> input)
 		{
 			IDictionary<Variable, IExpression> result;
 
@@ -77,7 +77,7 @@ namespace Backend.Analysis
 
 			foreach (var instruction in node.Instructions)
 			{
-				var equality = this.Transfer(instruction, result);
+				var equality = this.Flow(instruction, result);
 
 				foreach (var variable in instruction.ModifiedVariables)
 				{
@@ -93,18 +93,18 @@ namespace Backend.Analysis
 			return result;
 		}
 
-		private void GenerateGen()
+		private void ComputeGen()
 		{
 			GEN = new IDictionary<Variable, IExpression>[this.cfg.Nodes.Count];
 
 			foreach (var node in this.cfg.Nodes)
 			{
-				var gen = this.Transfer(node, null);
+				var gen = this.Flow(node, null);
 				GEN[node.Id] = gen;
 			}
 		}
 
-		private void GenerateKill()
+		private void ComputeKill()
 		{
 			KILL = new ISet<Variable>[this.cfg.Nodes.Count];
 
@@ -135,7 +135,7 @@ namespace Backend.Analysis
 			}
 		}
 
-		private KeyValuePair<Variable, IExpression>? Transfer(Instruction instruction, IDictionary<Variable, IExpression> equalities)
+		private KeyValuePair<Variable, IExpression>? Flow(Instruction instruction, IDictionary<Variable, IExpression> equalities)
 		{
 			KeyValuePair<Variable, IExpression>? result = null;
 
