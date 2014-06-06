@@ -70,6 +70,7 @@
     <Compile Include="Analysis\ControlFlowGraph.cs" />
     <Compile Include="Analysis\CopyPropagationAnalysis.cs" />
     <Compile Include="Analysis\DataFlowAnalysis.cs" />
+    <Compile Include="Analysis\StaticSingleAssignmentAnalysis.cs" />
     <Compile Include="Analysis\SymbolicAnalysis.cs" />
     <Compile Include="Disassembler.cs" />
     <Compile Include="ThreeAddressCode\Expressions.cs" />

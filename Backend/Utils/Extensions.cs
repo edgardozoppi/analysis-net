@@ -18,7 +18,7 @@ namespace Backend.Utils
 			return new Subset<T>(universe, true);
 		}
 
-		public static IExpression ReplaceVariables(this IExpression expr, IDictionary<Variable, IExpression> equalities)
+		public static IExpression ReplaceVariables<T>(this IExpression expr, IDictionary<Variable, T> equalities) where T : IExpression
 		{
 			foreach (var variable in expr.Variables)
 			{
@@ -26,7 +26,7 @@ namespace Backend.Utils
 				{
 					var value = equalities[variable];
 
-					if (value != UnknownValue.Value)
+					if (!value.Equals(UnknownValue.Value))
 					{
 						expr = expr.Replace(variable, value);
 					}
