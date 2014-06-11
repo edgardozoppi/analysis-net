@@ -208,6 +208,84 @@ namespace Backend.Analysis
 
 		#endregion
 
+		#region Topological Sort
+
+		public CFGNode[] ForwardTopologicalSort()
+		{
+			var stack = new Stack<CFGNode>();
+			var result = new CFGNode[this.Nodes.Count];
+			var visited = new bool[this.Nodes.Count];
+			var index = this.Nodes.Count - 1;
+
+			stack.Push(this.Entry);
+
+			do
+			{
+				var node = stack.Peek();
+
+				if (!visited[node.Id])
+				{
+					visited[node.Id] = true;
+
+					foreach (var successor in node.Successors)
+					{
+						if (!visited[successor.Id])
+						{
+							stack.Push(successor);
+						}
+					}
+				}
+				else
+				{
+					stack.Pop();
+					result[index] = node;
+					index--;
+				}
+			}
+			while (stack.Count > 0);
+
+			return result;
+		}
+
+		public CFGNode[] BackwardTopologicalSort()
+		{
+			var stack = new Stack<CFGNode>();
+			var result = new CFGNode[this.Nodes.Count];
+			var visited = new bool[this.Nodes.Count];
+			var index = this.Nodes.Count - 1;
+
+			stack.Push(this.Exit);
+
+			do
+			{
+				var node = stack.Peek();
+
+				if (!visited[node.Id])
+				{
+					visited[node.Id] = true;
+
+					foreach (var predecessor in node.Predecessors)
+					{
+						if (!visited[predecessor.Id])
+						{
+							stack.Push(predecessor);
+						}
+					}
+				}
+				else
+				{
+					stack.Pop();
+					result[index] = node;
+					index--;
+				}
+			}
+			while (stack.Count > 0);
+
+			return result;
+		}
+
+		#endregion
+
 		#region Dominators
 
 		public static void ComputeDominators(ControlFlowGraph cfg)

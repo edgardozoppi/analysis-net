@@ -8,106 +8,141 @@ using Backend.Utils;
 
 namespace Backend.Analysis
 {
-	public class StaticSingleAssignmentAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, DerivedVariable>>
+	public class StaticSingleAssignmentAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, ISet<uint>>>
 	{
 		public StaticSingleAssignmentAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
 		}
 
-		public override IDictionary<Variable, DerivedVariable> InitialValue(CFGNode node)
+		public override IDictionary<Variable, ISet<uint>> InitialValue(CFGNode node)
 		{
-			return new Dictionary<Variable, DerivedVariable>();
+			return new Dictionary<Variable, ISet<uint>>();
 		}
 
-		public override IDictionary<Variable, DerivedVariable> DefaultValue(CFGNode node)
+		public override IDictionary<Variable, ISet<uint>> DefaultValue(CFGNode node)
 		{
-			return new Dictionary<Variable, DerivedVariable>();
+			return new Dictionary<Variable, ISet<uint>>();
 		}
 
-		public override bool CompareValues(IDictionary<Variable, DerivedVariable> left, IDictionary<Variable, DerivedVariable> right)
+		public override bool CompareValues(IDictionary<Variable, ISet<uint>> left, IDictionary<Variable, ISet<uint>> right)
 		{
-			return left.SequenceEqual(right);
-		}
+			var result = true;
 
-		public override IDictionary<Variable, DerivedVariable> Merge(IDictionary<Variable, DerivedVariable> left, IDictionary<Variable, DerivedVariable> right)
-		{
-			var result = new Dictionary<Variable, DerivedVariable>(left);
-
-			foreach (var equality in right)
+			if (left.Count == right.Count)
 			{
-				var original = equality.Key;
-				var rightDerived = equality.Value;
-
-				if (left.ContainsKey(original))
+				foreach (var entry in left)
 				{
-					var leftDerived = left[original];
-
-					if (!leftDerived.Equals(rightDerived))
+					if (!right.ContainsKey(entry.Key))
 					{
-						var index = Math.Max(leftDerived.Index, rightDerived.Index) + 1;
-						result[original] = new DerivedVariable(original, index);
+						result = false;
+						break;
 					}
+
+					var value = right[entry.Key];
+
+					if (!entry.Value.SetEquals(value))
+					{
+						result = false;
+						break;
+					}
+				}
+			}
+			else
+			{
+				result = false;
+			}
+
+			return result;
+		}
+		
+		public override IDictionary<Variable, ISet<uint>> Merge(IDictionary<Variable, ISet<uint>> left, IDictionary<Variable, ISet<uint>> right)
+		{
+			var result = new Dictionary<Variable, ISet<uint>>();
+
+			foreach (var entry in left)
+			{
+				var variable = entry.Key;
+				var leftIndices = entry.Value;
+
+				result[variable] = new HashSet<uint>(leftIndices);
+			}
+
+			foreach (var entry in right)
+			{
+				var variable = entry.Key;
+				var rightIndices = entry.Value;
+
+				if (left.ContainsKey(variable))
+				{
+					var leftIndices = left[variable];
+					var indices = new HashSet<uint>(rightIndices);
+
+					indices.UnionWith(leftIndices);
+					result[variable] = indices;
 				}
 				else
 				{
-					result[original] = rightDerived;
+					result[variable] = rightIndices;
 				}
 			}
 
 			return result;
 		}
 
-		public override IDictionary<Variable, DerivedVariable> Flow(CFGNode node, IDictionary<Variable, DerivedVariable> input)
+		public override IDictionary<Variable, ISet<uint>> Flow(CFGNode node, IDictionary<Variable, ISet<uint>> input)
 		{
-			IDictionary<Variable, DerivedVariable> result = new Dictionary<Variable, DerivedVariable>(input);
+			var result = new Dictionary<Variable, ISet<uint>>();
+
+			foreach (var entry in input)
+			{
+				var variable = entry.Key;
+				var oldIndices = entry.Value;
+				var newIndices = new HashSet<uint>();
+				uint index;
+
+				if (oldIndices.Count > 1)
+				{
+					index = oldIndices.Max() + 1;
+				}
+				else
+				{
+					index = oldIndices.Single();
+				}
+
+				newIndices.Add(index);
+				result[variable] = newIndices;
+			}
 
 			foreach (var instruction in node.Instructions)
 			{
-				var equality = this.Flow(instruction, input);
-
-				if (equality.HasValue)
-				{
-					var original = equality.Value.Key;
-					var derived = equality.Value.Value;
-
-					result[original] = derived;
-				}
+				this.Flow(instruction, result);
 			}
 
 			return result;
 		}
 
-		private KeyValuePair<Variable, DerivedVariable>? Flow(Instruction instruction, IDictionary<Variable, DerivedVariable> input)
+		private void Flow(Instruction instruction, IDictionary<Variable, ISet<uint>> result)
 		{
-			KeyValuePair<Variable, DerivedVariable>? result = null;
-
 			if (instruction is AssignmentInstruction)
 			{
 				var assignment = instruction as AssignmentInstruction;
-				var original = assignment.Result;
-				var index = 0u;
+				var variable = assignment.Result;
 
-				if (original is DerivedVariable)
+				if (result.ContainsKey(variable))
 				{
-					var oldDerived = original as DerivedVariable;
-					original = oldDerived.Original;
-				}				
-
-				if (input.ContainsKey(original))
-				{
-					index = input[original].Index + 1;
+					var indices = result[variable];
+					var index = indices.Single();
+					indices.Remove(index);
+					indices.Add(index + 1);
 				}
-
-				var newDerived = new DerivedVariable(original, index);
-
-				assignment.Result = newDerived;
-				assignment.Expression = assignment.Expression.ReplaceVariables(input);
-
-				result = new KeyValuePair<Variable, DerivedVariable>(original, newDerived);
+				else
+				{
+					var indices = new HashSet<uint>();
+					indices.Add(0);
+					result[variable] = indices;
+				}
 			}
-
-			return result;
 		}
 	}
 }

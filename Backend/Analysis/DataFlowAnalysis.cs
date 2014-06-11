@@ -34,35 +34,33 @@ namespace Backend.Analysis
 		public override void Analyze()
 		{
 			bool changed;
-			var nodes = this.cfg.Nodes.ToArray();
+			var sortedNodes = this.cfg.ForwardTopologicalSort();
 
-			this.result = new DataFlowAnalysisResult<T>[nodes.Length];
+			this.result = new DataFlowAnalysisResult<T>[sortedNodes.Length];
 
 			var entryResult = new DataFlowAnalysisResult<T>();
 			entryResult.Output = this.InitialValue(cfg.Entry);
 			this.result[cfg.Entry.Id] = entryResult;
 
-			for (var i = 0; i < nodes.Length; ++i)
+			// Skip first node: entry
+			for (var i = 1; i < sortedNodes.Length; ++i)
 			{
-				if (i == cfg.Entry.Id) continue;
-
 				var nodeResult = new DataFlowAnalysisResult<T>();
-				var node = nodes[i];
+				var node = sortedNodes[i];
 
 				nodeResult.Output = this.DefaultValue(node);
-				this.result[i]  = nodeResult;
+				this.result[node.Id]  = nodeResult;
 			}
 
 			do
 			{
 				changed = false;
 
-				for (var i = 0; i < nodes.Length; ++i)
+				// Skip first node: entry
+				for (var i = 1; i < sortedNodes.Length; ++i)
 				{
-					if (i == cfg.Entry.Id) continue;
-
-					var node = nodes[i];
-					var nodeResult = this.result[i];
+					var node = sortedNodes[i];
+					var nodeResult = this.result[node.Id];
 					var nodeInput = this.InitialValue(node);
 
 					foreach (var predecessor in node.Predecessors)
@@ -93,7 +91,7 @@ namespace Backend.Analysis
 		public override void Analyze()
 		{
 			bool changed;
-			var nodes = cfg.Nodes.ToArray();
+			var nodes = cfg.BackwardTopologicalSort();
 
 			this.result = new DataFlowAnalysisResult<T>[nodes.Length];
 
@@ -101,27 +99,25 @@ namespace Backend.Analysis
 			exitResult.Input = this.InitialValue(cfg.Exit);
 			this.result[cfg.Exit.Id] = exitResult;
 
-			for (var i = 0; i < nodes.Length; ++i)
+			// Skip first node: exit
+			for (var i = 1; i < nodes.Length; ++i)
 			{
-				if (i == cfg.Exit.Id) continue;
-
 				var nodeResult = new DataFlowAnalysisResult<T>();
 				var node = nodes[i];
 
 				nodeResult.Input = this.DefaultValue(node);
-				this.result[i] = nodeResult;
+				this.result[node.Id] = nodeResult;
 			}
 
 			do
 			{
 				changed = false;
 
-				for (var i = 0; i < nodes.Length; ++i)
+				// Skip first node: exit
+				for (var i = 1; i < nodes.Length; ++i)
 				{
-					if (i == cfg.Exit.Id) continue;
-
 					var node = nodes[i];
-					var nodeResult = this.result[i];
+					var nodeResult = this.result[node.Id];
 					var nodeOutput = this.InitialValue(node);
 
 					foreach (var successor in node.Successors)
