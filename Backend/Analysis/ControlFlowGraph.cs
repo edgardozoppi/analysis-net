@@ -116,7 +116,7 @@ namespace Backend.Analysis
 				result.Add(node);
 				node = node.ImmediateDominator;
 			}
-			while (node.Kind != CFGNodeKind.Entry);
+			while (node != null);
 
 			return result;
 		}
@@ -355,9 +355,8 @@ namespace Backend.Analysis
 		{
 			bool changed;
 			var sorted_nodes = cfg.ForwardOrder;
-			var result = new CFGNode[cfg.Nodes.Count];
 
-			result[cfg.Entry.Id] = cfg.Entry;			
+			cfg.Entry.ImmediateDominator = cfg.Entry;			
 
 			do
 			{
@@ -368,39 +367,40 @@ namespace Backend.Analysis
 				{
 					var node = sorted_nodes[i];
 					var new_idom = node.Predecessors.First();
+					var predecessors = node.Predecessors.Skip(1);
 
-					foreach (var pred in node.Predecessors)
+					foreach (var pred in predecessors)
 					{
-						var pred_idom = result[pred.Id];
-
-						if (pred_idom != null)
+						if (pred.ImmediateDominator != null)
 						{
-							new_idom = ControlFlowGraph.FindCommonParent(pred, new_idom, sorted_nodes, result);
+							new_idom = ControlFlowGraph.FindCommonParent(pred, new_idom);
 						}
 					}
 
-					var old_idom = result[node.Id];
-					var equals = old_idom.Equals(new_idom);
+					var old_idom = node.ImmediateDominator;
+					var equals = old_idom != null && old_idom.Equals(new_idom);
 
 					if (!equals)
 					{
-						result[node.Id] = new_idom;
+						node.ImmediateDominator = new_idom;
 						changed = true;
 					}
 				}
 			}
 			while (changed);
+
+			cfg.Entry.ImmediateDominator = null;
 		}
 
-		private static CFGNode FindCommonParent(CFGNode a, CFGNode b, CFGNode[] sorted_nodes, CFGNode[] result)
+		private static CFGNode FindCommonParent(CFGNode a, CFGNode b)
 		{
-			while (a != b)
+			while (a.ForwardIndex != b.ForwardIndex)
 			{
-				while (a.ForwardIndex < b.ForwardIndex)
-					a = result[a.Id];
+				while (a.ForwardIndex > b.ForwardIndex)
+					a = a.ImmediateDominator;
 
-				while (b.ForwardIndex < a.ForwardIndex)
-					b = result[b.Id];
+				while (b.ForwardIndex > a.ForwardIndex)
+					b = b.ImmediateDominator;
 			}
 
 			return a;

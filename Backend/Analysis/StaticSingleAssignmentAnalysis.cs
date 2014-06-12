@@ -56,7 +56,7 @@ namespace Backend.Analysis
 			return result;
 		}
 		
-		public override IDictionary<Variable, ISet<uint>> Merge(IDictionary<Variable, ISet<uint>> left, IDictionary<Variable, ISet<uint>> right)
+		public override IDictionary<Variable, ISet<uint>> MergeValues(IDictionary<Variable, ISet<uint>> left, IDictionary<Variable, ISet<uint>> right)
 		{
 			var result = new Dictionary<Variable, ISet<uint>>();
 
