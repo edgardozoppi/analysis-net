@@ -24,7 +24,7 @@ namespace Backend.Analysis
 
 		public abstract T DefaultValue(CFGNode node);
 
-		public abstract T Merge(T left, T right);
+		public abstract T MergeValues(T left, T right);
 
 		public abstract T Flow(CFGNode node, T input);
 	}
@@ -34,22 +34,22 @@ namespace Backend.Analysis
 		public override void Analyze()
 		{
 			bool changed;
-			var sortedNodes = this.cfg.ForwardTopologicalSort();
+			var sorted_nodes = this.cfg.ForwardOrder;
 
-			this.result = new DataFlowAnalysisResult<T>[sortedNodes.Length];
+			this.result = new DataFlowAnalysisResult<T>[sorted_nodes.Length];
 
-			var entryResult = new DataFlowAnalysisResult<T>();
-			entryResult.Output = this.InitialValue(cfg.Entry);
-			this.result[cfg.Entry.Id] = entryResult;
+			var entry_result = new DataFlowAnalysisResult<T>();
+			entry_result.Output = this.InitialValue(cfg.Entry);
+			this.result[cfg.Entry.Id] = entry_result;
 
 			// Skip first node: entry
-			for (var i = 1; i < sortedNodes.Length; ++i)
+			for (var i = 1; i < sorted_nodes.Length; ++i)
 			{
-				var nodeResult = new DataFlowAnalysisResult<T>();
-				var node = sortedNodes[i];
+				var node_result = new DataFlowAnalysisResult<T>();
+				var node = sorted_nodes[i];
 
-				nodeResult.Output = this.DefaultValue(node);
-				this.result[node.Id]  = nodeResult;
+				node_result.Output = this.DefaultValue(node);
+				this.result[node.Id]  = node_result;
 			}
 
 			do
@@ -57,27 +57,27 @@ namespace Backend.Analysis
 				changed = false;
 
 				// Skip first node: entry
-				for (var i = 1; i < sortedNodes.Length; ++i)
+				for (var i = 1; i < sorted_nodes.Length; ++i)
 				{
-					var node = sortedNodes[i];
-					var nodeResult = this.result[node.Id];
-					var nodeInput = this.InitialValue(node);
+					var node = sorted_nodes[i];
+					var node_result = this.result[node.Id];
+					var node_input = this.InitialValue(node);
 
-					foreach (var predecessor in node.Predecessors)
+					foreach (var pred in node.Predecessors)
 					{
-						var predResult = this.result[predecessor.Id];
-						nodeInput = this.Merge(nodeInput, predResult.Output);
+						var pred_result = this.result[pred.Id];
+						node_input = this.MergeValues(node_input, pred_result.Output);
 					}
 
-					nodeResult.Input = nodeInput;
+					node_result.Input = node_input;
 
-					var oldOutput = nodeResult.Output;
-					var newOutput = this.Flow(node, nodeInput);
-					var equals = this.CompareValues(newOutput, oldOutput);
+					var old_output = node_result.Output;
+					var new_output = this.Flow(node, node_input);
+					var equals = this.CompareValues(new_output, old_output);
 
 					if (!equals)
 					{
-						nodeResult.Output = newOutput;
+						node_result.Output = new_output;
 						changed = true;
 					}
 				}
@@ -91,22 +91,22 @@ namespace Backend.Analysis
 		public override void Analyze()
 		{
 			bool changed;
-			var nodes = cfg.BackwardTopologicalSort();
+			var sorted_nodes = this.cfg.BackwardOrder;
 
-			this.result = new DataFlowAnalysisResult<T>[nodes.Length];
+			this.result = new DataFlowAnalysisResult<T>[sorted_nodes.Length];
 
-			var exitResult = new DataFlowAnalysisResult<T>();
-			exitResult.Input = this.InitialValue(cfg.Exit);
-			this.result[cfg.Exit.Id] = exitResult;
+			var exit_result = new DataFlowAnalysisResult<T>();
+			exit_result.Input = this.InitialValue(cfg.Exit);
+			this.result[cfg.Exit.Id] = exit_result;
 
 			// Skip first node: exit
-			for (var i = 1; i < nodes.Length; ++i)
+			for (var i = 1; i < sorted_nodes.Length; ++i)
 			{
-				var nodeResult = new DataFlowAnalysisResult<T>();
-				var node = nodes[i];
+				var node_result = new DataFlowAnalysisResult<T>();
+				var node = sorted_nodes[i];
 
-				nodeResult.Input = this.DefaultValue(node);
-				this.result[node.Id] = nodeResult;
+				node_result.Input = this.DefaultValue(node);
+				this.result[node.Id] = node_result;
 			}
 
 			do
@@ -114,27 +114,27 @@ namespace Backend.Analysis
 				changed = false;
 
 				// Skip first node: exit
-				for (var i = 1; i < nodes.Length; ++i)
+				for (var i = 1; i < sorted_nodes.Length; ++i)
 				{
-					var node = nodes[i];
-					var nodeResult = this.result[node.Id];
-					var nodeOutput = this.InitialValue(node);
+					var node = sorted_nodes[i];
+					var node_result = this.result[node.Id];
+					var node_output = this.InitialValue(node);
 
-					foreach (var successor in node.Successors)
+					foreach (var succ in node.Successors)
 					{
-						var succResult = this.result[successor.Id];
-						nodeOutput = this.Merge(nodeOutput, succResult.Input);
+						var succ_result = this.result[succ.Id];
+						node_output = this.MergeValues(node_output, succ_result.Input);
 					}
 
-					nodeResult.Output = nodeOutput;
+					node_result.Output = node_output;
 
-					var oldInput = nodeResult.Input;
-					var newInput = this.Flow(node, nodeOutput);
-					var equals = newInput.Equals(oldInput);
+					var old_input = node_result.Input;
+					var new_input = this.Flow(node, node_output);
+					var equals = new_input.Equals(old_input);
 
 					if (!equals)
 					{
-						nodeResult.Input = newInput;
+						node_result.Input = new_input;
 						changed = true;
 					}
 				}

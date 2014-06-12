@@ -35,7 +35,7 @@ namespace Backend.Analysis
 			return left.SequenceEqual(right);
 		}
 
-		public override IDictionary<Variable, IExpression> Merge(IDictionary<Variable, IExpression> left, IDictionary<Variable, IExpression> right)
+		public override IDictionary<Variable, IExpression> MergeValues(IDictionary<Variable, IExpression> left, IDictionary<Variable, IExpression> right)
 		{
 			var result = new Dictionary<Variable, IExpression>(left);
 

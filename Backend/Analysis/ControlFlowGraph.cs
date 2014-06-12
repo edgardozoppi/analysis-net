@@ -58,21 +58,39 @@ namespace Backend.Analysis
 
 	public class CFGNode
 	{
+		private ISet<CFGNode> dominators;
+
 		public int Id { get; private set; }
+		public int ForwardIndex { get; set; }
+		public int BackwardIndex { get; set; }
 		public CFGNodeKind Kind { get; private set; }
 		public ISet<CFGNode> Predecessors { get; private set; }
 		public ISet<CFGNode> Successors { get; private set; }
-		public ISet<CFGNode> Dominators { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
+		public CFGNode ImmediateDominator { get; set; }
 
 		public CFGNode(int id, CFGNodeKind kind)
 		{
 			this.Id = id;
 			this.Kind = kind;
+			this.ForwardIndex = -1;
+			this.BackwardIndex = -1;
 			this.Predecessors = new HashSet<CFGNode>();
 			this.Successors = new HashSet<CFGNode>();
-			this.Dominators = new HashSet<CFGNode>();
 			this.Instructions = new List<Instruction>();
+		}
+
+		public ISet<CFGNode> Dominators
+		{
+			get
+			{
+				if (this.dominators == null)
+				{
+					this.dominators = CFGNode.ComputeDominators(this);
+				}
+
+				return this.dominators;
+			}
 		}
 
 		public override string ToString()
@@ -88,10 +106,27 @@ namespace Backend.Analysis
 
 			return result;
 		}
+
+		private static ISet<CFGNode> ComputeDominators(CFGNode node)
+		{
+			var result = new HashSet<CFGNode>();
+
+			do
+			{
+				result.Add(node);
+				node = node.ImmediateDominator;
+			}
+			while (node.Kind != CFGNodeKind.Entry);
+
+			return result;
+		}
 	}
 
 	public class ControlFlowGraph
 	{
+		private CFGNode[] forwardOrder;
+		private CFGNode[] backwardOrder;
+
 		public CFGNode Entry { get; private set; }
 		public CFGNode Exit { get; private set; }
 		public ISet<CFGNode> Nodes { get; private set; }
@@ -102,6 +137,32 @@ namespace Backend.Analysis
 			this.Entry = new CFGNode(0, CFGNodeKind.Entry);
 			this.Exit = new CFGNode(1, CFGNodeKind.Exit);
 			this.Nodes = new HashSet<CFGNode>() { this.Entry, this.Exit };
+		}
+
+		public CFGNode[] ForwardOrder
+		{
+			get
+			{
+				if (this.forwardOrder == null)
+				{
+					this.forwardOrder = ControlFlowGraph.ComputeForwardTopologicalSort(this);
+				}
+
+				return this.forwardOrder;
+			}
+		}
+
+		public CFGNode[] BackwardOrder
+		{
+			get
+			{
+				if (this.backwardOrder == null)
+				{
+					this.backwardOrder = ControlFlowGraph.ComputeBackwardTopologicalSort(this);
+				}
+
+				return this.backwardOrder;
+			}
 		}
 
 		#region Generation
@@ -210,14 +271,14 @@ namespace Backend.Analysis
 
 		#region Topological Sort
 
-		public CFGNode[] ForwardTopologicalSort()
+		private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
 		{
 			var stack = new Stack<CFGNode>();
-			var result = new CFGNode[this.Nodes.Count];
-			var visited = new bool[this.Nodes.Count];
-			var index = this.Nodes.Count - 1;
+			var result = new CFGNode[cfg.Nodes.Count];
+			var visited = new bool[cfg.Nodes.Count];
+			var index = cfg.Nodes.Count - 1;
 
-			stack.Push(this.Entry);
+			stack.Push(cfg.Entry);
 
 			do
 			{
@@ -227,17 +288,18 @@ namespace Backend.Analysis
 				{
 					visited[node.Id] = true;
 
-					foreach (var successor in node.Successors)
+					foreach (var succ in node.Successors)
 					{
-						if (!visited[successor.Id])
+						if (!visited[succ.Id])
 						{
-							stack.Push(successor);
+							stack.Push(succ);
 						}
 					}
 				}
 				else
 				{
 					stack.Pop();
+					node.ForwardIndex = index;
 					result[index] = node;
 					index--;
 				}
@@ -247,14 +309,14 @@ namespace Backend.Analysis
 			return result;
 		}
 
-		public CFGNode[] BackwardTopologicalSort()
+		private static CFGNode[] ComputeBackwardTopologicalSort(ControlFlowGraph cfg)
 		{
 			var stack = new Stack<CFGNode>();
-			var result = new CFGNode[this.Nodes.Count];
-			var visited = new bool[this.Nodes.Count];
-			var index = this.Nodes.Count - 1;
+			var result = new CFGNode[cfg.Nodes.Count];
+			var visited = new bool[cfg.Nodes.Count];
+			var index = cfg.Nodes.Count - 1;
 
-			stack.Push(this.Exit);
+			stack.Push(cfg.Exit);
 
 			do
 			{
@@ -264,17 +326,18 @@ namespace Backend.Analysis
 				{
 					visited[node.Id] = true;
 
-					foreach (var predecessor in node.Predecessors)
+					foreach (var pred in node.Predecessors)
 					{
-						if (!visited[predecessor.Id])
+						if (!visited[pred.Id])
 						{
-							stack.Push(predecessor);
+							stack.Push(pred);
 						}
 					}
 				}
 				else
 				{
 					stack.Pop();
+					node.BackwardIndex = index;
 					result[index] = node;
 					index--;
 				}
@@ -290,58 +353,112 @@ namespace Backend.Analysis
 
 		public static void ComputeDominators(ControlFlowGraph cfg)
 		{
-			var nodes = cfg.Nodes.ToArray();
-			var dominators = new Subset<CFGNode>[nodes.Length];
-
-			var enterDominators = nodes.ToEmptySubset();
-			enterDominators.Add(cfg.Entry.Id);
-			dominators[cfg.Entry.Id] = enterDominators;
-
-			// Skip first node (entry)
-			for (var i = 1; i < nodes.Length; ++i)
-			{
-				dominators[i] = nodes.ToSubset();
-			}
-
 			bool changed;
+			var sorted_nodes = cfg.ForwardOrder;
+			var result = new CFGNode[cfg.Nodes.Count];
+
+			result[cfg.Entry.Id] = cfg.Entry;			
 
 			do
 			{
 				changed = false;
 
-				// Skip first node (entry)
-				for (var i = 1; i < nodes.Length; ++i)
+				// Skip first node: entry
+				for (var i = 1; i < sorted_nodes.Length; ++i)
 				{
-					var node = nodes[i];
-					var oldDominators = dominators[i];
-					var newDominators = nodes.ToSubset();
+					var node = sorted_nodes[i];
+					var new_idom = node.Predecessors.First();
 
-					foreach (var predecessor in node.Predecessors)
+					foreach (var pred in node.Predecessors)
 					{
-						var preDominators = dominators[predecessor.Id];
-						newDominators.Intersect(preDominators);
+						var pred_idom = result[pred.Id];
+
+						if (pred_idom != null)
+						{
+							new_idom = ControlFlowGraph.FindCommonParent(pred, new_idom, sorted_nodes, result);
+						}
 					}
 
-					newDominators.Add(i);					
-					var equals = oldDominators.Equals(newDominators);
+					var old_idom = result[node.Id];
+					var equals = old_idom.Equals(new_idom);
 
 					if (!equals)
 					{
-						dominators[i] = newDominators;
+						result[node.Id] = new_idom;
 						changed = true;
 					}
 				}
 			}
 			while (changed);
-
-			for (var i = 0; i < nodes.Length; ++i)
-			{
-				var node = nodes[i];
-				var nodeDominators = dominators[i];
-
-				nodeDominators.ToSet(node.Dominators);
-			}
 		}
+
+		private static CFGNode FindCommonParent(CFGNode a, CFGNode b, CFGNode[] sorted_nodes, CFGNode[] result)
+		{
+			while (a != b)
+			{
+				while (a.ForwardIndex < b.ForwardIndex)
+					a = result[a.Id];
+
+				while (b.ForwardIndex < a.ForwardIndex)
+					b = result[b.Id];
+			}
+
+			return a;
+		}
+
+		//public static void ComputeDominators(ControlFlowGraph cfg)
+		//{
+		//    bool changed;
+		//    var sorted_nodes = cfg.ForwardOrder;
+		//    var result = new Subset<CFGNode>[sorted_nodes.Length];
+
+		//    var entry_dom = sorted_nodes.ToEmptySubset();
+		//    entry_dom.Add(cfg.Entry.Id);
+		//    result[cfg.Entry.Id] = entry_dom;
+
+		//    // Skip first node: entry
+		//    for (var i = 1; i < sorted_nodes.Length; ++i)
+		//    {
+		//        result[i] = sorted_nodes.ToSubset();
+		//    }			
+
+		//    do
+		//    {
+		//        changed = false;
+
+		//        // Skip first node: entry
+		//        for (var i = 1; i < sorted_nodes.Length; ++i)
+		//        {
+		//            var node = sorted_nodes[i];
+		//            var old_dom = result[node.Id];
+		//            var new_dom = sorted_nodes.ToSubset();
+
+		//            foreach (var pred in node.Predecessors)
+		//            {
+		//                var pre_dom = result[pred.Id];
+		//                new_dom.Intersect(pre_dom);
+		//            }
+
+		//            new_dom.Add(node.Id);
+		//            var equals = old_dom.Equals(new_dom);
+
+		//            if (!equals)
+		//            {
+		//                result[node.Id] = new_dom;
+		//                changed = true;
+		//            }
+		//        }
+		//    }
+		//    while (changed);
+
+		//    for (var i = 0; i < sorted_nodes.Length; ++i)
+		//    {
+		//        var node = sorted_nodes[i];
+		//        var node_dom = result[node.Id];
+
+		//        node_dom.ToSet(node.Dominators);
+		//    }
+		//}
 
 		#endregion
 
@@ -350,9 +467,9 @@ namespace Backend.Analysis
 		public static void IdentifyLoops(ControlFlowGraph cfg)
 		{
 			cfg.Loops = new HashSet<CFGLoop>();
-			var backEdges = ControlFlowGraph.IdentifyBackEdges(cfg);
+			var back_edges = ControlFlowGraph.IdentifyBackEdges(cfg);
 
-			foreach (var edge in backEdges)
+			foreach (var edge in back_edges)
 			{
 				var loop = ControlFlowGraph.IdentifyLoop(edge);
 				cfg.Loops.Add(loop);
@@ -361,39 +478,39 @@ namespace Backend.Analysis
 
 		private static ISet<CFGEdge> IdentifyBackEdges(ControlFlowGraph cfg)
 		{
-			var backEdges = new HashSet<CFGEdge>();
+			var back_edges = new HashSet<CFGEdge>();
 
 			foreach (var node in cfg.Nodes)
 			{
-				foreach (var successor in node.Successors)
+				foreach (var succ in node.Successors)
 				{
-					if (node.Dominators.Contains(successor))
+					if (node.Dominators.Contains(succ))
 					{
-						var edge = new CFGEdge(node, successor);
-						backEdges.Add(edge);
+						var edge = new CFGEdge(node, succ);
+						back_edges.Add(edge);
 					}
 				}
 			}
 
-			return backEdges;
+			return back_edges;
 		}
 
-		private static CFGLoop IdentifyLoop(CFGEdge backEdge)
+		private static CFGLoop IdentifyLoop(CFGEdge back_edge)
 		{			
-			var loop = new CFGLoop(backEdge.Target);
+			var loop = new CFGLoop(back_edge.Target);
 			var nodes = new Stack<CFGNode>();
 
-			nodes.Push(backEdge.Source);
+			nodes.Push(back_edge.Source);
 
 			do
 			{
 				var node = nodes.Pop();
-				var newNode = loop.Body.Add(node);
+				var new_node = loop.Body.Add(node);
 
-				if (newNode)
+				if (new_node)
 				{
-					foreach (var predecessor in node.Predecessors)
-						nodes.Push(predecessor);
+					foreach (var pred in node.Predecessors)
+						nodes.Push(pred);
 				}
 			}
 			while (nodes.Count > 0);
