@@ -10,9 +10,12 @@ namespace Backend.Analysis
 {
 	public class StaticSingleAssignmentAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, ISet<uint>>>
 	{
+		private IDictionary<Variable, uint>[] nodesWithPhi;
+
 		public StaticSingleAssignmentAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
+			this.nodesWithPhi = new IDictionary<Variable, uint>[cfg.Nodes.Count];
 		}
 
 		public override IDictionary<Variable, ISet<uint>> InitialValue(CFGNode node)
@@ -75,15 +78,13 @@ namespace Backend.Analysis
 
 				if (left.ContainsKey(variable))
 				{
-					var leftIndices = left[variable];
-					var indices = new HashSet<uint>(rightIndices);
+					var indices = result[variable];
 
-					indices.UnionWith(leftIndices);
-					result[variable] = indices;
+					indices.UnionWith(rightIndices);
 				}
 				else
 				{
-					result[variable] = rightIndices;
+					result[variable] = new HashSet<uint>(rightIndices);
 				}
 			}
 
@@ -93,6 +94,7 @@ namespace Backend.Analysis
 		public override IDictionary<Variable, ISet<uint>> Flow(CFGNode node, IDictionary<Variable, ISet<uint>> input)
 		{
 			var result = new Dictionary<Variable, ISet<uint>>();
+			var variablesWithPhi = this.nodesWithPhi[node.Id];
 
 			foreach (var entry in input)
 			{
@@ -103,7 +105,24 @@ namespace Backend.Analysis
 
 				if (oldIndices.Count > 1)
 				{
-					index = oldIndices.Max() + 1;
+					var variableHasPhi = variablesWithPhi != null && variablesWithPhi.ContainsKey(variable);
+
+					if (variableHasPhi)
+					{
+						index = variablesWithPhi[variable];
+					}
+					else
+					{
+						index = oldIndices.Max() + 1;
+
+						if (variablesWithPhi == null)
+						{
+							variablesWithPhi = new Dictionary<Variable, uint>();
+							this.nodesWithPhi[node.Id] = variablesWithPhi;
+						}
+
+						variablesWithPhi.Add(variable, index);
+					}
 				}
 				else
 				{
