@@ -61,11 +61,15 @@ namespace Backend.Analysis
 				{
 					var node = sorted_nodes[i];
 					var node_result = this.result[node.Id];
-					var node_input = this.InitialValue(node);
 
-					foreach (var pred in node.Predecessors)
+					var other_predecessors = node.Predecessors.Skip(1);
+					var first_pred = node.Predecessors.First();
+					var pred_result = this.result[first_pred.Id];
+					var node_input = pred_result.Output;
+
+					foreach (var pred in other_predecessors)
 					{
-						var pred_result = this.result[pred.Id];
+						pred_result = this.result[pred.Id];
 						node_input = this.MergeValues(node_input, pred_result.Output);
 					}
 
@@ -118,11 +122,15 @@ namespace Backend.Analysis
 				{
 					var node = sorted_nodes[i];
 					var node_result = this.result[node.Id];
-					var node_output = this.InitialValue(node);
 
-					foreach (var succ in node.Successors)
+					var other_successors = node.Successors.Skip(1);
+					var first_succ = node.Successors.First();
+					var succ_result = this.result[first_succ.Id];
+					var node_output = succ_result.Output;
+
+					foreach (var succ in other_successors)
 					{
-						var succ_result = this.result[succ.Id];
+						succ_result = this.result[succ.Id];
 						node_output = this.MergeValues(node_output, succ_result.Input);
 					}
 

@@ -10,17 +10,31 @@ namespace Backend.Analysis
 {
 	public class StaticSingleAssignmentAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, ISet<uint>>>
 	{
+		private MethodBody method;
 		private IDictionary<Variable, uint>[] nodesWithPhi;
 
-		public StaticSingleAssignmentAnalysis(ControlFlowGraph cfg)
+		public StaticSingleAssignmentAnalysis(MethodBody method, ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
+			this.method = method;
 			this.nodesWithPhi = new IDictionary<Variable, uint>[cfg.Nodes.Count];
 		}
 
 		public override IDictionary<Variable, ISet<uint>> InitialValue(CFGNode node)
 		{
-			return new Dictionary<Variable, ISet<uint>>();
+			var result = new Dictionary<Variable, ISet<uint>>();
+
+			if (node.Kind == CFGNodeKind.Entry)
+			{
+				var set = new HashSet<uint>() { 0 };
+
+				foreach (var variable in method.Variables)
+				{					
+					result.Add(variable, set);
+				}
+			}
+
+			return result;
 		}
 
 		public override IDictionary<Variable, ISet<uint>> DefaultValue(CFGNode node)
@@ -158,8 +172,77 @@ namespace Backend.Analysis
 				else
 				{
 					var indices = new HashSet<uint>();
-					indices.Add(0);
+					indices.Add(1);
 					result[variable] = indices;
+				}
+			}
+		}
+
+		public void Transform()
+		{
+			foreach (var node in cfg.Nodes)
+			{
+				if (node.Kind != CFGNodeKind.BasicBlock)
+					continue;
+
+				var variablesWithPhi = this.nodesWithPhi[node.Id];
+
+				if (variablesWithPhi == null)
+				{
+					variablesWithPhi = new Dictionary<Variable, uint>();
+				}
+
+				var node_result = this.result[node.Id];
+				var input = node_result.Input;
+
+				foreach (var entry in variablesWithPhi)
+				{
+					Instruction instruction;
+					var indices = input[entry.Key];
+
+					instruction = new PhiInstruction(0, entry.Key, entry.Value, indices);
+					node.Instructions.Insert(0, instruction);
+					//else
+					//{
+					//	var index = entry.Value.Single();
+					//	if (index == 0) continue;
+
+					//	var result = new DerivedVariable(entry.Key, resultIndex);
+					//	var operand = new DerivedVariable(entry.Key, index);
+					//	instruction = new AssignmentInstruction(0, result, operand);
+					//}
+
+					//node.Instructions.Insert(0, instruction);
+				}
+
+				foreach (var entry in input)
+				{
+					if (entry.Value.Count > 1) continue;
+					var index = entry.Value.Single();
+
+					variablesWithPhi.Add(entry.Key, index);
+				}
+
+				foreach (var instruction in node.Instructions)
+				{
+					this.Transform(instruction, variablesWithPhi);
+				}
+			}
+		}
+
+		private void Transform(Instruction instruction, IDictionary<Variable, uint> variablesWithPhi)
+		{
+			if (instruction is AssignmentInstruction)
+			{
+				var assignment = instruction as AssignmentInstruction;
+				var variable = assignment.Result;
+
+				if (variablesWithPhi.ContainsKey(variable))
+				{
+					var index = variablesWithPhi[variable];
+
+					assignment.Result = new DerivedVariable(variable, index);
+					variablesWithPhi[variable] = index + 1;
 				}
 			}
 		}

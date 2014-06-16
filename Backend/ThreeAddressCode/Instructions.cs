@@ -581,4 +581,42 @@ namespace Backend.ThreeAddressCode
 			return string.Format("{0}:  {1} = new {2}[{3}];", this.Label, this.Result, elementType, sizes);
 		}
 	}
+
+	public class PhiInstruction : Instruction
+	{
+		public Variable Variable { get; set; }
+		public uint Index { get; set; }
+		public ISet<uint> Indices { get; private set; }
+
+		public PhiInstruction(uint label, Variable variable, uint index, ISet<uint> indices)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Variable = variable;
+			this.Index = index;
+			this.Indices = indices;
+		}
+
+		public DerivedVariable Result
+		{
+			get { return new DerivedVariable(this.Variable, this.Index); }
+		}
+
+		public override ISet<Variable> ModifiedVariables
+		{
+			get { return new HashSet<Variable>() { this.Result }; }
+		}
+
+		public override string ToString()
+		{
+			var arguments = new StringBuilder();
+
+			foreach (var index in this.Indices)
+			{
+				arguments.AppendFormat(", {0}{1}", this.Variable, index);
+			}
+
+			arguments.Remove(0, 2);
+			return string.Format("{0}:  {1} = Φ({2});", this.Label, this.Result, arguments);
+		}
+	}
 }

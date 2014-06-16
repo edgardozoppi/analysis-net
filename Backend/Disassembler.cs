@@ -189,10 +189,14 @@ namespace Backend
 			var contextKind = ContextKind.None;
 			TryInformation tryInfo = null;
 
-			foreach (var variable in stack.Variables)
+			if (this.thisParameter != null)
 			{
-				body.Variables.Add(variable);
+				body.Variables.Add(this.thisParameter);
 			}
+
+			body.Variables.UnionWith(this.parameters.Values);
+			body.Variables.UnionWith(this.locals.Values);
+			body.Variables.UnionWith(stack.Variables);
 
 			foreach (var op in method.Body.Operations)
 			{

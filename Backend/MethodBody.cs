@@ -11,13 +11,13 @@ namespace Backend
 	{
 		public IMethodDefinition MethodDefinition { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
-		public IList<Variable> Variables { get; private set; }
+		public ISet<Variable> Variables { get; private set; }
 
 		public MethodBody(IMethodDefinition methodDefinition)
 		{
 			this.MethodDefinition = methodDefinition;
 			this.Instructions = new List<Instruction>();
-			this.Variables = new List<Variable>();
+			this.Variables = new HashSet<Variable>();
 		}
 
 		public override string ToString()
