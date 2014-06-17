@@ -32,9 +32,9 @@ namespace Console
 			ControlFlowGraph.ComputeDominators(cfg);
 			ControlFlowGraph.IdentifyLoops(cfg);
 
-			var analysis = new StaticSingleAssignmentAnalysis(methodBody, cfg);
-			analysis.Analyze();
-			analysis.Transform();
+			//var analysis = new StaticSingleAssignmentAnalysis(methodBody, cfg);
+			//analysis.Analyze();
+			//analysis.Transform();
 
 			//var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);
