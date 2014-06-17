@@ -239,10 +239,10 @@ namespace Backend.Analysis
 
 				if (variablesWithPhi.ContainsKey(variable))
 				{
-					var index = variablesWithPhi[variable];
+					var index = variablesWithPhi[variable] + 1;
 
 					assignment.Result = new DerivedVariable(variable, index);
-					variablesWithPhi[variable] = index + 1;
+					variablesWithPhi[variable] = index;
 				}
 			}
 		}
