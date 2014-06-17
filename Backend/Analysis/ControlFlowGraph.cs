@@ -464,7 +464,7 @@ namespace Backend.Analysis
 
 		#endregion
 
-		#region DominanceFrontier
+		#region Dominance Frontier
 
 		public static void ComputeDominanceFrontiers(ControlFlowGraph cfg)
 		{

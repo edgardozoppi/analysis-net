@@ -32,6 +32,8 @@ namespace Console
 			ControlFlowGraph.ComputeDominators(cfg);
 			ControlFlowGraph.IdentifyLoops(cfg);
 
+			ControlFlowGraph.ComputeDominanceFrontiers(cfg);
+
 			//var analysis = new StaticSingleAssignmentAnalysis(methodBody, cfg);
 			//analysis.Analyze();
 			//analysis.Transform();
