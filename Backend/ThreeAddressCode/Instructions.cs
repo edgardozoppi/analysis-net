@@ -588,6 +588,14 @@ namespace Backend.ThreeAddressCode
 		public uint Index { get; set; }
 		public ISet<uint> Indices { get; private set; }
 
+		public PhiInstruction(uint label, Variable variable)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Variable = variable;
+			this.Index = 0;
+			this.Indices = new HashSet<uint>();
+		}
+
 		public PhiInstruction(uint label, Variable variable, uint index, ISet<uint> indices)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
@@ -615,7 +623,11 @@ namespace Backend.ThreeAddressCode
 				arguments.AppendFormat(", {0}{1}", this.Variable, index);
 			}
 
-			arguments.Remove(0, 2);
+			if (arguments.Length > 0)
+			{
+				arguments.Remove(0, 2);
+			}
+
 			return string.Format("{0}:  {1} = Φ({2});", this.Label, this.Result, arguments);
 		}
 	}
