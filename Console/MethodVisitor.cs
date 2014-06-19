@@ -32,6 +32,7 @@ namespace Console
 			ControlFlowGraph.ComputeDominators(cfg);
 			ControlFlowGraph.IdentifyLoops(cfg);
 
+			ControlFlowGraph.ComputeDominatorTree(cfg);
 			ControlFlowGraph.ComputeDominanceFrontiers(cfg);
 
 			var analysis = new SSA(cfg);

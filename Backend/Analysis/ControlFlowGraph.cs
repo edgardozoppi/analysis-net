@@ -68,6 +68,7 @@ namespace Backend.Analysis
 		public ISet<CFGNode> Successors { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
 		public CFGNode ImmediateDominator { get; set; }
+		public ISet<CFGNode> Childs { get; private set; }
 		public ISet<CFGNode> DominanceFrontier { get; private set; }
 
 		public CFGNode(int id, CFGNodeKind kind)
@@ -79,6 +80,7 @@ namespace Backend.Analysis
 			this.Predecessors = new HashSet<CFGNode>();
 			this.Successors = new HashSet<CFGNode>();
 			this.Instructions = new List<Instruction>();
+			this.Childs = new HashSet<CFGNode>();
 			this.DominanceFrontier = new HashSet<CFGNode>();
 		}
 
@@ -461,6 +463,20 @@ namespace Backend.Analysis
 		//        node_dom.ToSet(node.Dominators);
 		//    }
 		//}
+
+		#endregion
+
+		#region Dominator Tree
+		
+		public static void ComputeDominatorTree(ControlFlowGraph cfg)
+		{
+			foreach (var node in cfg.Nodes)
+			{
+				if (node.ImmediateDominator == null) continue;
+
+				node.ImmediateDominator.Childs.Add(node);
+			}
+		}
 
 		#endregion
 
