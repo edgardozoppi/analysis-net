@@ -586,17 +586,17 @@ namespace Backend.ThreeAddressCode
 	{
 		public Variable Variable { get; set; }
 		public uint Index { get; set; }
-		public ISet<uint> Indices { get; private set; }
+		public IList<uint> Indices { get; private set; }
 
 		public PhiInstruction(uint label, Variable variable)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Variable = variable;
 			this.Index = 0;
-			this.Indices = new HashSet<uint>();
+			this.Indices = new List<uint>();
 		}
 
-		public PhiInstruction(uint label, Variable variable, uint index, ISet<uint> indices)
+		public PhiInstruction(uint label, Variable variable, uint index, IList<uint> indices)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Variable = variable;

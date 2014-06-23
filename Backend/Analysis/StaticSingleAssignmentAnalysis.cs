@@ -200,7 +200,7 @@ namespace Backend.Analysis
 					Instruction instruction;
 					var indices = input[entry.Key];
 
-					instruction = new PhiInstruction(0, entry.Key, entry.Value, indices);
+					instruction = new PhiInstruction(0, entry.Key, entry.Value, indices.ToList());
 					node.Instructions.Insert(0, instruction);
 					//else
 					//{
