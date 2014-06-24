@@ -157,6 +157,8 @@ namespace Backend.ThreeAddressCode
 
 		#endregion
 
+		public abstract Variable ChangeRoot(Variable root);
+
 		public override bool Equals(object obj)
 		{
 			var other = obj as Variable;
