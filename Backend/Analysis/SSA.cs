@@ -8,11 +8,13 @@ namespace Backend.Analysis
 {
 	public class SSA
 	{
+		private MethodBody method;
 		private ControlFlowGraph cfg;
 		private IDictionary<CFGNode, IDictionary<Variable, PhiInstruction>> phi_instructions;
 
-		public SSA(ControlFlowGraph cfg)
+		public SSA(MethodBody method, ControlFlowGraph cfg)
 		{
+			this.method = method;
 			this.cfg = cfg;
 			this.phi_instructions = new Dictionary<CFGNode, IDictionary<Variable, PhiInstruction>>();
 		}
@@ -90,14 +92,21 @@ namespace Backend.Analysis
 
 		private void RenameVariables()
 		{
-			this.RenameVariables(cfg.Entry);
-		}
-
-		private void RenameVariables(CFGNode node)
-		{
 			var derived_variables = new Dictionary<Variable, Stack<DerivedVariable>>();
 			var indices = new Dictionary<Variable, uint>();
 
+			foreach (var variable in method.Variables)
+			{
+				var stack = new Stack<DerivedVariable>();
+				derived_variables.Add(variable, stack);
+				indices.Add(variable, 0u);
+			}
+
+			this.RenameVariables(cfg.Entry, derived_variables, indices);
+		}
+
+		private void RenameVariables(CFGNode node, IDictionary<Variable, Stack<DerivedVariable>> derived_variables, Dictionary<Variable, uint> indices)
+		{
 			foreach (var instruction in node.Instructions)
 			{
 				if (instruction is AssignmentInstruction)
@@ -106,65 +115,30 @@ namespace Backend.Analysis
 					DerivedVariable derived;
 					var assignment = instruction as AssignmentInstruction;
 					var variables = assignment.Expression.Variables;
-					var result = assignment.Result;
-					var index = 0u;
+					var result = assignment.Result.Root;
+					var index = indices[result];
 
 					foreach (var variable in variables)
 					{
 						stack = derived_variables[variable];
+						if (stack.Count == 0) continue;
+
 						derived = stack.Peek();
 						assignment.Expression = assignment.Expression.Replace(variable, derived);
 					}
-					
-					if (indices.ContainsKey(result))
-					{
-						index = indices[result];
-					}
-					else
-					{
-						indices[result] = index;
-					}
 
-					if (derived_variables.ContainsKey(result))
-					{
-						stack = derived_variables[result];
-					}
-					else
-					{
-						stack = new Stack<DerivedVariable>();
-						derived_variables[result] = stack;
-					}
-
+					stack = derived_variables[result];
 					derived = new DerivedVariable(result, index);
-					assignment.Result = derived;
+					assignment.Result = assignment.Result.ChangeRoot(derived);
 					stack.Push(derived);
 					indices[result] = index + 1;
 				}
 				else if (instruction is PhiInstruction)
 				{
-					Stack<DerivedVariable> stack;
 					var phi = instruction as PhiInstruction;
 					var result = phi.Variable;
-					var index = 0u;
-
-					if (indices.ContainsKey(result))
-					{
-						index = indices[result];
-					}
-					else
-					{
-						indices[result] = index;
-					}
-
-					if (derived_variables.ContainsKey(result))
-					{
-						stack = derived_variables[result];
-					}
-					else
-					{
-						stack = new Stack<DerivedVariable>();
-						derived_variables[result] = stack;
-					}
+					var stack = derived_variables[result];
+					var index = indices[result];
 
 					phi.Index = index;
 					stack.Push(phi.Result);
@@ -190,7 +164,7 @@ namespace Backend.Analysis
 
 			foreach (var child in node.Childs)
 			{
-				this.RenameVariables(child);
+				this.RenameVariables(child, derived_variables, indices);
 			}
 
 			foreach (var instruction in node.Instructions)

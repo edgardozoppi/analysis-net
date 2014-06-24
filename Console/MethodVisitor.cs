@@ -35,7 +35,7 @@ namespace Console
 			ControlFlowGraph.ComputeDominatorTree(cfg);
 			ControlFlowGraph.ComputeDominanceFrontiers(cfg);
 
-			var analysis = new SSA(cfg);
+			var analysis = new SSA(methodBody, cfg);
 			analysis.Transform();
 
 			//var analysis = new StaticSingleAssignmentAnalysis(methodBody, cfg);
