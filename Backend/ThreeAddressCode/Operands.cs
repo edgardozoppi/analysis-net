@@ -155,9 +155,37 @@ namespace Backend.ThreeAddressCode
 			get { return new HashSet<Variable>() { this }; }
 		}
 
+		IExpression IExpression.Replace(IExpression oldValue, IExpression newValue)
+		{
+			IExpression result = this;
+
+			if (oldValue is Variable)
+			{
+				if (newValue is Variable)
+				{
+					var old_variable = oldValue as Variable;
+					var new_variable = newValue as Variable;
+
+					result = this.Replace(old_variable, new_variable);
+				}
+				else if (this.Equals(oldValue))
+				{
+					result = newValue;
+				}
+			}
+
+			return result;
+		}
+
 		#endregion
 
-		public abstract Variable ChangeRoot(Variable root);
+		public virtual Variable Root { get { return this; } }
+
+		public virtual Variable Replace(Variable oldValue, Variable newValue)
+		{
+			if (this.Equals(oldValue)) return newValue;
+			else return this;
+		}
 
 		public override bool Equals(object obj)
 		{
@@ -256,6 +284,18 @@ namespace Backend.ThreeAddressCode
 			this.Instance = instance;
 			this.FieldName = fieldName;
 		}
+
+		public override Variable Root { get { return this.Instance.Root; } }
+
+		public override Variable Replace(Variable oldValue, Variable newValue)
+		{
+			if (this.Equals(oldValue))
+				return newValue;
+
+			var instance = this.Instance.Replace(oldValue, newValue);
+			var result = new InstanceFieldAccess(instance, this.FieldName);
+			return result;
+		}
 	}
 
 	public class ArrayElementAccess : Variable
@@ -274,6 +314,18 @@ namespace Backend.ThreeAddressCode
 			this.Array = array;
 			this.Index = index;
 		}
+
+		public override Variable Root { get { return this.Array.Root; } }
+
+		public override Variable Replace(Variable oldValue, Variable newValue)
+		{
+			if (this.Equals(oldValue))
+				return newValue;
+
+			var array = this.Array.Replace(oldValue, newValue);
+			var result = new ArrayElementAccess(array, this.Index);
+			return result;
+		}
 	}
 
 	public class IndirectAccess : Variable
@@ -289,6 +341,18 @@ namespace Backend.ThreeAddressCode
 		public IndirectAccess(Variable address)
 		{
 			this.Address = address;
+		}
+
+		public override Variable Root { get { return this.Address.Root; } }
+
+		public override Variable Replace(Variable oldValue, Variable newValue)
+		{
+			if (this.Equals(oldValue))
+				return newValue;
+
+			var address = this.Address.Replace(oldValue, newValue);
+			var result = new IndirectAccess(address);
+			return result;
 		}
 	}
 }

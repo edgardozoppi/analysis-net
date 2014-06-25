@@ -129,7 +129,7 @@ namespace Backend.Analysis
 
 					stack = derived_variables[result];
 					derived = new DerivedVariable(result, index);
-					assignment.Result = assignment.Result.ChangeRoot(derived);
+					assignment.Result = assignment.Result.Replace(result, derived);
 					stack.Push(derived);
 					indices[result] = index + 1;
 				}
@@ -156,8 +156,9 @@ namespace Backend.Analysis
 					var variable = entry.Key;
 					var phi = entry.Value;
 					var stack = derived_variables[variable];
-					var derived = stack.Peek();
+					if (stack.Count == 0) continue;
 
+					var derived = stack.Peek();
 					phi.Indices.Add(derived.Index);
 				}
 			}
@@ -174,7 +175,8 @@ namespace Backend.Analysis
 				if (instruction is AssignmentInstruction)
 				{
 					var assignment = instruction as AssignmentInstruction;
-					result = assignment.Result;
+					var derived = assignment.Result.Root as DerivedVariable;
+					result = derived.Original;
 				}
 				else if (instruction is PhiInstruction)
 				{
