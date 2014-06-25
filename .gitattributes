@@ -42,3 +42,4 @@ Test/Test.csproj -text
 /foreach_collection.dgml -text
 /loops.txt -text
 /while.dgml -text
+/while_ssa.dgml -text
