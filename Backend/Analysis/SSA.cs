@@ -97,9 +97,12 @@ namespace Backend.Analysis
 
 			foreach (var variable in method.Variables)
 			{
+				var derived = new DerivedVariable(variable, 0u);
 				var stack = new Stack<DerivedVariable>();
+
+				stack.Push(derived);
 				derived_variables.Add(variable, stack);
-				indices.Add(variable, 0u);
+				indices.Add(variable, 1u);
 			}
 
 			this.RenameVariables(cfg.Entry, derived_variables, indices);
@@ -121,8 +124,6 @@ namespace Backend.Analysis
 					foreach (var variable in variables)
 					{
 						stack = derived_variables[variable];
-						if (stack.Count == 0) continue;
-
 						derived = stack.Peek();
 						assignment.Expression = assignment.Expression.Replace(variable, derived);
 					}
@@ -156,9 +157,8 @@ namespace Backend.Analysis
 					var variable = entry.Key;
 					var phi = entry.Value;
 					var stack = derived_variables[variable];
-					if (stack.Count == 0) continue;
-
 					var derived = stack.Peek();
+
 					phi.Indices.Add(derived.Index);
 				}
 			}
