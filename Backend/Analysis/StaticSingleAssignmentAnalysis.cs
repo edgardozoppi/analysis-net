@@ -197,10 +197,14 @@ namespace Backend.Analysis
 
 				foreach (var entry in variablesWithPhi)
 				{
-					Instruction instruction;
+					var derived = new DerivedVariable(entry.Key, entry.Value);
+					var phi = new PhiExpression(entry.Key);
 					var indices = input[entry.Key];
 
-					instruction = new PhiInstruction(0, entry.Key, entry.Value, indices.ToList());
+					foreach (var index in indices)
+						phi.Indices.Add(index);
+					
+					var instruction = new AssignmentInstruction(0, derived, phi);
 					node.Instructions.Insert(0, instruction);
 					//else
 					//{

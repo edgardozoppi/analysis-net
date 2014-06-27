@@ -10,13 +10,13 @@ namespace Backend.Analysis
 	{
 		private MethodBody method;
 		private ControlFlowGraph cfg;
-		private IDictionary<CFGNode, IDictionary<Variable, PhiInstruction>> phi_instructions;
+		private IDictionary<CFGNode, IDictionary<Variable, AssignmentInstruction>> phi_instructions;
 
 		public SSA(MethodBody method, ControlFlowGraph cfg)
 		{
 			this.method = method;
 			this.cfg = cfg;
-			this.phi_instructions = new Dictionary<CFGNode, IDictionary<Variable, PhiInstruction>>();
+			this.phi_instructions = new Dictionary<CFGNode, IDictionary<Variable, AssignmentInstruction>>();
 		}
 
 		public void Transform()
@@ -65,7 +65,7 @@ namespace Backend.Analysis
 					foreach (var node in current.DominanceFrontier)
 					{
 						if (phi_instructions.ContainsKey(node) && phi_instructions[node].ContainsKey(variable)) continue;
-						IDictionary<Variable, PhiInstruction> node_phi_instructions;
+						IDictionary<Variable, AssignmentInstruction> node_phi_instructions;
 						
 						if (phi_instructions.ContainsKey(node))
 						{
@@ -73,13 +73,14 @@ namespace Backend.Analysis
 						}
 						else
 						{
-							node_phi_instructions = new Dictionary<Variable, PhiInstruction>();
+							node_phi_instructions = new Dictionary<Variable, AssignmentInstruction>();
 							phi_instructions.Add(node, node_phi_instructions);
 						}
 
-						var phi = new PhiInstruction(0, variable);
-						node.Instructions.Insert(0, phi);
-						node_phi_instructions.Add(variable, phi);
+						var phi = new PhiExpression(variable);
+						var assign = new AssignmentInstruction(0, variable, phi);
+						node.Instructions.Insert(0, assign);
+						node_phi_instructions.Add(variable, assign);
 
 						if (!defining_nodes[variable].Contains(node) && !nodes.Contains(node))
 						{
@@ -117,32 +118,27 @@ namespace Backend.Analysis
 					Stack<DerivedVariable> stack;
 					DerivedVariable derived;
 					var assignment = instruction as AssignmentInstruction;
-					var variables = assignment.Expression.Variables;
+					var isPhiInstruction = assignment.Expression is PhiExpression;
+
+					if (!isPhiInstruction)
+					{
+						var variables = assignment.Expression.Variables;
+
+						foreach (var variable in variables)
+						{
+							stack = derived_variables[variable];
+							derived = stack.Peek();
+							assignment.Expression = assignment.Expression.Replace(variable, derived);
+						}
+					}
+					
 					var result = assignment.Result.Root;
 					var index = indices[result];
-
-					foreach (var variable in variables)
-					{
-						stack = derived_variables[variable];
-						derived = stack.Peek();
-						assignment.Expression = assignment.Expression.Replace(variable, derived);
-					}
 
 					stack = derived_variables[result];
 					derived = new DerivedVariable(result, index);
 					assignment.Result = assignment.Result.Replace(result, derived);
 					stack.Push(derived);
-					indices[result] = index + 1;
-				}
-				else if (instruction is PhiInstruction)
-				{
-					var phi = instruction as PhiInstruction;
-					var result = phi.Variable;
-					var stack = derived_variables[result];
-					var index = indices[result];
-
-					phi.Index = index;
-					stack.Push(phi.Result);
 					indices[result] = index + 1;
 				}
 			}
@@ -155,7 +151,7 @@ namespace Backend.Analysis
 				foreach (var entry in node_phi_instructions)
 				{
 					var variable = entry.Key;
-					var phi = entry.Value;
+					var phi = entry.Value.Expression as PhiExpression;
 					var stack = derived_variables[variable];
 					var derived = stack.Peek();
 
@@ -170,23 +166,15 @@ namespace Backend.Analysis
 
 			foreach (var instruction in node.Instructions)
 			{
-				Variable result = null; 
-
 				if (instruction is AssignmentInstruction)
 				{
 					var assignment = instruction as AssignmentInstruction;
 					var derived = assignment.Result.Root as DerivedVariable;
-					result = derived.Original;
-				}
-				else if (instruction is PhiInstruction)
-				{
-					var phi = instruction as PhiInstruction;
-					result = phi.Variable;
-				}
+					var result = derived.Original;
+					var stack = derived_variables[result];
 
-				if (result == null)	continue;
-				var stack = derived_variables[result];
-				stack.Pop();
+					stack.Pop();
+				}
 			}
 		}
 	}
