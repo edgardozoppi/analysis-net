@@ -487,6 +487,10 @@ namespace Backend.Analysis
 			foreach (var node in cfg.Nodes)
 			{
 				node.DominanceFrontier.Clear();
+			}
+
+			foreach (var node in cfg.Nodes)
+			{
 				if (node.Predecessors.Count < 2) continue;
 
 				foreach (var pred in node.Predecessors)
