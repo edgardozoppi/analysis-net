@@ -160,88 +160,88 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class PhiExpression : IExpression
-	{
-		public Variable Variable { get; set; }
-		public IList<uint> Indices { get; private set; }
+	//public class PhiExpression : IExpression
+	//{
+	//	public Variable Variable { get; set; }
+	//	public IList<uint> Indices { get; private set; }
 
-		public PhiExpression(Variable variable)
-		{
-			this.Variable = variable;
-			this.Indices = new List<uint>();
-		}
+	//	public PhiExpression(Variable variable)
+	//	{
+	//		this.Variable = variable;
+	//		this.Indices = new List<uint>();
+	//	}
 
-		public ISet<Variable> Variables
-		{
-			get
-			{
-				var result = new HashSet<Variable>();
+	//	public ISet<Variable> Variables
+	//	{
+	//		get
+	//		{
+	//			var result = new HashSet<Variable>();
 
-				foreach (var index in this.Indices)
-				{
-					var derived = new DerivedVariable(this.Variable, index);
-					result.Add(derived);
-				}
+	//			foreach (var index in this.Indices)
+	//			{
+	//				var derived = new DerivedVariable(this.Variable, index);
+	//				result.Add(derived);
+	//			}
 
-				return result;
-			}
-		}
+	//			return result;
+	//		}
+	//	}
 
-		public IExpression Clone()
-		{
-			var result = new PhiExpression(this.Variable);
+	//	public IExpression Clone()
+	//	{
+	//		var result = new PhiExpression(this.Variable);
 
-			foreach (var index in this.Indices)
-				result.Indices.Add(index);
+	//		foreach (var index in this.Indices)
+	//			result.Indices.Add(index);
 
-			return result;
-		}
+	//		return result;
+	//	}
 
-		public IExpression Replace(IExpression oldValue, IExpression newValue)
-		{
-			if (this.Equals(oldValue))
-				return newValue;
+	//	public IExpression Replace(IExpression oldValue, IExpression newValue)
+	//	{
+	//		if (this.Equals(oldValue))
+	//			return newValue;
 
-			var expression = this.Variable as IExpression;
-			expression = expression.Replace(oldValue, newValue);
-			var variable = expression as Variable;
-			var result = new PhiExpression(variable);
+	//		var expression = this.Variable as IExpression;
+	//		expression = expression.Replace(oldValue, newValue);
+	//		var variable = expression as Variable;
+	//		var result = new PhiExpression(variable);
 
-			foreach (var index in this.Indices)
-				result.Indices.Add(index);
+	//		foreach (var index in this.Indices)
+	//			result.Indices.Add(index);
 
-			return result;
-		}
+	//		return result;
+	//	}
 
-		public override bool Equals(object obj)
-		{
-			var other = obj as PhiExpression;
+	//	public override bool Equals(object obj)
+	//	{
+	//		var other = obj as PhiExpression;
 
-			return other != null &&
-				this.Variable.Equals(other.Variable) &&
-				this.Indices.SequenceEqual(other.Indices);
-		}
+	//		return other != null &&
+	//			this.Variable.Equals(other.Variable) &&
+	//			this.Indices.SequenceEqual(other.Indices);
+	//	}
 
-		public override int GetHashCode()
-		{
-			return this.Variable.GetHashCode() ^ this.Indices.GetHashCode();
-		}
+	//	public override int GetHashCode()
+	//	{
+	//		return this.Variable.GetHashCode() ^ this.Indices.GetHashCode();
+	//	}
 
-		public override string ToString()
-		{
-			var arguments = new StringBuilder();
-			arguments.Append("Φ(");
+	//	public override string ToString()
+	//	{
+	//		var arguments = new StringBuilder();
+	//		arguments.Append("Φ(");
 
-			for (var i = 0; i < this.Indices.Count; ++i)
-			{
-				var index = this.Indices[i];
+	//		for (var i = 0; i < this.Indices.Count; ++i)
+	//		{
+	//			var index = this.Indices[i];
 
-				if (i > 0) arguments.Append(", ");
-				arguments.AppendFormat("{0}{1}", this.Variable, index);
-			}
+	//			if (i > 0) arguments.Append(", ");
+	//			arguments.AppendFormat("{0}{1}", this.Variable, index);
+	//		}
 
-			arguments.Append(")");
-			return arguments.ToString();
-		}
-	}
+	//		arguments.Append(")");
+	//		return arguments.ToString();
+	//	}
+	//}
 }

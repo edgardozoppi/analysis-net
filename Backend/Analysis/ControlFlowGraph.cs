@@ -210,7 +210,7 @@ namespace Backend.Analysis
 					instruction is ConditionalBranchInstruction)
 				{
 					nextIsLeader = true;
-					var branch = instruction as IBranchInstruction;
+					var branch = instruction as BranchInstruction;
 
 					if (!leaders.ContainsKey(branch.Target))
 					{
@@ -251,9 +251,9 @@ namespace Backend.Analysis
 				connectWithPreviousNode = true;
 				current.Instructions.Add(instruction);
 
-				if (instruction is IBranchInstruction)
+				if (instruction is BranchInstruction)
 				{
-					var branch = instruction as IBranchInstruction;
+					var branch = instruction as BranchInstruction;
 					var target = leaders[branch.Target];
 
 					cfg.ConnectNodes(current, target);

@@ -53,29 +53,30 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class AssignmentInstruction : Instruction
+	public abstract class AssignmentInstruction : Instruction
 	{
-		public IExpression Expression { get; set; }
 		public Variable Result { get; set; }
+	}
 
-		public AssignmentInstruction(uint label, Variable result, IExpression operand)
+	public class ExpressionInstruction : AssignmentInstruction
+	{
+		public IExpression Value { get; set; }
+
+		public ExpressionInstruction(uint label, Variable result, IExpression value)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Result = result;
-			this.Expression = operand;
+			this.Value = value;
 		}
 
 		public override ISet<Variable> ModifiedVariables
 		{
-			get
-			{
-				return new HashSet<Variable>() { this.Result };
-			}
+			get { return new HashSet<Variable>() { this.Result }; }
 		}
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} = {2};", this.Label, this.Result, this.Expression);
+			return string.Format("{0}:  {1} = {2};", this.Label, this.Result, this.Value);
 		}
 	}
 
@@ -131,38 +132,33 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class CatchInstruction : Instruction
+	public class CatchInstruction : AssignmentInstruction
 	{
-		public Variable Exception { get; set; }
 		public ITypeReference ExceptionType { get; set; }
 
-		public CatchInstruction(uint label, Variable exception, ITypeReference exceptionType)
+		public CatchInstruction(uint label, Variable result, ITypeReference exceptionType)
 		{
 			this.Label = string.Format("L_{0:X4}'", label);
-			this.Exception = exception;
+			this.Result = result;
 			this.ExceptionType = exceptionType;
 		}
 
 		public override ISet<Variable> ModifiedVariables
 		{
-			get
-			{
-				return new HashSet<Variable>() { this.Exception };
-			}
+			get { return new HashSet<Variable>() { this.Result }; }
 		}
 
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.ExceptionType);
-			return string.Format("{0}: catch {1} {2};", this.Label, type, this.Exception);
+			return string.Format("{0}: catch {1} {2};", this.Label, type, this.Result);
 		}
 	}
 
-	public class ConvertInstruction : Instruction
+	public class ConvertInstruction : AssignmentInstruction
 	{
 		public Operand Operand { get; set; }
 		public ITypeReference Type { get; set; }
-		public Variable Result { get; set; }
 		public bool CheckNumericRange { get; set; }
 		public bool TreatOperandAsUnsignedInteger { get; set; }
 
@@ -176,10 +172,7 @@ namespace Backend.ThreeAddressCode
 
 		public override ISet<Variable> ModifiedVariables
 		{
-			get
-			{
-				return new HashSet<Variable>() { this.Result };
-			}
+			get { return new HashSet<Variable>() { this.Result }; }
 		}
 
 		public override string ToString()
@@ -215,15 +208,14 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public interface IBranchInstruction
+	public abstract class BranchInstruction : Instruction
 	{
-		string Target { get; }
+		public string Target { get; set; }
 	}
 
-	public class ExceptionalBranchInstruction : Instruction, IBranchInstruction
+	public class ExceptionalBranchInstruction : BranchInstruction
 	{
 		public ITypeReference ExceptionType { get; set; }
-		public string Target { get; set; }
 
 		public ExceptionalBranchInstruction(uint label, uint target, ITypeReference exceptionType)
 		{
@@ -239,10 +231,8 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class UnconditionalBranchInstruction : Instruction, IBranchInstruction
+	public class UnconditionalBranchInstruction : BranchInstruction
 	{
-		public string Target { get; set; }
-
 		public UnconditionalBranchInstruction(uint label, uint target)
 		{
 			this.Label = string.Format("L_{0:X4}", label);
@@ -255,12 +245,11 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class ConditionalBranchInstruction : Instruction, IBranchInstruction
+	public class ConditionalBranchInstruction : BranchInstruction
 	{
 		public Operand LeftOperand { get; set; }
 		public Operand RightOperand { get; set; }
 		public BranchCondition Condition { get; set; }
-		public string Target { get; set; }
 
 		public ConditionalBranchInstruction(uint label, Operand left, BranchCondition condition, Operand right, uint target)
 		{
@@ -289,10 +278,9 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class SizeofInstruction : Instruction
+	public class SizeofInstruction : AssignmentInstruction
 	{
 		public ITypeReference Type { get; set; }
-		public Variable Result { get; set; }
 
 		public SizeofInstruction(uint label, Variable result, ITypeReference type)
 		{
@@ -303,10 +291,7 @@ namespace Backend.ThreeAddressCode
 
 		public override ISet<Variable> ModifiedVariables
 		{
-			get
-			{
-				return new HashSet<Variable>() { this.Result };
-			}
+			get { return new HashSet<Variable>() { this.Result }; }
 		}
 
 		public override string ToString()
@@ -316,11 +301,10 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class MethodCallInstruction : Instruction
+	public class MethodCallInstruction : AssignmentInstruction
 	{
 		public IMethodReference Method { get; set; }
-		public Variable Result { get; set; }
-		public List<Operand> Arguments { get; private set; }
+		public IList<Operand> Arguments { get; private set; }
 
 		public MethodCallInstruction(uint label, Variable result, IMethodReference method, IEnumerable<Operand> arguments)
 		{
@@ -364,12 +348,11 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class IndirectMethodCallInstruction : Instruction
+	public class IndirectMethodCallInstruction : AssignmentInstruction
 	{
 		public IFunctionPointerTypeReference Type { get; set; }
 		public Variable Pointer { get; set; }
-		public Variable Result { get; set; }
-		public List<Operand> Arguments { get; private set; }
+		public IList<Operand> Arguments { get; private set; }
 
 		public IndirectMethodCallInstruction(uint label, Variable result, Variable pointer, IFunctionPointerTypeReference type, IEnumerable<Operand> arguments)
 		{
@@ -412,11 +395,10 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class CreateObjectInstruction : Instruction
+	public class CreateObjectInstruction : AssignmentInstruction
 	{
 		public IMethodReference Constructor { get; set; }
-		public Variable Result { get; set; }
-		public List<Operand> Arguments { get; private set; }
+		public IList<Operand> Arguments { get; private set; }
 
 		public CreateObjectInstruction(uint label, Variable result, IMethodReference constructor, IEnumerable<Operand> arguments)
 		{
@@ -547,13 +529,12 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class CreateArrayInstruction : Instruction
+	public class CreateArrayInstruction : AssignmentInstruction
 	{
-		public Variable Result { get; set; }
 		public ITypeReference ElementType { get; set; }
 		public uint Rank { get; set; }
-		public List<Operand> LowerBounds { get; private set; }
-		public List<Operand> Sizes { get; private set; }
+		public IList<Operand> LowerBounds { get; private set; }
+		public IList<Operand> Sizes { get; private set; }
 
 		public CreateArrayInstruction(uint label, Variable result, ITypeReference elementType, uint rank, IEnumerable<Operand> lowerBounds, IEnumerable<Operand> sizes)
 		{
@@ -567,10 +548,7 @@ namespace Backend.ThreeAddressCode
 
 		public override ISet<Variable> ModifiedVariables
 		{
-			get
-			{
-				return new HashSet<Variable>() { this.Result };
-			}
+			get { return new HashSet<Variable>() { this.Result }; }
 		}
 
 		public override string ToString()
@@ -579,6 +557,29 @@ namespace Backend.ThreeAddressCode
 			var sizes = string.Join(", ", this.Sizes);
 
 			return string.Format("{0}:  {1} = new {2}[{3}];", this.Label, this.Result, elementType, sizes);
+		}
+	}
+
+	public class PhiInstruction : AssignmentInstruction
+	{
+		public IList<Variable> Arguments { get; private set; }
+
+		public PhiInstruction(uint label, Variable result)
+		{
+			this.Label = string.Format("L_{0:X4}", label);
+			this.Result = result;
+			this.Arguments = new List<Variable>();
+		}
+
+		public override ISet<Variable> ModifiedVariables
+		{
+			get { return new HashSet<Variable>() { this.Result }; }
+		}
+
+		public override string ToString()
+		{
+			var arguments = string.Join(", ", this.Arguments);
+			return string.Format("{0}:  {1} = Φ({2});", this.Label, this.Result, arguments);
 		}
 	}
 }

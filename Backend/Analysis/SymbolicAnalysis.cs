@@ -139,10 +139,10 @@ namespace Backend.Analysis
 		{
 			KeyValuePair<Variable, IExpression>? result = null;
 
-			if (instruction is AssignmentInstruction)
+			if (instruction is ExpressionInstruction)
 			{
-				var assignment = instruction as AssignmentInstruction;
-				var expr = assignment.Expression.ReplaceVariables(equalities);
+				var assignment = instruction as ExpressionInstruction;
+				var expr = assignment.Value.ReplaceVariables(equalities);
 				result = new KeyValuePair<Variable,IExpression>(assignment.Result, expr);
 			}
 

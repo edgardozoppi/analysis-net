@@ -1039,7 +1039,7 @@ namespace Backend
 		{
 			var source = new Constant(op.Value);
 			var dest = stack.Push();
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1054,7 +1054,7 @@ namespace Backend
 			}
 
 			var dest = stack.Push();
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1070,7 +1070,7 @@ namespace Backend
 
 			var dest = stack.Push();
 			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
-			var instruction = new AssignmentInstruction(op.Offset, dest, address);
+			var instruction = new ExpressionInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1079,7 +1079,7 @@ namespace Backend
 			var local = op.Value as ILocalDefinition;
 			var source = locals[local];
 			var dest = stack.Push();
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1089,7 +1089,7 @@ namespace Backend
 			var source = locals[local];
 			var dest = stack.Push();
 			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
-			var instruction = new AssignmentInstruction(op.Offset, dest, address);
+			var instruction = new ExpressionInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1098,7 +1098,7 @@ namespace Backend
 			var address = stack.Pop();
 			var dest = stack.Push();
 			var source = new IndirectAccess(address);
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1108,7 +1108,7 @@ namespace Backend
 			var obj = stack.Pop();
 			var dest = stack.Push();
 			var source = new InstanceFieldAccess(obj, field.Name.Value);
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1117,7 +1117,7 @@ namespace Backend
 			var field = op.Value as IFieldDefinition;
 			var dest = stack.Push();
 			var source = new StaticFieldAccess(field.ContainingType, field.Name.Value);
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1128,7 +1128,7 @@ namespace Backend
 			var dest = stack.Push();
 			var source = new InstanceFieldAccess(obj, field.Name.Value);
 			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
-			var instruction = new AssignmentInstruction(op.Offset, dest, address);
+			var instruction = new ExpressionInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1138,7 +1138,7 @@ namespace Backend
 			var dest = stack.Push();
 			var source = new StaticFieldAccess(field.ContainingType, field.Name.Value);
 			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
-			var instruction = new AssignmentInstruction(op.Offset, dest, address);
+			var instruction = new ExpressionInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1147,7 +1147,7 @@ namespace Backend
 			var array = stack.Pop();
 			var dest = stack.Push();
 			var length = new InstanceFieldAccess(array, "Length");
-			var instruction = new AssignmentInstruction(op.Offset, dest, length);
+			var instruction = new ExpressionInstruction(op.Offset, dest, length);
 			return instruction;
 		}
 
@@ -1157,7 +1157,7 @@ namespace Backend
 			var array = stack.Pop();			
 			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, index);
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1168,7 +1168,7 @@ namespace Backend
 			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, index);
 			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
-			var instruction = new AssignmentInstruction(op.Offset, dest, address);
+			var instruction = new ExpressionInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1178,7 +1178,7 @@ namespace Backend
 			var dest = stack.Push();
 			var source = new StaticMethod(method);
 			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
-			var instruction = new AssignmentInstruction(op.Offset, dest, address);
+			var instruction = new ExpressionInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1189,7 +1189,7 @@ namespace Backend
 			var dest = stack.Push();
 			var source = new VirtualMethod(obj, method);
 			var address = new UnaryExpression(UnaryOperation.AddressOf, source);
-			var instruction = new AssignmentInstruction(op.Offset, dest, address);
+			var instruction = new ExpressionInstruction(op.Offset, dest, address);
 			return instruction;
 		}
 
@@ -1204,7 +1204,7 @@ namespace Backend
 			}
 			
 			var source = stack.Pop();
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1213,7 +1213,7 @@ namespace Backend
 			var local = op.Value as ILocalDefinition;
 			var dest = locals[local];
 			var source = stack.Pop();
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1222,7 +1222,7 @@ namespace Backend
 			var address = stack.Pop();
 			var dest = stack.Pop();
 			var source = new IndirectAccess(address);
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1232,7 +1232,7 @@ namespace Backend
 			var source = stack.Pop();
 			var obj = stack.Pop();
 			var dest = new InstanceFieldAccess(obj, field.Name.Value);
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1241,7 +1241,7 @@ namespace Backend
 			var field = op.Value as IFieldDefinition;
 			var source = stack.Pop();
 			var dest = new StaticFieldAccess(field.ContainingType, field.Name.Value);
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1251,7 +1251,7 @@ namespace Backend
 			var index = stack.Pop();
 			var array = stack.Pop();
 			var result = new ArrayElementAccess(array, index);
-			var instruction = new AssignmentInstruction(op.Offset, result, operand);
+			var instruction = new ExpressionInstruction(op.Offset, result, operand);
 			return instruction;
 		}
 
@@ -1272,7 +1272,7 @@ namespace Backend
 			var operand = stack.Pop();
 			var dest = stack.Push();
 			var source = new UnaryExpression(operation, operand);
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1282,7 +1282,7 @@ namespace Backend
 			var left = stack.Pop();
 			var dest = stack.Push();
 			var source = new BinaryExpression(left, operation, right);
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
@@ -1304,7 +1304,7 @@ namespace Backend
 		{
 			var source = stack.Top();
 			var dest = stack.Push();
-			var instruction = new AssignmentInstruction(op.Offset, dest, source);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 

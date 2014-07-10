@@ -139,18 +139,18 @@ namespace Backend.Analysis
 		{
 			KeyValuePair<Variable, Operand>? result = null;
 
-			if (instruction is AssignmentInstruction)
+			if (instruction is ExpressionInstruction)
 			{
-				var assignment = instruction as AssignmentInstruction;
+				var assignment = instruction as ExpressionInstruction;
 
-				if (assignment.Expression is Constant)
+				if (assignment.Value is Constant)
 				{
-					var constant = assignment.Expression as Constant;
+					var constant = assignment.Value as Constant;
 					result = new KeyValuePair<Variable, Operand>(assignment.Result, constant);
 				}
-				else if (assignment.Expression is Variable)
+				else if (assignment.Value is Variable)
 				{
-					var variable = assignment.Expression as Variable;
+					var variable = assignment.Value as Variable;
 
 					if (copies.ContainsKey(variable))
 					{
