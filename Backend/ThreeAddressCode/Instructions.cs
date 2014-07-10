@@ -51,6 +51,11 @@ namespace Backend.ThreeAddressCode
 		{
 			get { return new HashSet<Variable>(); }
 		}
+
+		public virtual ISet<Variable> UsedVariables
+		{
+			get { return new HashSet<Variable>(); }
+		}
 	}
 
 	public abstract class AssignmentInstruction : Instruction
@@ -72,6 +77,11 @@ namespace Backend.ThreeAddressCode
 		public override ISet<Variable> ModifiedVariables
 		{
 			get { return new HashSet<Variable>() { this.Result }; }
+		}
+
+		public override ISet<Variable> UsedVariables
+		{
+			get { return this.Value.Variables; }
 		}
 
 		public override string ToString()
