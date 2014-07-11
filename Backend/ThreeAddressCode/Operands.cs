@@ -10,17 +10,17 @@ namespace Backend.ThreeAddressCode
 	{
 		#region IExpression
 
-		ISet<Variable> IExpression.Variables
+		public virtual ISet<Variable> Variables
 		{
 			get { return new HashSet<Variable>(); }
 		}
 
-		IExpression IExpression.Clone()
+		public virtual IExpression Clone()
 		{
 			return this;
 		}
 
-		IExpression IExpression.Replace(IExpression oldValue, IExpression newValue)
+		public virtual IExpression Replace(IExpression oldValue, IExpression newValue)
 		{
 			if (this.Equals(oldValue)) return newValue;
 			else return this;
@@ -144,18 +144,18 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public abstract class Variable : Operand, IExpression
+	public abstract class Variable : Operand
 	{
 		public abstract string Name { get; set; }
 
 		#region IExpression
 
-		ISet<Variable> IExpression.Variables
+		public override ISet<Variable> Variables
 		{
 			get { return new HashSet<Variable>() { this }; }
 		}
 
-		IExpression IExpression.Replace(IExpression oldValue, IExpression newValue)
+		public override IExpression Replace(IExpression oldValue, IExpression newValue)
 		{
 			IExpression result = this;
 

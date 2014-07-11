@@ -185,6 +185,11 @@ namespace Backend.ThreeAddressCode
 			get { return new HashSet<Variable>() { this.Result }; }
 		}
 
+		public override ISet<Variable> UsedVariables
+		{
+			get { return this.Operand.Variables; }
+		}
+
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.Type);
@@ -205,6 +210,11 @@ namespace Backend.ThreeAddressCode
 		public bool HasOperand
 		{
 			get { return this.Operand != null; }
+		}
+
+		public override ISet<Variable> UsedVariables
+		{
+			get { return this.Operand.Variables; }
 		}
 
 		public override string ToString()
@@ -268,6 +278,17 @@ namespace Backend.ThreeAddressCode
 			this.LeftOperand = left;
 			this.Condition = condition;
 			this.RightOperand = right;
+		}
+
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+				result.UnionWith(this.LeftOperand.Variables);
+				result.UnionWith(this.RightOperand.Variables);
+				return result;
+			}
 		}
 
 		public override string ToString()
@@ -344,6 +365,19 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				foreach (var argument in this.Arguments)
+					result.UnionWith(argument.Variables);
+
+				return result;
+			}
+		}
+
 		public override string ToString()
 		{
 			var result = string.Empty;
@@ -393,6 +427,20 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				foreach (var argument in this.Arguments)
+					result.UnionWith(argument.Variables);
+
+				result.UnionWith(this.Pointer.Variables);
+				return result;
+			}
+		}
+
 		public override string ToString()
 		{
 			var result = string.Empty;
@@ -438,6 +486,19 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				foreach (var argument in this.Arguments)
+					result.UnionWith(argument.Variables);
+
+				return result;
+			}
+		}
+
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.Constructor.ContainingType);
@@ -461,6 +522,18 @@ namespace Backend.ThreeAddressCode
 			this.TargetAddress = target;
 		}
 
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+				result.UnionWith(this.NumberOfBytes.Variables);
+				result.UnionWith(this.SourceAddress.Variables);
+				result.UnionWith(this.TargetAddress.Variables);
+				return result;
+			}
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  copy {1} bytes from {1} to {2};", this.Label, this.NumberOfBytes, this.SourceAddress, this.TargetAddress);
@@ -477,6 +550,17 @@ namespace Backend.ThreeAddressCode
 			this.Label = string.Format("L_{0:X4}", label);
 			this.NumberOfBytes = numberOfBytes;
 			this.TargetAddress = target;
+		}
+
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+				result.UnionWith(this.NumberOfBytes.Variables);
+				result.UnionWith(this.TargetAddress.Variables);
+				return result;
+			}
 		}
 
 		public override string ToString()
@@ -499,6 +583,18 @@ namespace Backend.ThreeAddressCode
 			this.Value = value;
 		}
 
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+				result.UnionWith(this.NumberOfBytes.Variables);
+				result.UnionWith(this.Value.Variables);
+				result.UnionWith(this.TargetAddress.Variables);
+				return result;
+			}
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  init {1} bytes at {2} with {3};", this.Label, this.NumberOfBytes, this.TargetAddress, this.Value);
@@ -513,6 +609,16 @@ namespace Backend.ThreeAddressCode
 		{
 			this.Label = string.Format("L_{0:X4}", label);
 			this.TargetAddress = target;
+		}
+
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+				result.UnionWith(this.TargetAddress.Variables);
+				return result;
+			}
 		}
 
 		public override string ToString()
@@ -531,6 +637,17 @@ namespace Backend.ThreeAddressCode
 			this.Label = string.Format("L_{0:X4}", label);
 			this.SourceAddress = source;
 			this.TargetAddress = target;
+		}
+
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+				result.UnionWith(this.SourceAddress.Variables);
+				result.UnionWith(this.TargetAddress.Variables);
+				return result;
+			}
 		}
 
 		public override string ToString()
@@ -561,6 +678,22 @@ namespace Backend.ThreeAddressCode
 			get { return new HashSet<Variable>() { this.Result }; }
 		}
 
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				foreach (var bound in this.LowerBounds)
+					result.UnionWith(bound.Variables);
+
+				foreach (var size in this.Sizes)
+					result.UnionWith(size.Variables);
+
+				return result;
+			}
+		}
+
 		public override string ToString()
 		{
 			var elementType = TypeHelper.GetTypeName(this.ElementType);
@@ -584,6 +717,19 @@ namespace Backend.ThreeAddressCode
 		public override ISet<Variable> ModifiedVariables
 		{
 			get { return new HashSet<Variable>() { this.Result }; }
+		}
+
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				foreach (var argument in this.Arguments)
+					result.UnionWith(argument.Variables);
+
+				return result;
+			}
 		}
 
 		public override string ToString()
