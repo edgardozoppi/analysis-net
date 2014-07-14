@@ -115,30 +115,35 @@ namespace Backend.Analysis
 				if (instruction is AssignmentInstruction)
 				{
 					var assignment = instruction as AssignmentInstruction;
-					Stack<DerivedVariable> stack;
-					DerivedVariable derived;					
-
-					if (instruction is ExpressionInstruction)
-					{
-						var expression = instruction as ExpressionInstruction;
-						var variables = expression.Value.Variables;
-
-						foreach (var variable in variables)
-						{
-							stack = derived_variables[variable];
-							derived = stack.Peek();
-							expression.Value = expression.Value.Replace(variable, derived);
-						}
-					}
-					
 					var result = assignment.Result.Root;
 					var index = indices[result];
+					var result_stack = derived_variables[result];
+					var result_derived = new DerivedVariable(result, index);
 
-					stack = derived_variables[result];
-					derived = new DerivedVariable(result, index);
-					assignment.Result = assignment.Result.Replace(result, derived);
-					stack.Push(derived);
+					assignment.Result = assignment.Result.Replace(result, result_derived);
+
+					foreach (var variable in instruction.UsedVariables)
+					{
+						if (!derived_variables.ContainsKey(variable)) continue;
+
+						var stack = derived_variables[variable];
+						var derived = stack.Peek();
+						instruction.Replace(variable, derived);
+					}
+
+					result_stack.Push(result_derived);
 					indices[result] = index + 1;
+				}
+				else
+				{
+					foreach (var variable in instruction.UsedVariables)
+					{
+						if (!derived_variables.ContainsKey(variable)) continue;
+
+						var stack = derived_variables[variable];
+						var derived = stack.Peek();
+						instruction.Replace(variable, derived);
+					}
 				}
 			}
 

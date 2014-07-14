@@ -8,6 +8,12 @@ namespace Backend.ThreeAddressCode
 {
 	public abstract class Operand : IExpression
 	{
+		public virtual Operand Replace(Operand oldValue, Operand newValue)
+		{
+			if (this.Equals(oldValue)) return newValue;
+			else return this;
+		}
+
 		#region IExpression
 
 		public virtual ISet<Variable> Variables
@@ -22,8 +28,24 @@ namespace Backend.ThreeAddressCode
 
 		public virtual IExpression Replace(IExpression oldValue, IExpression newValue)
 		{
-			if (this.Equals(oldValue)) return newValue;
-			else return this;
+			IExpression result = this;
+
+			if (oldValue is Operand)
+			{
+				if (newValue is Operand)
+				{
+					var old_operand = oldValue as Operand;
+					var new_operand = newValue as Operand;
+
+					result = this.Replace(old_operand, new_operand);
+				}
+				else if (this.Equals(oldValue))
+				{
+					result = newValue;
+				}
+			}
+
+			return result;
 		}
 
 		#endregion
@@ -148,16 +170,17 @@ namespace Backend.ThreeAddressCode
 	{
 		public abstract string Name { get; set; }
 
-		#region IExpression
+		public virtual Variable Root { get { return this; } }
 
-		public override ISet<Variable> Variables
+		public virtual Variable Replace(Variable oldValue, Variable newValue)
 		{
-			get { return new HashSet<Variable>() { this }; }
+			if (this.Equals(oldValue)) return newValue;
+			else return this;
 		}
 
-		public override IExpression Replace(IExpression oldValue, IExpression newValue)
+		public override Operand Replace(Operand oldValue, Operand newValue)
 		{
-			IExpression result = this;
+			Operand result = this;
 
 			if (oldValue is Variable)
 			{
@@ -177,15 +200,14 @@ namespace Backend.ThreeAddressCode
 			return result;
 		}
 
-		#endregion
+		#region IExpression
 
-		public virtual Variable Root { get { return this; } }
-
-		public virtual Variable Replace(Variable oldValue, Variable newValue)
+		public override ISet<Variable> Variables
 		{
-			if (this.Equals(oldValue)) return newValue;
-			else return this;
+			get { return new HashSet<Variable>() { this }; }
 		}
+
+		#endregion
 
 		public override bool Equals(object obj)
 		{

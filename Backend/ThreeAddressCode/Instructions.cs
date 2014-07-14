@@ -56,11 +56,23 @@ namespace Backend.ThreeAddressCode
 		{
 			get { return new HashSet<Variable>(); }
 		}
-	}
 
+		public virtual void Replace(Variable oldValue, Variable newValue) { }
+	}
+	
 	public abstract class AssignmentInstruction : Instruction
 	{
 		public Variable Result { get; set; }
+
+		public override ISet<Variable> ModifiedVariables
+		{
+			get { return new HashSet<Variable>() { this.Result }; }
+		}
+
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.Result = this.Result.Replace(oldValue, newValue);
+		}
 	}
 
 	public class ExpressionInstruction : AssignmentInstruction
@@ -74,14 +86,15 @@ namespace Backend.ThreeAddressCode
 			this.Value = value;
 		}
 
-		public override ISet<Variable> ModifiedVariables
-		{
-			get { return new HashSet<Variable>() { this.Result }; }
-		}
-
 		public override ISet<Variable> UsedVariables
 		{
 			get { return this.Value.Variables; }
+		}
+
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.Result = this.Result.Replace(oldValue, newValue);
+			this.Value = this.Value.Replace(oldValue, newValue);
 		}
 
 		public override string ToString()
@@ -153,11 +166,6 @@ namespace Backend.ThreeAddressCode
 			this.ExceptionType = exceptionType;
 		}
 
-		public override ISet<Variable> ModifiedVariables
-		{
-			get { return new HashSet<Variable>() { this.Result }; }
-		}
-
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.ExceptionType);
@@ -180,14 +188,15 @@ namespace Backend.ThreeAddressCode
 			this.Operand = operand;
 		}
 
-		public override ISet<Variable> ModifiedVariables
-		{
-			get { return new HashSet<Variable>() { this.Result }; }
-		}
-
 		public override ISet<Variable> UsedVariables
 		{
 			get { return this.Operand.Variables; }
+		}
+
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.Result = this.Result.Replace(oldValue, newValue);
+			this.Operand = this.Operand.Replace(oldValue, newValue);
 		}
 
 		public override string ToString()
@@ -214,7 +223,20 @@ namespace Backend.ThreeAddressCode
 
 		public override ISet<Variable> UsedVariables
 		{
-			get { return this.Operand.Variables; }
+			get
+			{
+				ISet<Variable> result;
+
+				if (this.HasOperand) result = this.Operand.Variables;
+				else result = new HashSet<Variable>();
+
+				return result;
+			}
+		}
+
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.Operand = this.Operand.Replace(oldValue, newValue);
 		}
 
 		public override string ToString()
@@ -291,6 +313,12 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.LeftOperand = this.LeftOperand.Replace(oldValue, newValue);
+			this.RightOperand = this.RightOperand.Replace(oldValue, newValue);
+		}
+
 		public override string ToString()
 		{
 			var condition = "??";
@@ -318,11 +346,6 @@ namespace Backend.ThreeAddressCode
 			this.Label = string.Format("L_{0:X4}", label);
 			this.Result = result;
 			this.Type = type;
-		}
-
-		public override ISet<Variable> ModifiedVariables
-		{
-			get { return new HashSet<Variable>() { this.Result }; }
 		}
 
 		public override string ToString()
@@ -375,6 +398,17 @@ namespace Backend.ThreeAddressCode
 					result.UnionWith(argument.Variables);
 
 				return result;
+			}
+		}
+
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.Result = this.Result.Replace(oldValue, newValue);
+
+			for (var i = 0; i < this.Arguments.Count; ++i)
+			{
+				var argument = this.Arguments[i];
+				this.Arguments[i] = argument.Replace(oldValue, newValue);
 			}
 		}
 
@@ -441,6 +475,18 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.Result = this.Result.Replace(oldValue, newValue);
+			this.Pointer = this.Pointer.Replace(oldValue, newValue);
+
+			for (var i = 0; i < this.Arguments.Count; ++i)
+			{
+				var argument = this.Arguments[i];
+				this.Arguments[i] = argument.Replace(oldValue, newValue);
+			}
+		}
+
 		public override string ToString()
 		{
 			var result = string.Empty;
@@ -499,6 +545,17 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.Result = this.Result.Replace(oldValue, newValue);
+
+			for (var i = 0; i < this.Arguments.Count; ++i)
+			{
+				var argument = this.Arguments[i];
+				this.Arguments[i] = argument.Replace(oldValue, newValue);
+			}
+		}
+
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.Constructor.ContainingType);
@@ -534,6 +591,13 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.NumberOfBytes = this.NumberOfBytes.Replace(oldValue, newValue);
+			this.SourceAddress = this.SourceAddress.Replace(oldValue, newValue);
+			this.TargetAddress = this.TargetAddress.Replace(oldValue, newValue);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  copy {1} bytes from {1} to {2};", this.Label, this.NumberOfBytes, this.SourceAddress, this.TargetAddress);
@@ -561,6 +625,12 @@ namespace Backend.ThreeAddressCode
 				result.UnionWith(this.TargetAddress.Variables);
 				return result;
 			}
+		}
+
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.NumberOfBytes = this.NumberOfBytes.Replace(oldValue, newValue);
+			this.TargetAddress = this.TargetAddress.Replace(oldValue, newValue);
 		}
 
 		public override string ToString()
@@ -595,6 +665,13 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.NumberOfBytes = this.NumberOfBytes.Replace(oldValue, newValue);
+			this.Value = this.Value.Replace(oldValue, newValue);
+			this.TargetAddress = this.TargetAddress.Replace(oldValue, newValue);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  init {1} bytes at {2} with {3};", this.Label, this.NumberOfBytes, this.TargetAddress, this.Value);
@@ -619,6 +696,11 @@ namespace Backend.ThreeAddressCode
 				result.UnionWith(this.TargetAddress.Variables);
 				return result;
 			}
+		}
+
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.TargetAddress = this.TargetAddress.Replace(oldValue, newValue);
 		}
 
 		public override string ToString()
@@ -650,6 +732,12 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.SourceAddress = this.SourceAddress.Replace(oldValue, newValue);
+			this.TargetAddress = this.TargetAddress.Replace(oldValue, newValue);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  copy object from {1} to {2};", this.Label, this.SourceAddress, this.TargetAddress);
@@ -673,11 +761,6 @@ namespace Backend.ThreeAddressCode
 			this.Sizes = new List<Operand>(sizes);
 		}
 
-		public override ISet<Variable> ModifiedVariables
-		{
-			get { return new HashSet<Variable>() { this.Result }; }
-		}
-
 		public override ISet<Variable> UsedVariables
 		{
 			get
@@ -691,6 +774,23 @@ namespace Backend.ThreeAddressCode
 					result.UnionWith(size.Variables);
 
 				return result;
+			}
+		}
+
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.Result = this.Result.Replace(oldValue, newValue);
+
+			for (var i = 0; i < this.LowerBounds.Count; ++i)
+			{
+				var bound = this.LowerBounds[i];
+				this.LowerBounds[i] = bound.Replace(oldValue, newValue);
+			}
+
+			for (var i = 0; i < this.Sizes.Count; ++i)
+			{
+				var size = this.Sizes[i];
+				this.Sizes[i] = size.Replace(oldValue, newValue);
 			}
 		}
 
@@ -714,11 +814,6 @@ namespace Backend.ThreeAddressCode
 			this.Arguments = new List<Variable>();
 		}
 
-		public override ISet<Variable> ModifiedVariables
-		{
-			get { return new HashSet<Variable>() { this.Result }; }
-		}
-
 		public override ISet<Variable> UsedVariables
 		{
 			get
@@ -729,6 +824,17 @@ namespace Backend.ThreeAddressCode
 					result.UnionWith(argument.Variables);
 
 				return result;
+			}
+		}
+
+		public override void Replace(Variable oldValue, Variable newValue)
+		{
+			this.Result = this.Result.Replace(oldValue, newValue);
+
+			for (var i = 0; i < this.Arguments.Count; ++i)
+			{
+				var argument = this.Arguments[i];
+				this.Arguments[i] = argument.Replace(oldValue, newValue);
 			}
 		}
 
