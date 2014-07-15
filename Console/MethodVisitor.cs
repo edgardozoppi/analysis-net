@@ -35,8 +35,11 @@ namespace Console
 			ControlFlowGraph.ComputeDominatorTree(cfg);
 			ControlFlowGraph.ComputeDominanceFrontiers(cfg);
 
-			var analysis = new StaticSingleAssignmentAnalysis(methodBody, cfg);
-			analysis.Transform();
+			var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
+			ssa.Transform();
+
+			//var symbolic = new SymbolicAnalysis(cfg);
+			//symbolic.Analyze();
 
 			//var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);

@@ -20,22 +20,22 @@ namespace Backend.Analysis
 			this.ComputeKill();
 		}
 
-		public override IDictionary<Variable, Operand> InitialValue(CFGNode node)
+		protected override IDictionary<Variable, Operand> InitialValue(CFGNode node)
 		{
 			return new Dictionary<Variable, Operand>();
 		}
 
-		public override IDictionary<Variable, Operand> DefaultValue(CFGNode node)
+		protected override IDictionary<Variable, Operand> DefaultValue(CFGNode node)
 		{
 			return GEN[node.Id];
 		}
 
-		public override bool CompareValues(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
+		protected override bool CompareValues(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
 		{
 			return left.SequenceEqual(right);
 		}
 
-		public override IDictionary<Variable, Operand> MergeValues(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
+		protected override IDictionary<Variable, Operand> MergeValues(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
 		{
 			var result = new Dictionary<Variable, Operand>(left);
 
@@ -62,7 +62,7 @@ namespace Backend.Analysis
 			return result;
 		}
 
-		public override IDictionary<Variable, Operand> Flow(CFGNode node, IDictionary<Variable, Operand> input)
+		protected override IDictionary<Variable, Operand> Flow(CFGNode node, IDictionary<Variable, Operand> input)
 		{
 			IDictionary<Variable, Operand> result;
 

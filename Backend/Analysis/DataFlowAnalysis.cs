@@ -18,15 +18,15 @@ namespace Backend.Analysis
 
 		public abstract void Analyze();
 
-		public abstract bool CompareValues(T left, T right);
+		protected abstract bool CompareValues(T left, T right);
 
-		public abstract T InitialValue(CFGNode node);
+		protected abstract T InitialValue(CFGNode node);
 
-		public abstract T DefaultValue(CFGNode node);
+		protected abstract T DefaultValue(CFGNode node);
 
-		public abstract T MergeValues(T left, T right);
+		protected abstract T MergeValues(T left, T right);
 
-		public abstract T Flow(CFGNode node, T input);
+		protected abstract T Flow(CFGNode node, T input);
 	}
 
 	public abstract class ForwardDataFlowAnalysis<T> : DataFlowAnalysis<T>

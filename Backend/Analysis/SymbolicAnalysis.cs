@@ -20,22 +20,22 @@ namespace Backend.Analysis
 			this.ComputeKill();
 		}
 
-		public override IDictionary<Variable, IExpression> InitialValue(CFGNode node)
+		protected override IDictionary<Variable, IExpression> InitialValue(CFGNode node)
 		{
 			return new Dictionary<Variable, IExpression>();
 		}
 
-		public override IDictionary<Variable, IExpression> DefaultValue(CFGNode node)
+		protected override IDictionary<Variable, IExpression> DefaultValue(CFGNode node)
 		{
 			return GEN[node.Id];
 		}
 
-		public override bool CompareValues(IDictionary<Variable, IExpression> left, IDictionary<Variable, IExpression> right)
+		protected override bool CompareValues(IDictionary<Variable, IExpression> left, IDictionary<Variable, IExpression> right)
 		{
 			return left.SequenceEqual(right);
 		}
 
-		public override IDictionary<Variable, IExpression> MergeValues(IDictionary<Variable, IExpression> left, IDictionary<Variable, IExpression> right)
+		protected override IDictionary<Variable, IExpression> MergeValues(IDictionary<Variable, IExpression> left, IDictionary<Variable, IExpression> right)
 		{
 			var result = new Dictionary<Variable, IExpression>(left);
 
@@ -61,8 +61,8 @@ namespace Backend.Analysis
 
 			return result;
 		}
-		
-		public override IDictionary<Variable, IExpression> Flow(CFGNode node, IDictionary<Variable, IExpression> input)
+
+		protected override IDictionary<Variable, IExpression> Flow(CFGNode node, IDictionary<Variable, IExpression> input)
 		{
 			IDictionary<Variable, IExpression> result;
 
