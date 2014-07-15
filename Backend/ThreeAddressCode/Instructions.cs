@@ -64,14 +64,32 @@ namespace Backend.ThreeAddressCode
 	{
 		public Variable Result { get; set; }
 
+		public bool HasResult
+		{
+			get { return this.Result != null; }
+		}
+
 		public override ISet<Variable> ModifiedVariables
 		{
-			get { return new HashSet<Variable>() { this.Result }; }
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				if (this.HasResult)
+				{
+					result.Add(this.Result);
+				}
+
+				return result;
+			}
 		}
 
 		public override void Replace(Variable oldValue, Variable newValue)
 		{
-			this.Result = this.Result.Replace(oldValue, newValue);
+			if (this.HasResult)
+			{
+				this.Result = this.Result.Replace(oldValue, newValue);
+			}
 		}
 	}
 
@@ -227,8 +245,14 @@ namespace Backend.ThreeAddressCode
 			{
 				ISet<Variable> result;
 
-				if (this.HasOperand) result = this.Operand.Variables;
-				else result = new HashSet<Variable>();
+				if (this.HasOperand)
+				{
+					result = this.Operand.Variables;
+				}
+				else
+				{
+					result = new HashSet<Variable>();
+				}
 
 				return result;
 			}
@@ -236,7 +260,10 @@ namespace Backend.ThreeAddressCode
 
 		public override void Replace(Variable oldValue, Variable newValue)
 		{
-			this.Operand = this.Operand.Replace(oldValue, newValue);
+			if (this.HasOperand)
+			{
+				this.Operand = this.Operand.Replace(oldValue, newValue);
+			}
 		}
 
 		public override string ToString()
@@ -244,7 +271,9 @@ namespace Backend.ThreeAddressCode
 			var operand = string.Empty;
 
 			if (this.HasOperand)
+			{
 				operand = string.Format(" {0}", this.Operand);
+			}
 
 			return string.Format("{0}:  return{1};", this.Label, operand);
 		}
@@ -374,14 +403,15 @@ namespace Backend.ThreeAddressCode
 			{
 				var result = new HashSet<Variable>();
 
-				if (this.Result != null)
+				if (this.HasResult)
+				{
 					result.Add(this.Result);
+				}
 
 				foreach (var argument in this.Arguments)
 				{
 					//TODO: this is true only for reference types
-					if (argument is Variable)
-						result.Add(argument as Variable);
+					result.UnionWith(argument.Variables);
 				}
 
 				return result;
@@ -395,7 +425,9 @@ namespace Backend.ThreeAddressCode
 				var result = new HashSet<Variable>();
 
 				foreach (var argument in this.Arguments)
+				{
 					result.UnionWith(argument.Variables);
+				}
 
 				return result;
 			}
@@ -403,7 +435,10 @@ namespace Backend.ThreeAddressCode
 
 		public override void Replace(Variable oldValue, Variable newValue)
 		{
-			this.Result = this.Result.Replace(oldValue, newValue);
+			if (this.HasResult)
+			{
+				this.Result = this.Result.Replace(oldValue, newValue);
+			}
 
 			for (var i = 0; i < this.Arguments.Count; ++i)
 			{
@@ -419,8 +454,10 @@ namespace Backend.ThreeAddressCode
 			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
 			var arguments = string.Join(", ", this.Arguments);
 
-			if (this.Result != null)
-				result = string.Format("{0} = ", this.Result);			
+			if (this.HasResult)
+			{
+				result = string.Format("{0} = ", this.Result);
+			}
 
 			return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, type, method, arguments);
 		}
@@ -447,14 +484,15 @@ namespace Backend.ThreeAddressCode
 			{
 				var result = new HashSet<Variable>();
 
-				if (this.Result != null)
+				if (this.HasResult)
+				{
 					result.Add(this.Result);
+				}
 
 				foreach (var argument in this.Arguments)
 				{
 					//TODO: this is true only for reference types
-					if (argument is Variable)
-						result.Add(argument as Variable);
+					result.UnionWith(argument.Variables);
 				}
 
 				return result;
@@ -468,7 +506,9 @@ namespace Backend.ThreeAddressCode
 				var result = new HashSet<Variable>();
 
 				foreach (var argument in this.Arguments)
+				{
 					result.UnionWith(argument.Variables);
+				}
 
 				result.UnionWith(this.Pointer.Variables);
 				return result;
@@ -477,7 +517,11 @@ namespace Backend.ThreeAddressCode
 
 		public override void Replace(Variable oldValue, Variable newValue)
 		{
-			this.Result = this.Result.Replace(oldValue, newValue);
+			if (this.HasResult)
+			{
+				this.Result = this.Result.Replace(oldValue, newValue);
+			}
+
 			this.Pointer = this.Pointer.Replace(oldValue, newValue);
 
 			for (var i = 0; i < this.Arguments.Count; ++i)
@@ -492,8 +536,10 @@ namespace Backend.ThreeAddressCode
 			var result = string.Empty;
 			var arguments = string.Join(", ", this.Arguments);
 
-			if (this.Result != null)
+			if (this.HasResult)
+			{
 				result = string.Format("{0} = ", this.Result);
+			}
 
 			return string.Format("{0}:  {1}(*{2})({3});", this.Label, result, this.Pointer, arguments);
 		}
@@ -517,15 +563,12 @@ namespace Backend.ThreeAddressCode
 			get
 			{
 				var result = new HashSet<Variable>();
-
-				if (this.Result != null)
-					result.Add(this.Result);
+				result.Add(this.Result);
 
 				foreach (var argument in this.Arguments)
 				{
 					//TODO: this is true only for reference types
-					if (argument is Variable)
-						result.Add(argument as Variable);
+					result.UnionWith(argument.Variables);
 				}
 
 				return result;
@@ -539,7 +582,9 @@ namespace Backend.ThreeAddressCode
 				var result = new HashSet<Variable>();
 
 				foreach (var argument in this.Arguments)
+				{
 					result.UnionWith(argument.Variables);
+				}
 
 				return result;
 			}
@@ -768,10 +813,14 @@ namespace Backend.ThreeAddressCode
 				var result = new HashSet<Variable>();
 
 				foreach (var bound in this.LowerBounds)
+				{
 					result.UnionWith(bound.Variables);
+				}
 
 				foreach (var size in this.Sizes)
+				{
 					result.UnionWith(size.Variables);
+				}
 
 				return result;
 			}
@@ -821,7 +870,9 @@ namespace Backend.ThreeAddressCode
 				var result = new HashSet<Variable>();
 
 				foreach (var argument in this.Arguments)
+				{
 					result.UnionWith(argument.Variables);
+				}
 
 				return result;
 			}

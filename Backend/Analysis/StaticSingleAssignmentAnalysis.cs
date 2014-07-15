@@ -112,38 +112,39 @@ namespace Backend.Analysis
 		{
 			foreach (var instruction in node.Instructions)
 			{
+				DerivedVariable result_derived = null;
+
 				if (instruction is AssignmentInstruction)
 				{
 					var assignment = instruction as AssignmentInstruction;
-					var result = assignment.Result.Root;
-					var index = indices[result];
-					var result_stack = derived_variables[result];
-					var result_derived = new DerivedVariable(result, index);
 
-					assignment.Result = assignment.Result.Replace(result, result_derived);
-
-					foreach (var variable in instruction.UsedVariables)
+					if (assignment.HasResult && indices.ContainsKey(assignment.Result.Root))
 					{
-						if (!derived_variables.ContainsKey(variable)) continue;
+						var result = assignment.Result.Root;
+						var index = indices[result];
 
-						var stack = derived_variables[variable];
-						var derived = stack.Peek();
-						instruction.Replace(variable, derived);
+						result_derived = new DerivedVariable(result, index);
+						assignment.Result = assignment.Result.Replace(result, result_derived);
 					}
+				}
+
+				foreach (var variable in instruction.UsedVariables)
+				{
+					if (!derived_variables.ContainsKey(variable)) continue;
+
+					var stack = derived_variables[variable];
+					var derived = stack.Peek();
+					instruction.Replace(variable, derived);
+				}
+
+				if (result_derived != null)
+				{
+					var result = result_derived.Original;
+					var index = result_derived.Index;
+					var result_stack = derived_variables[result];
 
 					result_stack.Push(result_derived);
 					indices[result] = index + 1;
-				}
-				else
-				{
-					foreach (var variable in instruction.UsedVariables)
-					{
-						if (!derived_variables.ContainsKey(variable)) continue;
-
-						var stack = derived_variables[variable];
-						var derived = stack.Peek();
-						instruction.Replace(variable, derived);
-					}
 				}
 			}
 
@@ -170,14 +171,18 @@ namespace Backend.Analysis
 
 			foreach (var instruction in node.Instructions)
 			{
-				if (instruction is ExpressionInstruction)
+				if (instruction is AssignmentInstruction)
 				{
-					var assignment = instruction as ExpressionInstruction;
-					var derived = assignment.Result.Root as DerivedVariable;
-					var result = derived.Original;
-					var stack = derived_variables[result];
+					var assignment = instruction as AssignmentInstruction;
 
-					stack.Pop();
+					if (assignment.HasResult && derived_variables.ContainsKey(assignment.Result.Root))
+					{
+						var derived = assignment.Result.Root as DerivedVariable;
+						var result = derived.Original;
+						var stack = derived_variables[result];
+
+						stack.Pop();
+					}
 				}
 			}
 		}
