@@ -20,6 +20,11 @@ namespace Backend.Analysis
 			this.ComputeKill();
 		}
 
+		public DataFlowAnalysisResult<IDictionary<Variable, IExpression>> this[CFGNode node]
+		{
+			get { return this.result[node.Id]; }
+		}
+
 		protected override IDictionary<Variable, IExpression> InitialValue(CFGNode node)
 		{
 			return new Dictionary<Variable, IExpression>();
