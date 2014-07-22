@@ -357,8 +357,8 @@ namespace Backend.ThreeAddressCode
 				case BranchCondition.Eq: condition = "=="; break;
 				case BranchCondition.Neq: condition = "!="; break;
 				case BranchCondition.Gt: condition = ">"; break;
-				case BranchCondition.Ge: condition = "<="; break;
-				case BranchCondition.Lt: condition = ">"; break;
+				case BranchCondition.Ge: condition = ">="; break;
+				case BranchCondition.Lt: condition = "<"; break;
 				case BranchCondition.Le: condition = "<="; break;
 			}
 

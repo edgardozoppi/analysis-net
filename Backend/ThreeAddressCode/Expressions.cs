@@ -89,8 +89,8 @@ namespace Backend.ThreeAddressCode
 				case BinaryOperation.Eq: operation = "=="; break;
 				case BinaryOperation.Neq: operation = "!="; break;
 				case BinaryOperation.Gt: operation = ">"; break;
-				case BinaryOperation.Ge: operation = "<="; break;
-				case BinaryOperation.Lt: operation = ">"; break;
+				case BinaryOperation.Ge: operation = ">="; break;
+				case BinaryOperation.Lt: operation = "<"; break;
 				case BinaryOperation.Le: operation = "<="; break;
 			}
 
