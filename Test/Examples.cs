@@ -154,6 +154,46 @@ namespace Test
 			}
 		}
 
+		public void ExampleLoopConditionWithTwoVars()
+		{
+			var a = 0;
+			var i = 0;
+			var j = 0;
+
+			while (i + j < 10)
+			{
+				a++;
+				i++;
+				j++;
+			}
+		}
+
+		public void ExampleIndependentNestedLoops()
+		{
+			var a = 0;
+
+			for (var i = 0; i < 10; ++i)
+			{
+				for (var j = 0; j < 15; ++j)
+				{
+					a++;
+				}
+			}
+		}
+
+		public void ExampleDependentNestedLoops()
+		{
+			var a = 0;
+
+			for (var i = 0; i < 10; ++i)
+			{
+				for (var j = 0; j < i; ++j)
+				{
+					a++;
+				}
+			}
+		}
+
 		public int Example1(int arg1)
 		{
 			int a = 1;

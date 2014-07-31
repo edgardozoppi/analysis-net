@@ -39,7 +39,7 @@ namespace Console
 			var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
 			ssa.Transform();
 
-			var symbolic = new SymbolicAnalysis(cfg);
+			/*var symbolic = new SymbolicAnalysis(cfg);
 			symbolic.Analyze();
 
 			if (cfg.Loops.Count > 0)
@@ -52,7 +52,7 @@ namespace Console
 				var condition = result.Output[variable];
 
 
-			}
+			}*/
 
 			//var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);
