@@ -18,13 +18,13 @@ namespace Backend.Analysis
 
 		public abstract void Analyze();
 
-		protected abstract bool CompareValues(T left, T right);
-
 		protected abstract T InitialValue(CFGNode node);
 
 		protected abstract T DefaultValue(CFGNode node);
 
-		protected abstract T MergeValues(T left, T right);
+		protected abstract bool Compare(T left, T right);
+
+		protected abstract T Join(T left, T right);
 
 		protected abstract T Flow(CFGNode node, T input);
 	}
@@ -70,14 +70,14 @@ namespace Backend.Analysis
 					foreach (var pred in other_predecessors)
 					{
 						pred_result = this.result[pred.Id];
-						node_input = this.MergeValues(node_input, pred_result.Output);
+						node_input = this.Join(node_input, pred_result.Output);
 					}
 
 					node_result.Input = node_input;
 
 					var old_output = node_result.Output;
 					var new_output = this.Flow(node, node_input);
-					var equals = this.CompareValues(new_output, old_output);
+					var equals = this.Compare(new_output, old_output);
 
 					if (!equals)
 					{
@@ -131,7 +131,7 @@ namespace Backend.Analysis
 					foreach (var succ in other_successors)
 					{
 						succ_result = this.result[succ.Id];
-						node_output = this.MergeValues(node_output, succ_result.Input);
+						node_output = this.Join(node_output, succ_result.Input);
 					}
 
 					node_result.Output = node_output;

@@ -30,12 +30,12 @@ namespace Backend.Analysis
 			return GEN[node.Id];
 		}
 
-		protected override bool CompareValues(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
+		protected override bool Compare(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
 		{
 			return left.SequenceEqual(right);
 		}
 
-		protected override IDictionary<Variable, Operand> MergeValues(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
+		protected override IDictionary<Variable, Operand> Join(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
 		{
 			var result = new Dictionary<Variable, Operand>(left);
 
