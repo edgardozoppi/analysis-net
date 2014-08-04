@@ -39,20 +39,8 @@ namespace Console
 			var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
 			ssa.Transform();
 
-			/*var symbolic = new SymbolicAnalysis(cfg);
-			symbolic.Analyze();
-
-			if (cfg.Loops.Count > 0)
-			{
-				var loop = cfg.Loops.First();
-				var result = symbolic[loop.Header];
-
-				var branch = loop.Header.Instructions.Last() as ConditionalBranchInstruction;
-				var variable = branch.LeftOperand as Variable;
-				var condition = result.Output[variable];
-
-
-			}*/
+			var bounds = new LoopBoundAnalysis(cfg);
+			bounds.Analyze();
 
 			//var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);
