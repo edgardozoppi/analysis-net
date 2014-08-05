@@ -10,13 +10,13 @@ namespace Backend.Analysis
 	{
 		private MethodBody method;
 		private ControlFlowGraph cfg;
-		private IDictionary<CFGNode, IDictionary<Variable, PhiInstruction>> phi_instructions;
+		private IDictionary<CFGNode, IDictionary<Variable, PhiExpression>> phi_instructions;
 
 		public StaticSingleAssignmentAnalysis(MethodBody method, ControlFlowGraph cfg)
 		{
 			this.method = method;
 			this.cfg = cfg;
-			this.phi_instructions = new Dictionary<CFGNode, IDictionary<Variable, PhiInstruction>>();
+			this.phi_instructions = new Dictionary<CFGNode, IDictionary<Variable, PhiExpression>>();
 		}
 
 		public void Transform()
@@ -65,7 +65,7 @@ namespace Backend.Analysis
 					foreach (var node in current.DominanceFrontier)
 					{
 						if (phi_instructions.ContainsKey(node) && phi_instructions[node].ContainsKey(variable)) continue;
-						IDictionary<Variable, PhiInstruction> node_phi_instructions;
+						IDictionary<Variable, PhiExpression> node_phi_instructions;
 						
 						if (phi_instructions.ContainsKey(node))
 						{
@@ -73,12 +73,14 @@ namespace Backend.Analysis
 						}
 						else
 						{
-							node_phi_instructions = new Dictionary<Variable, PhiInstruction>();
+							node_phi_instructions = new Dictionary<Variable, PhiExpression>();
 							phi_instructions.Add(node, node_phi_instructions);
 						}
 
-						var phi = new PhiInstruction(0, variable);
-						node.Instructions.Insert(0, phi);
+						var phi = new PhiExpression();
+						var assignment = new ExpressionInstruction(0, variable, phi);
+
+						node.Instructions.Insert(0, assignment);
 						node_phi_instructions.Add(variable, phi);
 
 						if (!defining_nodes[variable].Contains(node) && !nodes.Contains(node))

@@ -159,4 +159,83 @@ namespace Backend.ThreeAddressCode
 			return string.Format("{0}{1}", operation, this.Expression);
 		}
 	}
+
+	public class PhiExpression : IExpression
+	{
+		public IList<Variable> Arguments { get; private set; }
+
+		public PhiExpression()
+		{
+			this.Arguments = new List<Variable>();
+		}
+
+		public ISet<Variable> Variables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				foreach (var argument in this.Arguments)
+				{
+					result.UnionWith(argument.Variables);
+				}
+
+				return result;
+			}
+		}
+
+		public IExpression Clone()
+		{
+			var result = new PhiExpression();
+
+			foreach (var argument in this.Arguments)
+			{
+				result.Arguments.Add(argument);
+			}
+
+			return result;
+		}
+
+		public IExpression Replace(IExpression oldValue, IExpression newValue)
+		{
+			if (this.Equals(oldValue))
+				return newValue;
+
+			var result = this;
+
+			if (oldValue is Variable && newValue is Variable)
+			{
+				var oldVariable = oldValue as Variable;
+				var newVariable = newValue as Variable;
+				result = new PhiExpression();
+
+				foreach (var argument in this.Arguments)
+				{
+					var variable = argument.Replace(oldVariable, newVariable);
+					result.Arguments.Add(variable);
+				}
+			}
+
+			return result;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as PhiExpression;
+
+			return other != null &&
+				this.Arguments.SequenceEqual(other.Arguments);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Arguments.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			var arguments = string.Join(", ", this.Arguments);
+			return string.Format("Φ({0})", arguments);
+		}
+	}
 }

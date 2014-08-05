@@ -25,11 +25,13 @@ namespace Backend.Utils
 				if (equalities.ContainsKey(variable))
 				{
 					var value = equalities[variable];
+					var isUnknownValue = value is UnknownValue;
+					var isPhiExpression = value is PhiExpression;
 
-					if (!value.Equals(UnknownValue.Value))
-					{
-						expr = expr.Replace(variable, value);
-					}
+					if (isUnknownValue || isPhiExpression)
+						continue;
+					
+					expr = expr.Replace(variable, value);
 				}
 			}
 

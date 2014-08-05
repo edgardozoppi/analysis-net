@@ -852,47 +852,47 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class PhiInstruction : AssignmentInstruction
-	{
-		public IList<Variable> Arguments { get; private set; }
+	//public class PhiInstruction : AssignmentInstruction
+	//{
+	//    public IList<Variable> Arguments { get; private set; }
 
-		public PhiInstruction(uint label, Variable result)
-		{
-			this.Label = string.Format("L_{0:X4}", label);
-			this.Result = result;
-			this.Arguments = new List<Variable>();
-		}
+	//    public PhiInstruction(uint label, Variable result)
+	//    {
+	//        this.Label = string.Format("L_{0:X4}", label);
+	//        this.Result = result;
+	//        this.Arguments = new List<Variable>();
+	//    }
 
-		public override ISet<Variable> UsedVariables
-		{
-			get
-			{
-				var result = new HashSet<Variable>();
+	//    public override ISet<Variable> UsedVariables
+	//    {
+	//        get
+	//        {
+	//            var result = new HashSet<Variable>();
 
-				foreach (var argument in this.Arguments)
-				{
-					result.UnionWith(argument.Variables);
-				}
+	//            foreach (var argument in this.Arguments)
+	//            {
+	//                result.UnionWith(argument.Variables);
+	//            }
 
-				return result;
-			}
-		}
+	//            return result;
+	//        }
+	//    }
 
-		public override void Replace(Variable oldValue, Variable newValue)
-		{
-			this.Result = this.Result.Replace(oldValue, newValue);
+	//    public override void Replace(Variable oldValue, Variable newValue)
+	//    {
+	//        this.Result = this.Result.Replace(oldValue, newValue);
 
-			for (var i = 0; i < this.Arguments.Count; ++i)
-			{
-				var argument = this.Arguments[i];
-				this.Arguments[i] = argument.Replace(oldValue, newValue);
-			}
-		}
+	//        for (var i = 0; i < this.Arguments.Count; ++i)
+	//        {
+	//            var argument = this.Arguments[i];
+	//            this.Arguments[i] = argument.Replace(oldValue, newValue);
+	//        }
+	//    }
 
-		public override string ToString()
-		{
-			var arguments = string.Join(", ", this.Arguments);
-			return string.Format("{0}:  {1} = Φ({2});", this.Label, this.Result, arguments);
-		}
-	}
+	//    public override string ToString()
+	//    {
+	//        var arguments = string.Join(", ", this.Arguments);
+	//        return string.Format("{0}:  {1} = Φ({2});", this.Label, this.Result, arguments);
+	//    }
+	//}
 }
