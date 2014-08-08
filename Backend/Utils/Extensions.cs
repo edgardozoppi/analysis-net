@@ -22,16 +22,26 @@ namespace Backend.Utils
 		{
 			foreach (var variable in expr.Variables)
 			{
-				if (equalities.ContainsKey(variable))
+				var root = variable.Root;
+
+				if (root is DerivedVariable)
 				{
-					var value = equalities[variable];
-					var isUnknownValue = value is UnknownValue;
-					var isPhiExpression = value is PhiExpression;
+					root = (root as DerivedVariable).Original;
+				}
 
-					if (isUnknownValue || isPhiExpression)
-						continue;
+				if (root is TemporalVariable)
+				{
+					if (equalities.ContainsKey(variable))
+					{
+						var value = equalities[variable];
+						var isUnknownValue = value is UnknownValue;
+						var isPhiExpression = value is PhiExpression;
 
-					expr = expr.Replace(variable, value);
+						if (isUnknownValue || isPhiExpression)
+							continue;
+
+						expr = expr.Replace(variable, value);
+					}
 				}
 			}
 
