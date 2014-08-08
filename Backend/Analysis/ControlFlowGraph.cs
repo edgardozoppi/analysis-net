@@ -20,6 +20,7 @@ namespace Backend.Analysis
 	{
 		public CFGNode Header { get; set; }
 		public ISet<CFGNode> Body { get; private set; }
+		public LoopInvariant Invariant { get; set; }
 
 		public CFGLoop(CFGNode header)
 		{

@@ -3,6 +3,7 @@ Backend/Analysis/ControlFlowGraph.cs -text
 Backend/Analysis/CopyPropagationAnalysis.cs -text
 Backend/Analysis/DataFlowAnalysis.cs -text
 Backend/Analysis/LoopBoundAnalysis.cs -text
+Backend/Analysis/LoopInvariant.cs -text
 Backend/Analysis/StaticSingleAssignmentAnalysis.cs -text
 Backend/Analysis/SymbolicAnalysis.cs -text
 Backend/Backend.csproj -text

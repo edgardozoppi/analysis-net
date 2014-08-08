@@ -71,6 +71,7 @@
     <Compile Include="Analysis\CopyPropagationAnalysis.cs" />
     <Compile Include="Analysis\DataFlowAnalysis.cs" />
     <Compile Include="Analysis\LoopBoundAnalysis.cs" />
+    <Compile Include="Analysis\LoopInvariant.cs" />
     <Compile Include="Analysis\StaticSingleAssignmentAnalysis.cs" />
     <Compile Include="Analysis\SymbolicAnalysis.cs" />
     <Compile Include="Disassembler.cs" />
