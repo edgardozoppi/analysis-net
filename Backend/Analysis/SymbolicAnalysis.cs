@@ -150,6 +150,19 @@ namespace Backend.Analysis
 				var expr = assignment.Value.ReplaceVariables(equalities);
 				result = new KeyValuePair<Variable,IExpression>(assignment.Result, expr);
 			}
+			//else if (instruction is PhiInstruction)
+			//{
+			//	var phi = instruction as PhiInstruction;
+			//	var arguments = phi.Arguments.Skip(1);
+			//	IExpression expr = phi.Arguments.First();
+
+			//	foreach (var arg in arguments)
+			//	{
+			//		expr = new BinaryExpression(expr, BinaryOperation.Or, arg);
+			//	}
+
+			//	result = new KeyValuePair<Variable, IExpression>(phi.Result, expr);
+			//}
 
 			return result;
 		}

@@ -111,7 +111,11 @@ namespace Backend.ThreeAddressCode
 
 		public override void Replace(Variable oldValue, Variable newValue)
 		{
-			this.Result = this.Result.Replace(oldValue, newValue);
+			if (this.HasResult)
+			{
+				this.Result = this.Result.Replace(oldValue, newValue);
+			}
+
 			this.Value = this.Value.Replace(oldValue, newValue);
 		}
 
@@ -384,84 +388,84 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class MethodCallInstruction : AssignmentInstruction
-	{
-		public IMethodReference Method { get; set; }
-		public IList<Operand> Arguments { get; private set; }
+	//public class MethodCallInstruction : AssignmentInstruction
+	//{
+	//	public IMethodReference Method { get; set; }
+	//	public IList<Operand> Arguments { get; private set; }
 
-		public MethodCallInstruction(uint label, Variable result, IMethodReference method, IEnumerable<Operand> arguments)
-		{
-			this.Label = string.Format("L_{0:X4}", label);
-			this.Arguments = new List<Operand>(arguments);
-			this.Result = result;
-			this.Method = method;
-		}
+	//	public MethodCallInstruction(uint label, Variable result, IMethodReference method, IEnumerable<Operand> arguments)
+	//	{
+	//		this.Label = string.Format("L_{0:X4}", label);
+	//		this.Arguments = new List<Operand>(arguments);
+	//		this.Result = result;
+	//		this.Method = method;
+	//	}
 
-		public override ISet<Variable> ModifiedVariables
-		{
-			get
-			{
-				var result = new HashSet<Variable>();
+	//	public override ISet<Variable> ModifiedVariables
+	//	{
+	//		get
+	//		{
+	//			var result = new HashSet<Variable>();
 
-				if (this.HasResult)
-				{
-					result.Add(this.Result);
-				}
+	//			if (this.HasResult)
+	//			{
+	//				result.Add(this.Result);
+	//			}
 
-				foreach (var argument in this.Arguments)
-				{
-					//TODO: this is true only for reference types
-					result.UnionWith(argument.Variables);
-				}
+	//			foreach (var argument in this.Arguments)
+	//			{
+	//				//TODO: this is true only for reference types
+	//				result.UnionWith(argument.Variables);
+	//			}
 
-				return result;
-			}
-		}
+	//			return result;
+	//		}
+	//	}
 
-		public override ISet<Variable> UsedVariables
-		{
-			get
-			{
-				var result = new HashSet<Variable>();
+	//	public override ISet<Variable> UsedVariables
+	//	{
+	//		get
+	//		{
+	//			var result = new HashSet<Variable>();
 
-				foreach (var argument in this.Arguments)
-				{
-					result.UnionWith(argument.Variables);
-				}
+	//			foreach (var argument in this.Arguments)
+	//			{
+	//				result.UnionWith(argument.Variables);
+	//			}
 
-				return result;
-			}
-		}
+	//			return result;
+	//		}
+	//	}
 
-		public override void Replace(Variable oldValue, Variable newValue)
-		{
-			if (this.HasResult)
-			{
-				this.Result = this.Result.Replace(oldValue, newValue);
-			}
+	//	public override void Replace(Variable oldValue, Variable newValue)
+	//	{
+	//		if (this.HasResult)
+	//		{
+	//			this.Result = this.Result.Replace(oldValue, newValue);
+	//		}
 
-			for (var i = 0; i < this.Arguments.Count; ++i)
-			{
-				var argument = this.Arguments[i];
-				this.Arguments[i] = argument.Replace(oldValue, newValue);
-			}
-		}
+	//		for (var i = 0; i < this.Arguments.Count; ++i)
+	//		{
+	//			var argument = this.Arguments[i];
+	//			this.Arguments[i] = argument.Replace(oldValue, newValue);
+	//		}
+	//	}
 
-		public override string ToString()
-		{
-			var result = string.Empty;
-			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
-			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-			var arguments = string.Join(", ", this.Arguments);
+	//	public override string ToString()
+	//	{
+	//		var result = string.Empty;
+	//		var type = TypeHelper.GetTypeName(this.Method.ContainingType);
+	//		var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+	//		var arguments = string.Join(", ", this.Arguments);
 
-			if (this.HasResult)
-			{
-				result = string.Format("{0} = ", this.Result);
-			}
+	//		if (this.HasResult)
+	//		{
+	//			result = string.Format("{0} = ", this.Result);
+	//		}
 
-			return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, type, method, arguments);
-		}
-	}
+	//		return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, type, method, arguments);
+	//	}
+	//}
 
 	public class IndirectMethodCallInstruction : AssignmentInstruction
 	{

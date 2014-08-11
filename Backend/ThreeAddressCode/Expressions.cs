@@ -160,13 +160,21 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class PhiExpression : IExpression
+	public class MethodCallExpression : IExpression
 	{
-		public IList<Variable> Arguments { get; private set; }
+		public IMethodReference Method { get; set; }
+		public IList<Operand> Arguments { get; private set; }
 
-		public PhiExpression()
+		public MethodCallExpression(IMethodReference method)
 		{
-			this.Arguments = new List<Variable>();
+			this.Arguments = new List<Operand>();
+			this.Method = method;
+		}
+
+		public MethodCallExpression(IMethodReference method, IEnumerable<Operand> arguments)
+		{
+			this.Arguments = new List<Operand>(arguments);
+			this.Method = method;
 		}
 
 		public ISet<Variable> Variables
@@ -186,13 +194,89 @@ namespace Backend.ThreeAddressCode
 
 		public IExpression Clone()
 		{
-			var result = new PhiExpression();
+			var result = new MethodCallExpression(this.Method, this.Arguments);
+			return result;
+		}
 
-			foreach (var argument in this.Arguments)
+		public IExpression Replace(IExpression oldValue, IExpression newValue)
+		{
+			if (this.Equals(oldValue))
+				return newValue;
+
+			var result = this;
+
+			if (oldValue is Operand && newValue is Operand)
 			{
-				result.Arguments.Add(argument);
+				var oldOperand = oldValue as Operand;
+				var newOperand = newValue as Operand;
+				result = new MethodCallExpression(this.Method);
+
+				foreach (var argument in this.Arguments)
+				{
+					var variable = argument.Replace(oldOperand, newOperand);
+					result.Arguments.Add(variable);
+				}
 			}
 
+			return result;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as MethodCallExpression;
+
+			return other != null &&
+				this.Method.Equals(other.Method) &&
+				this.Arguments.SequenceEqual(other.Arguments);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Method.GetHashCode() ^ this.Arguments.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
+			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+			var arguments = string.Join(", ", this.Arguments);
+
+			return string.Format("{0}::{1}({2})", type, method, arguments);
+		}
+	}
+
+	public class PhiExpression : IExpression
+	{
+		public IList<Variable> Arguments { get; private set; }
+
+		public PhiExpression()
+		{
+			this.Arguments = new List<Variable>();
+		}
+
+		public PhiExpression(IEnumerable<Variable> arguments)
+		{
+			this.Arguments = new List<Variable>(arguments);
+		}
+
+		public ISet<Variable> Variables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+
+				foreach (var argument in this.Arguments)
+				{
+					result.UnionWith(argument.Variables);
+				}
+
+				return result;
+			}
+		}
+
+		public IExpression Clone()
+		{
+			var result = new PhiExpression(this.Arguments);
 			return result;
 		}
 

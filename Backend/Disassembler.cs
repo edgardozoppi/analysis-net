@@ -925,7 +925,9 @@ namespace Backend
 			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
 				result = stack.Push();
 
-			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
+			//var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
+			var expression = new MethodCallExpression(callee, arguments);
+			var instruction = new ExpressionInstruction(op.Offset, result, expression);
 			return instruction;
 		}
 
@@ -979,7 +981,9 @@ namespace Backend
 			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
 				result = stack.Push();
 
-			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
+			//var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
+			var expression = new MethodCallExpression(callee, arguments);
+			var instruction = new ExpressionInstruction(op.Offset, result, expression);
 			return instruction;
 		}
 

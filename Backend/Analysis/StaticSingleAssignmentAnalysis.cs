@@ -33,22 +33,26 @@ namespace Backend.Analysis
 			{
 				foreach (var instruction in node.Instructions)
 				{
-					if (instruction is ExpressionInstruction)
+					if (instruction is AssignmentInstruction)
 					{
-						var assignment = instruction as ExpressionInstruction;
-						ISet<CFGNode> nodes;
+						var assignment = instruction as AssignmentInstruction;
 
-						if (defining_nodes.ContainsKey(assignment.Result))
+						if (assignment.HasResult)
 						{
-							nodes = defining_nodes[assignment.Result];
-						}
-						else
-						{
-							nodes = new HashSet<CFGNode>();
-							defining_nodes.Add(assignment.Result, nodes);
-						}
+							ISet<CFGNode> nodes;
 
-						nodes.Add(node);
+							if (defining_nodes.ContainsKey(assignment.Result))
+							{
+								nodes = defining_nodes[assignment.Result];
+							}
+							else
+							{
+								nodes = new HashSet<CFGNode>();
+								defining_nodes.Add(assignment.Result, nodes);
+							}
+
+							nodes.Add(node);
+						}
 					}
 				}
 			}
