@@ -24,7 +24,7 @@ access ::= static_field | instance_field | array_element | indirect .
 static_field ::= TYPE "::" IDENTIFIER .
 instance_field ::= variable "." IDENTIFIER .
 array_element ::= variable "[" variable "]" .
-indirect ::= "&" variable .
+indirect ::= "*" variable .
 
 operand ::= variable | constant .
 variable ::= local | temporal | derived .
