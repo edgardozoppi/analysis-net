@@ -1,0 +1,38 @@
+Three Address Code Grammar
+--------------------------
+
+instruction ::= copy | load | store | unary | binary | call | branch | return .
+
+branch ::= unconditional | conditional .
+
+unconditional ::= "goto" LABEL .
+conditional ::= "if" variable "goto" LABEL .
+
+return ::= "return" [variable] .
+
+copy ::= variable "=" operand .
+load ::= variable "=" access .
+store ::= access "=" variable .
+
+unary ::= variable "=" unary_op variable .
+binary ::= variable "=" variable binary_op variable .
+
+call ::= [variable "="] TYPE "::" METHOD "(" variable "," ... "," variable ")" .
+
+access ::= static_field | instance_field | array_element | indirect .
+
+static_field ::= TYPE "::" IDENTIFIER .
+instance_field ::= variable "." IDENTIFIER .
+array_element ::= variable "[" variable "]" .
+indirect ::= "&" variable .
+
+operand ::= variable | constant .
+variable ::= local | temporal | derived .
+
+derived ::= local_i .
+temporal ::= "t_i" .
+local ::= IDENTIFIER .
+constant ::= LITERAL .
+
+unary_op ::= "!" | "&" .
+binary_op ::= "+" | "-" | ... .
