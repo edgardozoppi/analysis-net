@@ -1223,9 +1223,9 @@ namespace Backend
 
 		private Instruction ProcessStoreIndirect(IOperation op)
 		{
+			var source = stack.Pop();
 			var address = stack.Pop();
-			var dest = stack.Pop();
-			var source = new IndirectAccess(address);
+			var dest = new IndirectAccess(address);
 			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
@@ -1251,11 +1251,11 @@ namespace Backend
 
 		private Instruction ProcessStoreArrayElement(IOperation op)
 		{
-			var operand = stack.Pop();
+			var source = stack.Pop();
 			var index = stack.Pop();
 			var array = stack.Pop();
-			var result = new ArrayElementAccess(array, index);
-			var instruction = new ExpressionInstruction(op.Offset, result, operand);
+			var dest = new ArrayElementAccess(array, index);
+			var instruction = new ExpressionInstruction(op.Offset, dest, source);
 			return instruction;
 		}
 
