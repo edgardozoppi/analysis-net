@@ -21,13 +21,16 @@ namespace Console
 			this.sourceLocationProvider = sourceLocationProvider;
 		}
 
+		public int TotalLoops { get; private set; }
+		public int RecognizedLoops { get; private set; }
+
 		public override IMethodDefinition Rewrite(IMethodDefinition methodDefinition)
 		{
 			var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
 			var methodBody = disassembler.Execute();
 
-			System.Console.WriteLine(methodBody);
-			System.Console.WriteLine();
+			//System.Console.WriteLine(methodBody);
+			//System.Console.WriteLine();
 
 			var cfg = ControlFlowGraph.Generate(methodBody);
 			ControlFlowGraph.ComputeDominators(cfg);
@@ -42,8 +45,11 @@ namespace Console
 			var bounds = new LoopBoundAnalysis(cfg);
 			bounds.Analyze();
 
+			this.TotalLoops += bounds.TotalLoops;
+			this.RecognizedLoops += bounds.RecognizedLoops;
+
 			//var dot = DOTSerializer.Serialize(cfg);
-			var dgml = DGMLSerializer.Serialize(cfg);
+			//var dgml = DGMLSerializer.Serialize(cfg);
 			
 			return base.Rewrite(methodDefinition);
 		}

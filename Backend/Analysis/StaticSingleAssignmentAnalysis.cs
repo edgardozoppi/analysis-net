@@ -21,6 +21,10 @@ namespace Backend.Analysis
 
 		public void Transform()
 		{
+			//ControlFlowGraph.ComputeDominators(cfg);
+			//ControlFlowGraph.ComputeDominatorTree(cfg);
+			//ControlFlowGraph.ComputeDominanceFrontiers(cfg);
+
 			this.InsertPhiInstructions();
 			this.RenameVariables();
 		}
