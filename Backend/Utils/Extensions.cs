@@ -18,18 +18,24 @@ namespace Backend.Utils
 			return new Subset<T>(universe, true);
 		}
 
+		public static IExpression ToExpression(this IValue value)
+		{
+			return value as IExpression;
+		}
+
 		public static IExpression ReplaceVariables<T>(this IExpression expr, IDictionary<Variable, T> equalities) where T : IExpression
 		{
 			foreach (var variable in expr.Variables)
 			{
-				var root = variable.Root;
+				var isTemporal = variable is TemporalVariable;
 
-				if (root is DerivedVariable)
+				if (variable is DerivedVariable)
 				{
-					root = (root as DerivedVariable).Original;
+					var derived = variable as DerivedVariable;
+					isTemporal = derived.Original is TemporalVariable;
 				}
 
-				if (root is TemporalVariable)
+				if (isTemporal)
 				{
 					if (equalities.ContainsKey(variable))
 					{

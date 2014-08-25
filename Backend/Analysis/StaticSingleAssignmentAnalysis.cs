@@ -10,13 +10,13 @@ namespace Backend.Analysis
 	{
 		private MethodBody method;
 		private ControlFlowGraph cfg;
-		private IDictionary<CFGNode, IDictionary<Variable, PhiExpression>> phi_instructions;
+		private IDictionary<CFGNode, IDictionary<Variable, PhiInstruction>> phi_instructions;
 
 		public StaticSingleAssignmentAnalysis(MethodBody method, ControlFlowGraph cfg)
 		{
 			this.method = method;
 			this.cfg = cfg;
-			this.phi_instructions = new Dictionary<CFGNode, IDictionary<Variable, PhiExpression>>();
+			this.phi_instructions = new Dictionary<CFGNode, IDictionary<Variable, PhiInstruction>>();
 		}
 
 		public void Transform()
@@ -33,22 +33,22 @@ namespace Backend.Analysis
 			{
 				foreach (var instruction in node.Instructions)
 				{
-					if (instruction is AssignmentInstruction)
+					if (instruction is DefinitionInstruction)
 					{
-						var assignment = instruction as AssignmentInstruction;
+						var definition = instruction as DefinitionInstruction;
 
-						if (assignment.HasResult)
+						if (definition.HasResult)
 						{
 							ISet<CFGNode> nodes;
 
-							if (defining_nodes.ContainsKey(assignment.Result))
+							if (defining_nodes.ContainsKey(definition.Result))
 							{
-								nodes = defining_nodes[assignment.Result];
+								nodes = defining_nodes[definition.Result];
 							}
 							else
 							{
 								nodes = new HashSet<CFGNode>();
-								defining_nodes.Add(assignment.Result, nodes);
+								defining_nodes.Add(definition.Result, nodes);
 							}
 
 							nodes.Add(node);
@@ -69,7 +69,7 @@ namespace Backend.Analysis
 					foreach (var node in current.DominanceFrontier)
 					{
 						if (phi_instructions.ContainsKey(node) && phi_instructions[node].ContainsKey(variable)) continue;
-						IDictionary<Variable, PhiExpression> node_phi_instructions;
+						IDictionary<Variable, PhiInstruction> node_phi_instructions;
 						
 						if (phi_instructions.ContainsKey(node))
 						{
@@ -77,14 +77,13 @@ namespace Backend.Analysis
 						}
 						else
 						{
-							node_phi_instructions = new Dictionary<Variable, PhiExpression>();
+							node_phi_instructions = new Dictionary<Variable, PhiInstruction>();
 							phi_instructions.Add(node, node_phi_instructions);
 						}
 
-						var phi = new PhiExpression();
-						var assignment = new ExpressionInstruction(0, variable, phi);
+						var phi = new PhiInstruction(0, variable);
 
-						node.Instructions.Insert(0, assignment);
+						node.Instructions.Insert(0, phi);
 						node_phi_instructions.Add(variable, phi);
 
 						if (!defining_nodes[variable].Contains(node) && !nodes.Contains(node))
@@ -120,17 +119,17 @@ namespace Backend.Analysis
 			{
 				DerivedVariable result_derived = null;
 
-				if (instruction is AssignmentInstruction)
+				if (instruction is DefinitionInstruction)
 				{
-					var assignment = instruction as AssignmentInstruction;
+					var definition = instruction as DefinitionInstruction;
 
-					if (assignment.HasResult && indices.ContainsKey(assignment.Result.Root))
+					if (definition.HasResult && indices.ContainsKey(definition.Result))
 					{
-						var result = assignment.Result.Root;
+						var result = definition.Result;
 						var index = indices[result];
 
 						result_derived = new DerivedVariable(result, index);
-						assignment.Result = assignment.Result.Replace(result, result_derived);
+						definition.Result = result_derived;
 					}
 				}
 
@@ -177,13 +176,13 @@ namespace Backend.Analysis
 
 			foreach (var instruction in node.Instructions)
 			{
-				if (instruction is AssignmentInstruction)
+				if (instruction is DefinitionInstruction)
 				{
-					var assignment = instruction as AssignmentInstruction;
+					var definition = instruction as DefinitionInstruction;
 
-					if (assignment.HasResult && derived_variables.ContainsKey(assignment.Result.Root))
+					if (definition.HasResult && derived_variables.ContainsKey(definition.Result))
 					{
-						var derived = assignment.Result.Root as DerivedVariable;
+						var derived = definition.Result as DerivedVariable;
 						var result = derived.Original;
 						var stack = derived_variables[result];
 

@@ -1,7 +1,7 @@
 Three Address Code Grammar
 --------------------------
 
-instruction ::= copy | load | store | unary | binary | call | branch | return .
+instruction ::= copy | load_access | store_access | load_method | unary | binary | call | branch | return .
 
 branch ::= unconditional | conditional .
 
@@ -11,8 +11,10 @@ conditional ::= "if" variable "goto" LABEL .
 return ::= "return" [variable] .
 
 copy ::= variable "=" operand .
-load ::= variable "=" access .
-store ::= access "=" variable .
+load_access ::= variable "=" access .
+store_access ::= access "=" variable .
+
+load_method ::= variable "=" "&" TYPE "::" METHOD "(" [variable] ")" .
 
 unary ::= variable "=" unary_op variable .
 binary ::= variable "=" variable binary_op variable .

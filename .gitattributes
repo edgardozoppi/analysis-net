@@ -42,6 +42,7 @@ Test/Test.csproj -text
 /foreach_array.dgml -text
 /foreach_collection.dgml -text
 /grammar_tac.txt -text
+/instructions.txt -text
 /loops.txt -text
 /while.dgml -text
 /while_ssa.dgml -text

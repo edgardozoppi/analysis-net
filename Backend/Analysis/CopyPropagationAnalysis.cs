@@ -8,9 +8,9 @@ using Backend.Utils;
 
 namespace Backend.Analysis
 {
-	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, Operand>> 
+	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, IInmediateValue>> 
 	{
-		private IDictionary<Variable, Operand>[] GEN;
+		private IDictionary<Variable, IInmediateValue>[] GEN;
 		private ISet<Variable>[] KILL;
 
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
@@ -20,24 +20,24 @@ namespace Backend.Analysis
 			this.ComputeKill();
 		}
 
-		protected override IDictionary<Variable, Operand> InitialValue(CFGNode node)
+		protected override IDictionary<Variable, IInmediateValue> InitialValue(CFGNode node)
 		{
-			return new Dictionary<Variable, Operand>();
+			return new Dictionary<Variable, IInmediateValue>();
 		}
 
-		protected override IDictionary<Variable, Operand> DefaultValue(CFGNode node)
+		protected override IDictionary<Variable, IInmediateValue> DefaultValue(CFGNode node)
 		{
 			return GEN[node.Id];
 		}
 
-		protected override bool Compare(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
+		protected override bool Compare(IDictionary<Variable, IInmediateValue> left, IDictionary<Variable, IInmediateValue> right)
 		{
 			return left.SequenceEqual(right);
 		}
 
-		protected override IDictionary<Variable, Operand> Join(IDictionary<Variable, Operand> left, IDictionary<Variable, Operand> right)
+		protected override IDictionary<Variable, IInmediateValue> Join(IDictionary<Variable, IInmediateValue> left, IDictionary<Variable, IInmediateValue> right)
 		{
-			var result = new Dictionary<Variable, Operand>(left);
+			var result = new Dictionary<Variable, IInmediateValue>(left);
 
 			foreach (var copy in right)
 			{
@@ -62,17 +62,17 @@ namespace Backend.Analysis
 			return result;
 		}
 
-		protected override IDictionary<Variable, Operand> Flow(CFGNode node, IDictionary<Variable, Operand> input)
+		protected override IDictionary<Variable, IInmediateValue> Flow(CFGNode node, IDictionary<Variable, IInmediateValue> input)
 		{
-			IDictionary<Variable, Operand> result;
+			IDictionary<Variable, IInmediateValue> result;
 
 			if (input == null)
 			{
-				result = new Dictionary<Variable, Operand>();
+				result = new Dictionary<Variable, IInmediateValue>();
 			}
 			else
 			{
-				result = new Dictionary<Variable, Operand>(input);
+				result = new Dictionary<Variable, IInmediateValue>(input);
 			}
 
 			foreach (var instruction in node.Instructions)
@@ -95,7 +95,7 @@ namespace Backend.Analysis
 
 		private void ComputeGen()
 		{
-			GEN = new IDictionary<Variable, Operand>[this.cfg.Nodes.Count];
+			GEN = new IDictionary<Variable, IInmediateValue>[this.cfg.Nodes.Count];
 
 			foreach (var node in this.cfg.Nodes)
 			{
@@ -121,7 +121,7 @@ namespace Backend.Analysis
 			}
 		}
 
-		private void RemoveCopiesWithVariable(IDictionary<Variable, Operand> copies, Variable variable)
+		private void RemoveCopiesWithVariable(IDictionary<Variable, IInmediateValue> copies, Variable variable)
 		{
 			var array = copies.ToArray();
 
@@ -135,36 +135,40 @@ namespace Backend.Analysis
 			}
 		}
 
-		private KeyValuePair<Variable, Operand>? Flow(Instruction instruction, IDictionary<Variable, Operand> copies)
+		private KeyValuePair<Variable, IInmediateValue>? Flow(Instruction instruction, IDictionary<Variable, IInmediateValue> copies)
 		{
-			KeyValuePair<Variable, Operand>? result = null;
+			KeyValuePair<Variable, IInmediateValue>? result = null;
 
-			if (instruction is ExpressionInstruction)
+			if (instruction is DefinitionInstruction)
 			{
-				var assignment = instruction as ExpressionInstruction;
+				var definition = instruction as DefinitionInstruction;
 
-				if (assignment.Value is Constant)
+				if (definition.HasResult)
 				{
-					var constant = assignment.Value as Constant;
-					result = new KeyValuePair<Variable, Operand>(assignment.Result, constant);
+					result = new KeyValuePair<Variable, IInmediateValue>(definition.Result, UnknownValue.Value);
 				}
-				else if (assignment.Value is Variable)
+				
+				if (definition is LoadInstruction)
 				{
-					var variable = assignment.Value as Variable;
+					var assignment = definition as LoadInstruction;
 
-					if (copies.ContainsKey(variable))
+					if (assignment.Operand is Constant)
 					{
-						var operand = copies[variable];
-						result = new KeyValuePair<Variable, Operand>(assignment.Result, operand);
+						var constant = assignment.Operand as Constant;
+						result = new KeyValuePair<Variable, IInmediateValue>(assignment.Result, constant);
 					}
-					else
+					else if (assignment.Operand is Variable)
 					{
-						result = new KeyValuePair<Variable, Operand>(assignment.Result, variable);
+						var variable = assignment.Operand as Variable;
+						IInmediateValue operand = variable;
+
+						if (copies.ContainsKey(variable))
+						{
+							operand = copies[variable];
+						}
+
+						result = new KeyValuePair<Variable, IInmediateValue>(assignment.Result, operand);
 					}
-				}
-				else
-				{
-					result = new KeyValuePair<Variable, Operand>(assignment.Result, UnknownValue.Value);
 				}
 			}
 

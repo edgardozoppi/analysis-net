@@ -97,7 +97,7 @@ namespace Test
 			a++;
 		}
 
-		public void ExampleWhile()
+		public void ExampleLoopWhile()
 		{
 			var a = 3;
 			var x = 0;
@@ -109,7 +109,7 @@ namespace Test
 			}
 		}
 		
-		public void ExampleDoWhile()
+		public void ExampleLoopDoWhile()
 		{
 			var a = 3;
 			var x = 0;
@@ -122,7 +122,7 @@ namespace Test
 			while (x < 10);
 		}
 
-		public void ExampleFor()
+		public void ExampleLoopFor()
 		{
 			var a = 3;
 
@@ -132,7 +132,7 @@ namespace Test
 			}
 		}
 
-		public void ExampleForeachOverArray()
+		public void ExampleLoopForeachOverArray()
 		{
 			var array = new int[5];
 			var a = 3;
@@ -143,7 +143,7 @@ namespace Test
 			}
 		}
 
-		public void ExampleForeachOverCollection()
+		public void ExampleLoopForeachOverCollection()
 		{
 			var list = new List<int>();
 			var a = 3;
