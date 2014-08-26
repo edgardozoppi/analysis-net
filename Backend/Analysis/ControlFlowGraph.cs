@@ -275,33 +275,40 @@ namespace Backend.Analysis
 		#endregion
 
 		#region Topological Sort
-
+		
 		private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
 		{
+			// reverse postorder traversal from entry node
+			// status == 0: never pushed into stack
+			// status == 1: pushed into stack
+			// status == 2: visited once
 			var stack = new Stack<CFGNode>();
 			var result = new CFGNode[cfg.Nodes.Count];
-			var visited = new bool[cfg.Nodes.Count];
+			var status = new byte[cfg.Nodes.Count];
 			var index = cfg.Nodes.Count - 1;
 
 			stack.Push(cfg.Entry);
+			status[cfg.Entry.Id] = 1;
 
 			do
 			{
 				var node = stack.Peek();
+				var node_status = status[node.Id];
 
-				if (!visited[node.Id])
+				if (node_status == 1)
 				{
-					visited[node.Id] = true;
+					status[node.Id] = 2;
 
 					foreach (var succ in node.Successors)
 					{
-						if (!visited[succ.Id])
+						if (status[succ.Id] == 0)
 						{
 							stack.Push(succ);
+							status[succ.Id] = 1;
 						}
 					}
 				}
-				else
+				else if (node_status == 2)
 				{
 					stack.Pop();
 					node.ForwardIndex = index;
@@ -316,30 +323,37 @@ namespace Backend.Analysis
 
 		private static CFGNode[] ComputeBackwardTopologicalSort(ControlFlowGraph cfg)
 		{
+			// reverse postorder traversal from exit node
+			// status == 0: never pushed into stack
+			// status == 1: pushed into stack
+			// status == 2: visited once
 			var stack = new Stack<CFGNode>();
 			var result = new CFGNode[cfg.Nodes.Count];
-			var visited = new bool[cfg.Nodes.Count];
+			var status = new byte[cfg.Nodes.Count];
 			var index = cfg.Nodes.Count - 1;
 
 			stack.Push(cfg.Exit);
+			status[cfg.Exit.Id] = 1;
 
 			do
 			{
 				var node = stack.Peek();
+				var node_status = status[node.Id];
 
-				if (!visited[node.Id])
+				if (node_status == 1)
 				{
-					visited[node.Id] = true;
+					status[node.Id] = 2;
 
 					foreach (var pred in node.Predecessors)
 					{
-						if (!visited[pred.Id])
+						if (status[pred.Id] == 0)
 						{
 							stack.Push(pred);
+							status[pred.Id] = 1;
 						}
 					}
 				}
-				else
+				else if (node_status == 2)
 				{
 					stack.Pop();
 					node.BackwardIndex = index;
