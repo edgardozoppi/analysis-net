@@ -9,6 +9,14 @@ namespace Test
 	{
 		public int x, y;
 
+		public void Test()
+		{
+			if (x != 0 && y != 0)
+			{
+				x = y;
+			}
+		}
+
 		public Point(int a, int b)
 		{
 			x = a;
