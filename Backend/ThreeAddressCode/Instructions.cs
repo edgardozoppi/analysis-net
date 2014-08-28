@@ -510,6 +510,28 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
+	public class LoadTokenInstruction : DefinitionInstruction
+	{
+		public ITypeReference Type { get; set; }
+
+		public LoadTokenInstruction(uint label, Variable result, ITypeReference type)
+			: base(label, result)
+		{
+			this.Type = type;
+		}
+
+		public override IExpression ToExpression()
+		{
+			return new TokenExpression(this.Type);
+		}
+
+		public override string ToString()
+		{
+			var type = TypeHelper.GetTypeName(this.Type);
+			return string.Format("{0}:  {1} = token {2};", this.Label, this.Result, type);
+		}
+	}
+
 	public class MethodCallInstruction : DefinitionInstruction
 	{
 		public IMethodReference Method { get; set; }

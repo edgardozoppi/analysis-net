@@ -9,7 +9,13 @@ namespace Test
 	{
 		public int x, y;
 
-		public void Test()
+		public Type Test1()
+		{
+			var type = typeof(PlatformID);
+			return type;
+		}
+
+		public void Test2()
 		{
 			if (x != 0 && y != 0)
 			{

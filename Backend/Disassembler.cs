@@ -770,9 +770,9 @@ namespace Backend
 						this.ProcessLoadArrayLength(bb, op);
 						break;
 
-					//case OperationCode.Ldtoken:
-					//    expression = ParseToken(currentOperation);
-					//    break;
+					case OperationCode.Ldtoken:
+						this.ProcessLoadToken(bb, op);
+						break;
 
 					case OperationCode.Localloc:
 						this.ProcessLocalAllocation(bb, op);
@@ -1400,6 +1400,14 @@ namespace Backend
 			var signature = new VirtualMethod(obj, method);
 			var source = new Reference(signature);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
+			bb.Instructions.Add(instruction);
+		}
+
+		private void ProcessLoadToken(BasicBlockInfo bb, IOperation op)
+		{
+			var type = op.Value as ITypeReference;
+			var result = stack.Push();
+			var instruction = new LoadTokenInstruction(op.Offset, result, type);
 			bb.Instructions.Add(instruction);
 		}
 

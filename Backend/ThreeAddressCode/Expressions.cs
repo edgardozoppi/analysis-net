@@ -331,6 +331,55 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
+	public class TokenExpression : IExpression
+	{
+		public ITypeReference Type { get; set; }
+
+		public TokenExpression(ITypeReference type)
+		{
+			this.Type = type;
+		}
+
+		public ISet<Variable> Variables
+		{
+			get { return new HashSet<Variable>(); }
+		}
+
+		public void Replace(Variable oldvar, Variable newvar)
+		{
+		}
+
+		public IExpression Replace(IExpression oldexpr, IExpression newexpr)
+		{
+			if (this.Equals(oldexpr)) return newexpr;
+			return this;
+		}
+
+		IExpression IExpressible.ToExpression()
+		{
+			return this;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as TokenExpression;
+
+			return other != null &&
+				this.Type.Equals(other.Type);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Type.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			var type = TypeHelper.GetTypeName(this.Type);
+			return string.Format("token {0}", type);
+		}
+	}
+
 	public class MethodCallExpression : IExpression
 	{
 		public IMethodReference Method { get; set; }
