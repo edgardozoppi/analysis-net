@@ -228,7 +228,26 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			return Convert.ToString(this.Value);
+			string result;
+
+			if (this.Value == null)
+			{
+				result = "null";
+			}
+			else if (this.Value is string)
+			{
+				result = string.Format("\"{0}\"", this.Value);
+			}
+			else if (this.Value is char)
+			{
+				result = string.Format("'{0}'", this.Value);
+			}
+			else
+			{
+				result = Convert.ToString(this.Value);
+			}
+
+			return result;
 		}
 	}
 
@@ -592,7 +611,7 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			return string.Format("*{0}", this.Value);
+			return string.Format("&{0}", this.Value);
 		}
 	}
 }

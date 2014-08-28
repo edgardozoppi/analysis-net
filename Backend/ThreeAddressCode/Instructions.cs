@@ -32,6 +32,16 @@ namespace Backend.ThreeAddressCode
 		Neg
 	}
 
+	public enum BranchOperation
+	{
+		Eq,
+		Neq,
+		Lt,
+		Le,
+		Gt,
+		Ge
+	}
+
 	public abstract class Instruction : IVariableContainer
 	{
 		public string Label { get; set; }
@@ -387,6 +397,11 @@ namespace Backend.ThreeAddressCode
 			this.Operand = operand;
 		}
 
+		public ReturnInstruction(uint label)
+			: base(label)
+		{
+		}
+
 		public bool HasOperand
 		{
 			get { return this.Operand != null; }
@@ -417,6 +432,54 @@ namespace Backend.ThreeAddressCode
 			}
 
 			return string.Format("{0}:  return{1};", this.Label, operand);
+		}
+	}
+
+	public class ThrowInstruction : Instruction
+	{
+		public Variable Operand { get; set; }
+
+		public ThrowInstruction(uint label, Variable operand)
+			: base(label)
+		{
+			this.Operand = operand;
+		}
+
+		public ThrowInstruction(uint label)
+			: base(label)
+		{
+		}
+
+		public bool HasOperand
+		{
+			get { return this.Operand != null; }
+		}
+
+		public override ISet<Variable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<Variable>();
+				if (this.HasOperand) result.Add(this.Operand);
+				return result;
+			}
+		}
+
+		public override void Replace(Variable oldvar, Variable newvar)
+		{
+			if (this.HasOperand && this.Operand.Equals(oldvar)) this.Operand = newvar;
+		}
+
+		public override string ToString()
+		{
+			var operation = "rethrow";
+
+			if (this.HasOperand)
+			{
+				operation = string.Format("throw {0}", this.Operand);
+			}
+
+			return string.Format("{0}:  {1};", this.Label, operation);
 		}
 	}
 
@@ -464,27 +527,44 @@ namespace Backend.ThreeAddressCode
 
 	public class ConditionalBranchInstruction : BranchInstruction
 	{
-		public Variable Operand { get; set; }
+		public BranchOperation Operation { get; set; }
+		public Variable LeftOperand { get; set; }
+		public IInmediateValue RightOperand { get; set; }
 
-		public ConditionalBranchInstruction(uint label, Variable operand, uint target)
+		public ConditionalBranchInstruction(uint label, Variable left, BranchOperation operation, IInmediateValue right, uint target)
 			: base(label, target)
 		{
-			this.Operand = operand;
+			this.Operation = operation;
+			this.LeftOperand = left;
+			this.RightOperand = right;
 		}
 
 		public override ISet<Variable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.Operand }; }
+			get { return new HashSet<Variable>(this.RightOperand.Variables) { this.LeftOperand }; }
 		}
 
 		public override void Replace(Variable oldvar, Variable newvar)
 		{
-			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
+			if (this.LeftOperand.Equals(oldvar)) this.LeftOperand = newvar;
+			if (this.RightOperand.Equals(oldvar)) this.RightOperand = newvar;
 		}
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  if {1} goto {2};", this.Label, this.Operand, this.Target);
+			var operation = string.Empty;
+
+			switch (this.Operation)
+			{
+				case BranchOperation.Eq: operation = "=="; break;
+				case BranchOperation.Neq: operation = "!="; break;
+				case BranchOperation.Gt: operation = ">"; break;
+				case BranchOperation.Ge: operation = ">="; break;
+				case BranchOperation.Lt: operation = "<"; break;
+				case BranchOperation.Le: operation = "<="; break;
+			}
+
+			return string.Format("{0}:  if {1} {2} {3} goto {4};", this.Label, this.LeftOperand, operation, this.RightOperand, this.Target);
 		}
 	}
 

@@ -480,40 +480,40 @@ namespace Backend
 
 					case OperationCode.Beq:
 					case OperationCode.Beq_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BinaryOperation.Eq);
+						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Eq);
 						break;
 
 					case OperationCode.Bne_Un:
 					case OperationCode.Bne_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BinaryOperation.Neq);
+						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Neq);
 						break;
 
 					case OperationCode.Bge:
 					case OperationCode.Bge_S:
 					case OperationCode.Bge_Un:
 					case OperationCode.Bge_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BinaryOperation.Ge);
+						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Ge);
 						break;
 
 					case OperationCode.Bgt:
 					case OperationCode.Bgt_S:
 					case OperationCode.Bgt_Un:
 					case OperationCode.Bgt_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BinaryOperation.Gt);
+						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Gt);
 						break;
 
 					case OperationCode.Ble:
 					case OperationCode.Ble_S:
 					case OperationCode.Ble_Un:
 					case OperationCode.Ble_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BinaryOperation.Le);
+						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Le);
 						break;
 
 					case OperationCode.Blt:
 					case OperationCode.Blt_S:
 					case OperationCode.Blt_Un:
 					case OperationCode.Blt_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BinaryOperation.Lt);
+						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Lt);
 						break;
 
 					case OperationCode.Br:
@@ -878,13 +878,13 @@ namespace Backend
 					//    this.sawTailCall = true;
 					//    break;
 
-					//case OperationCode.Throw:
-					//    statement = this.ParseThrow();
-					//    break;
+					case OperationCode.Throw:
+						this.ProcessThrow(bb, op);
+						break;
 
-					//case OperationCode.Rethrow:
-					//    statement = new RethrowStatement();
-					//    break;
+					case OperationCode.Rethrow:
+						this.ProcessRethrow(bb, op);
+						break;
 
 					//case OperationCode.Unaligned_:
 					//    Contract.Assume(currentOperation.Value is byte);
@@ -935,9 +935,9 @@ namespace Backend
 					contextKind = ContextKind.Catch;
 					var catchInfo = tryInfo.ExceptionHandlers[offset];						
 					// push the exception into the stack
-					var ex = stack.Push();
+					var exception = stack.Push();
 
-					var instruction = new CatchInstruction(offset, ex, catchInfo.ExceptionType);
+					var instruction = new CatchInstruction(offset, exception, catchInfo.ExceptionType);
 					bb.Instructions.Add(instruction);
 				}
 
@@ -948,6 +948,21 @@ namespace Backend
 					bb.Instructions.Add(instruction);
 				}
 			}
+		}
+
+		private void ProcessThrow(BasicBlockInfo bb, IOperation op)
+		{
+			var exception = stack.Pop();
+			stack.Clear();
+
+			var instruction = new ThrowInstruction(op.Offset, exception);
+			bb.Instructions.Add(instruction);
+		}
+
+		private void ProcessRethrow(BasicBlockInfo bb, IOperation op)
+		{
+			var instruction = new ThrowInstruction(op.Offset);
+			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessLocalAllocation(BasicBlockInfo bb, IOperation op)
@@ -1149,36 +1164,21 @@ namespace Backend
 
 		private void ProcessUnaryConditionalBranch(BasicBlockInfo bb, IOperation op, bool value)
 		{
-			var source = new Constant(value);
-			var dest = stack.Push();
-			var load = new LoadInstruction(op.Offset, dest, source);
-			bb.Instructions.Add(load);
-
-			var right = stack.Pop();
+			var right = new Constant(value);
 			var left = stack.Pop();
-			dest = stack.Push();
-			var compare = new BinaryInstruction(op.Offset, dest, left, BinaryOperation.Eq, right);
-			bb.Instructions.Add(compare);
-
-			var operand = stack.Pop();
 			var target = (uint)op.Value;
-			var instruction = new ConditionalBranchInstruction(op.Offset, operand, target);
+			var instruction = new ConditionalBranchInstruction(op.Offset, left, BranchOperation.Eq, right, target);
 			bb.Instructions.Add(instruction);
 
 			this.AddToPendingBasicBlocks(target, true);
 		}
 
-		private void ProcessBinaryConditionalBranch(BasicBlockInfo bb, IOperation op, BinaryOperation condition)
+		private void ProcessBinaryConditionalBranch(BasicBlockInfo bb, IOperation op, BranchOperation condition)
 		{
 			var right = stack.Pop();
 			var left = stack.Pop();
-			var dest = stack.Push();
-			var compare = new BinaryInstruction(op.Offset, dest, left, condition, right);
-			bb.Instructions.Add(compare);
-
-			var operand = stack.Pop();
 			var target = (uint)op.Value;
-			var instruction = new ConditionalBranchInstruction(op.Offset, operand, target);
+			var instruction = new ConditionalBranchInstruction(op.Offset, left, condition, right, target);
 			bb.Instructions.Add(instruction);
 
 			this.AddToPendingBasicBlocks(target, true);
@@ -1314,29 +1314,32 @@ namespace Backend
 
 		private void ProcessLoadInstanceField(BasicBlockInfo bb, IOperation op)
 		{
-			var field = op.Value as IFieldDefinition;
+			var field = op.Value as IFieldReference;
 			var obj = stack.Pop();
 			var dest = stack.Push();
-			var source = new InstanceFieldAccess(obj, field.Name.Value);
+			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+			var source = new InstanceFieldAccess(obj, fieldName);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessLoadStaticField(BasicBlockInfo bb, IOperation op)
 		{
-			var field = op.Value as IFieldDefinition;
+			var field = op.Value as IFieldReference;
 			var dest = stack.Push();
-			var source = new StaticFieldAccess(field.ContainingType, field.Name.Value);
+			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+			var source = new StaticFieldAccess(field.ContainingType, fieldName);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessLoadInstanceFieldAddress(BasicBlockInfo bb, IOperation op)
 		{
-			var field = op.Value as IFieldDefinition;
+			var field = op.Value as IFieldReference;
 			var obj = stack.Pop();
 			var dest = stack.Push();
-			var access = new InstanceFieldAccess(obj, field.Name.Value);
+			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+			var access = new InstanceFieldAccess(obj, fieldName);
 			var source = new Reference(access);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1344,9 +1347,10 @@ namespace Backend
 
 		private void ProcessLoadStaticFieldAddress(BasicBlockInfo bb, IOperation op)
 		{
-			var field = op.Value as IFieldDefinition;
+			var field = op.Value as IFieldReference;
 			var dest = stack.Push();
-			var access = new StaticFieldAccess(field.ContainingType, field.Name.Value);
+			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+			var access = new StaticFieldAccess(field.ContainingType, fieldName);
 			var source = new Reference(access);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);

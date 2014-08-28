@@ -10,8 +10,8 @@ namespace Console
 	{
 		static void Main(string[] args)
 		{
-			const string input = @"..\..\..\Test\bin\Debug\Test.dll";
-			//const string input = @"C:\Users\Edgar\Projects\Test projects\Json\Src\Newtonsoft.Json\bin\Debug\Net45\Newtonsoft.Json.dll";
+			//const string input = @"..\..\..\Test\bin\Debug\Test.dll";
+			const string input = @"C:\Users\Edgar\Projects\Test projects\Json\Src\Newtonsoft.Json\bin\Debug\Net45\Newtonsoft.Json.dll";
 
 			using (var host = new PeReader.DefaultHost())
 			using (var assembly = new Assembly(host))
