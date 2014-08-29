@@ -219,8 +219,8 @@ namespace Backend.Analysis
 						leaders.Add(branch.Target, node);
 					}
 				}
-				else if (instruction is ReturnInstruction)
-				//TODO: || instruction is ThrowInstruction
+				else if (instruction is ReturnInstruction ||
+						 instruction is ThrowInstruction)
 				{
 					nextIsLeader = true;
 				}
@@ -261,9 +261,10 @@ namespace Backend.Analysis
 					connectWithPreviousNode = instruction is ConditionalBranchInstruction ||
 											  instruction is ExceptionalBranchInstruction;
 				}
-				else if (instruction is ReturnInstruction)
+				else if (instruction is ReturnInstruction ||
+						 instruction is ThrowInstruction)
 				{
-					//TODO: not always connect to exit, could exists a finally block
+					//TODO: not always connect to exit, could exists a catch or finally block
 					cfg.ConnectNodes(current, cfg.Exit);
 				}
 			}

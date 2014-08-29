@@ -227,6 +227,8 @@ namespace Backend
 
 			this.FillBodyVariables();
 
+			if (method.Body.Size == 0) return body;
+
 			this.RecognizeBasicBlocks();
 
 			var linked_operations = new LinkedList<IOperation>(method.Body.Operations);
@@ -294,6 +296,10 @@ namespace Backend
 				switch (op.OperationCode)
 				{
 					case OperationCode.Ret:
+					case OperationCode.Endfinally:
+					case OperationCode.Endfilter:
+					case OperationCode.Throw:
+					case OperationCode.Rethrow:
 						flowFallThrough = false;
 						nextOperationIsLeader = true;
 						break;
