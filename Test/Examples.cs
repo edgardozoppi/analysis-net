@@ -9,13 +9,7 @@ namespace Test
 	{
 		public int x, y;
 
-		public Type Test1()
-		{
-			var type = typeof(PlatformID);
-			return type;
-		}
-
-		public void Test2()
+		public void ExampleShortCircuitCondition()
 		{
 			if (x != 0 && y != 0)
 			{
@@ -34,6 +28,30 @@ namespace Test
 	{
 		public int F1;
 		private static int F2 = 0;
+
+		public void ExampleSwitch(PlatformID x)
+		{
+			switch (x)
+			{
+				case PlatformID.Unix:
+					this.F1 = 3;
+					break;
+
+				case PlatformID.Xbox:
+					this.F1 = 4;
+					break;
+
+				default:
+					this.F1 = 1000;
+					break;
+			}
+		}
+
+		public Type ExampleLoadToken()
+		{
+			var type = typeof(PlatformID);
+			return type;
+		}
 
 		public void ExampleTryCatch()
 		{

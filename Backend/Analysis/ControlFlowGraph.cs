@@ -219,6 +219,20 @@ namespace Backend.Analysis
 						leaders.Add(branch.Target, node);
 					}
 				}
+				else if (instruction is SwitchInstruction)
+				{
+					nextIsLeader = true;
+					var branch = instruction as SwitchInstruction;
+
+					foreach (var target in branch.Targets)
+					{
+						if (!leaders.ContainsKey(target))
+						{
+							var node = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
+							leaders.Add(target, node);
+						}
+					}
+				}
 				else if (instruction is ReturnInstruction ||
 						 instruction is ThrowInstruction)
 				{
@@ -258,8 +272,22 @@ namespace Backend.Analysis
 					var target = leaders[branch.Target];
 
 					cfg.ConnectNodes(current, target);
-					connectWithPreviousNode = instruction is ConditionalBranchInstruction ||
-											  instruction is ExceptionalBranchInstruction;
+
+					if (branch is UnconditionalBranchInstruction)
+					{
+						connectWithPreviousNode = false;
+					}
+				}
+				else if (instruction is SwitchInstruction)
+				{
+					var branch = instruction as SwitchInstruction;
+
+					foreach (var label in branch.Targets)
+					{
+						var target = leaders[label];
+
+						cfg.ConnectNodes(current, target);
+					}
 				}
 				else if (instruction is ReturnInstruction ||
 						 instruction is ThrowInstruction)

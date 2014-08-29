@@ -12,15 +12,15 @@ namespace Console
 		{
 			const string input = @"..\..\..\Test\bin\Debug\Test.dll";
 			//const string input = @"C:\Users\Edgar\Projects\Test projects\Json\Src\Newtonsoft.Json\bin\Debug\Net45\Newtonsoft.Json.dll";
-			//const string input = @"C:\Jackalope\DevMark\Data\Tests\Olden\BH\BH\bin\Debug\BH.exe";
-			//const string input = @"C:\Jackalope\DevMark\Data\Tests\Olden\BiSort\BiSort\bin\Debug\BiSort.exe";
-			//const string input = @"C:\Jackalope\DevMark\Data\Tests\Olden\Em3d\Em3d\bin\Debug\Em3d.exe";
-			//const string input = @"C:\Jackalope\DevMark\Data\Tests\Olden\Health\Health\bin\Debug\Health.exe";
-			//const string input = @"C:\Jackalope\DevMark\Data\Tests\Olden\Perimeter\Perimeter\bin\Debug\Perimeter.exe";
-			//const string input = @"C:\Jackalope\DevMark\Data\Tests\Olden\Power\Power\bin\Debug\Power.exe";
-			//const string input = @"C:\Jackalope\DevMark\Data\Tests\Olden\TSP\TSP\bin\Debug\TSP.exe";
-			//const string input = @"C:\Jackalope\DevMark\Data\Tests\Large\luindex\bin\NLucene.exe";
-			//const string input = @"C:\Jackalope\DevMark\Data\Tests\Large\lusearch\bin\NLucene2.exe";
+			//const string input = @"C:\Users\Edgar\Projects\Jackalope\DevMark\Data\Tests\Olden\BH\BH\bin\Debug\BH.exe"; // total 37 | ok 33 | unk 4
+			//const string input = @"C:\Users\Edgar\Projects\Jackalope\DevMark\Data\Tests\Olden\BiSort\BiSort\bin\Debug\BiSort.exe"; // total 3 | ok 0 | unk 3
+			//const string input = @"C:\Users\Edgar\Projects\Jackalope\DevMark\Data\Tests\Olden\Em3d\Em3d\bin\Debug\Em3d.exe"; // total 18 | ok 14 | unk 4
+			//const string input = @"C:\Users\Edgar\Projects\Jackalope\DevMark\Data\Tests\Olden\Health\Health\bin\Debug\Health.exe"; // total 11 | ok 6 | unk 5
+			//const string input = @"C:\Users\Edgar\Projects\Jackalope\DevMark\Data\Tests\Olden\Perimeter\Perimeter\bin\Debug\Perimeter.exe"; // total 1 | ok 0 | unk 1
+			//const string input = @"C:\Users\Edgar\Projects\Jackalope\DevMark\Data\Tests\Olden\Power\Power\bin\Debug\Power.exe"; // total 18 | ok 15 | unk 3
+			//const string input = @"C:\Users\Edgar\Projects\Jackalope\DevMark\Data\Tests\Olden\TSP\TSP\bin\Debug\TSP.exe"; // total 7 | ok 0 | unk 7
+			//const string input = @"C:\Users\Edgar\Projects\Jackalope\DevMark\Data\Tests\Large\luindex\bin\NLucene.exe"; // total  | ok  | unk 
+			//const string input = @"C:\Users\Edgar\Projects\Jackalope\DevMark\Data\Tests\Large\lusearch\bin\NLucene2.exe"; // total  | ok  | unk 
 
 			using (var host = new PeReader.DefaultHost())
 			using (var assembly = new Assembly(host))

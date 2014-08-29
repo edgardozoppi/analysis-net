@@ -568,6 +568,35 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
+	public class SwitchInstruction : Instruction
+	{
+		public Variable Operand { get; set; }
+		public IList<string> Targets { get; private set; }
+
+		public SwitchInstruction(uint label, Variable operand, IEnumerable<uint> targets)
+			: base(label)
+		{
+			this.Operand = operand;
+			this.Targets = targets.Select(target => string.Format("L_{0:X4}", target)).ToList();
+		}
+
+		public override ISet<Variable> UsedVariables
+		{
+			get { return new HashSet<Variable>() { this.Operand }; }
+		}
+
+		public override void Replace(Variable oldvar, Variable newvar)
+		{
+			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
+		}
+
+		public override string ToString()
+		{
+			var targets = string.Join(", ", this.Targets);
+			return string.Format("{0}:  if {1} < {2} goto {3};", this.Label, this.Operand, this.Targets.Count, targets);
+		}
+	}
+
 	public class SizeofInstruction : DefinitionInstruction
 	{
 		public ITypeReference Type { get; set; }

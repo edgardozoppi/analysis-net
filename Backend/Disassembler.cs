@@ -225,21 +225,12 @@ namespace Backend
 			contextKind = ContextKind.None;
 			body = new MethodBody(method);
 
-			this.FillBodyVariables();
+			this.FillBodyVariables(body);
 
 			if (method.Body.Size == 0) return body;
 
 			this.RecognizeBasicBlocks();
-
-			var linked_operations = new LinkedList<IOperation>(method.Body.Operations);
-			var operations = new Dictionary<uint, LinkedListNode<IOperation>>();
-			var node = linked_operations.First;
-
-			while (node != null)
-			{
-				operations.Add(node.Value.Offset, node);
-				node = node.Next;
-			}
+			var operations = this.GetLinkedOperations();
 
 			pendingBasicBlocks.Push(0);
 
@@ -254,6 +245,39 @@ namespace Backend
 				this.ProcessBasicBlock(basicBlock, firstOperation);
 			}
 
+			this.FillBodyInstructions(body);
+			return body;
+		}
+
+		private IDictionary<uint, LinkedListNode<IOperation>> GetLinkedOperations()
+		{
+			var linked_operations = new LinkedList<IOperation>(method.Body.Operations);
+			var operations = new Dictionary<uint, LinkedListNode<IOperation>>();
+			var node = linked_operations.First;
+
+			while (node != null)
+			{
+				operations.Add(node.Value.Offset, node);
+				node = node.Next;
+			}
+
+			return operations;
+		}
+
+		private void FillBodyVariables(MethodBody body)
+		{
+			if (thisParameter != null)
+			{
+				body.Variables.Add(thisParameter);
+			}
+
+			body.Variables.UnionWith(parameters.Values);
+			body.Variables.UnionWith(locals.Values);
+			body.Variables.UnionWith(stack.Variables);
+		}
+
+		private void FillBodyInstructions(MethodBody body)
+		{
 			foreach (var basicBlock in basicBlocks.Values)
 			{
 				foreach (var instruction in basicBlock.Instructions)
@@ -261,8 +285,6 @@ namespace Backend
 					body.Instructions.Add(instruction);
 				}
 			}
-
-			return body;
 		}
 
 		private void RecognizeBasicBlocks()
@@ -342,6 +364,20 @@ namespace Backend
 						{
 							basicBlock = new BasicBlockInfo(offset);
 							basicBlocks.Add(offset, basicBlock);
+						}
+						break;
+
+					case OperationCode.Switch:
+						nextOperationIsLeader = true;
+						var targets = op.Value as uint[];
+
+						foreach (var target in targets)
+						{
+							if (!basicBlocks.ContainsKey(target))
+							{
+								basicBlock = new BasicBlockInfo(target);
+								basicBlocks.Add(target, basicBlock);
+							}
 						}
 						break;
 				}
@@ -876,9 +912,9 @@ namespace Backend
 					    this.ProcessStoreLocal(bb, op);
 					    break;
 
-					//case OperationCode.Switch:
-					//    statement = this.ParseSwitchInstruction(currentOperation);
-					//    break;
+					case OperationCode.Switch:
+						this.ProcessSwitch(bb, op);
+						break;
 
 					//case OperationCode.Tail_:
 					//    this.sawTailCall = true;
@@ -909,18 +945,6 @@ namespace Backend
 						break;
 				}
 			}
-		}
-
-		private void FillBodyVariables()
-		{
-			if (thisParameter != null)
-			{
-				body.Variables.Add(thisParameter);
-			}
-
-			body.Variables.UnionWith(parameters.Values);
-			body.Variables.UnionWith(locals.Values);
-			body.Variables.UnionWith(stack.Variables);
 		}
 
 		private void ProcessExceptionHandling(BasicBlockInfo bb, uint offset)
@@ -954,6 +978,15 @@ namespace Backend
 					bb.Instructions.Add(instruction);
 				}
 			}
+		}
+
+		private void ProcessSwitch(BasicBlockInfo bb, IOperation op)
+		{
+			var targets = op.Value as uint[];
+			var operand = stack.Pop();
+
+			var instruction = new SwitchInstruction(op.Offset, operand, targets);
+			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessThrow(BasicBlockInfo bb, IOperation op)
@@ -1416,6 +1449,11 @@ namespace Backend
 		private void ProcessLoadToken(BasicBlockInfo bb, IOperation op)
 		{
 			var type = op.Value as ITypeReference;
+
+			//TODO: borrar esto en algun momento
+			if (type == null)
+				throw new Exception("Error while processing load token instruction.");
+
 			var result = stack.Push();
 			var instruction = new LoadTokenInstruction(op.Offset, result, type);
 			bb.Instructions.Add(instruction);
