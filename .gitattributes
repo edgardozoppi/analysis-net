@@ -12,11 +12,13 @@ Backend/MethodBody.cs -text
 Backend/Properties/AssemblyInfo.cs -text
 Backend/Serialization/DGMLSerializer.cs -text
 Backend/Serialization/DOTSerializer.cs -text
+Backend/ThreeAddressCode/ExceptionHandler.cs -text
 Backend/ThreeAddressCode/Expressions.cs -text
 Backend/ThreeAddressCode/Instructions.cs -text
 Backend/ThreeAddressCode/Operands.cs -text
 Backend/Utils/Exceptions.cs -text
 Backend/Utils/Extensions.cs -text
+Backend/Utils/Map.cs -text
 Backend/Utils/Subset.cs -text
 /CCI[!!-~]Backend.sln -text
 Console/Assembly.cs -text

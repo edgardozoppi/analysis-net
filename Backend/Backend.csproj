@@ -75,6 +75,7 @@
     <Compile Include="Analysis\StaticSingleAssignmentAnalysis.cs" />
     <Compile Include="Analysis\SymbolicAnalysis.cs" />
     <Compile Include="Disassembler.cs" />
+    <Compile Include="ThreeAddressCode\ExceptionHandler.cs" />
     <Compile Include="ThreeAddressCode\Expressions.cs" />
     <Compile Include="ThreeAddressCode\Instructions.cs" />
     <Compile Include="MethodBody.cs" />
@@ -84,6 +85,7 @@
     <Compile Include="Serialization\DGMLSerializer.cs" />
     <Compile Include="Serialization\DOTSerializer.cs" />
     <Compile Include="Utils\Extensions.cs" />
+    <Compile Include="Utils\Map.cs" />
     <Compile Include="Utils\Subset.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

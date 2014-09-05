@@ -72,7 +72,7 @@ namespace Backend.Analysis
 		public ISet<CFGNode> Childs { get; private set; }
 		public ISet<CFGNode> DominanceFrontier { get; private set; }
 
-		public CFGNode(int id, CFGNodeKind kind)
+		public CFGNode(int id, CFGNodeKind kind = CFGNodeKind.BasicBlock)
 		{
 			this.Id = id;
 			this.Kind = kind;
@@ -184,26 +184,23 @@ namespace Backend.Analysis
 		{
 			var leaders = new Dictionary<string, CFGNode>();
 			var nextIsLeader = true;
-			var nodeKind = CFGNodeKind.BasicBlock;
 			var nodeId = 2;
 
 			foreach (var instruction in method.Instructions)
 			{
-				var isLeader = false;
+				var isLeader = nextIsLeader;
+				nextIsLeader = false;
 
 				if (instruction is TryInstruction ||
 					instruction is CatchInstruction ||
-					instruction is FinallyInstruction ||
-					nextIsLeader)
+					instruction is FinallyInstruction)
 				{
 					isLeader = true;
-					nextIsLeader = false;
-					nodeKind = CFGNodeKind.BasicBlock;
 				}
 
 				if (isLeader && !leaders.ContainsKey(instruction.Label))
 				{
-					var node = new CFGNode(nodeId++, nodeKind);
+					var node = new CFGNode(nodeId++);
 					leaders.Add(instruction.Label, node);
 				}
 
@@ -215,7 +212,7 @@ namespace Backend.Analysis
 
 					if (!leaders.ContainsKey(branch.Target))
 					{
-						var node = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
+						var node = new CFGNode(nodeId++);
 						leaders.Add(branch.Target, node);
 					}
 				}
@@ -228,7 +225,7 @@ namespace Backend.Analysis
 					{
 						if (!leaders.ContainsKey(target))
 						{
-							var node = new CFGNode(nodeId++, CFGNodeKind.BasicBlock);
+							var node = new CFGNode(nodeId++);
 							leaders.Add(target, node);
 						}
 					}
@@ -257,7 +254,11 @@ namespace Backend.Analysis
 					previous = current;
 					current = leaders[instruction.Label];
 
-					if (connectWithPreviousNode)
+					// A node cannot fallthrough itself,
+					// unless it contains another
+					// instruction with the same label 
+					// of the node's leader instruction
+					if (connectWithPreviousNode && previous.Id != current.Id)
 					{
 						cfg.ConnectNodes(previous, current);
 					}

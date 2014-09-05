@@ -10,12 +10,14 @@ namespace Backend
 	public class MethodBody
 	{
 		public IMethodDefinition MethodDefinition { get; private set; }
+		public IList<TryExceptionHandler> ExceptionHandlers { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
 		public ISet<Variable> Variables { get; private set; }
 
 		public MethodBody(IMethodDefinition methodDefinition)
 		{
 			this.MethodDefinition = methodDefinition;
+			this.ExceptionHandlers = new List<TryExceptionHandler>();
 			this.Instructions = new List<Instruction>();
 			this.Variables = new HashSet<Variable>();
 		}

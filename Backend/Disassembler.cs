@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Cci;
 using Backend.ThreeAddressCode;
+using Backend.Utils;
 
 namespace Backend
 {
@@ -11,7 +12,7 @@ namespace Backend
 	{
 		#region class OperandStack
 
-		class OperandStack
+		private class OperandStack
 		{
 			private TemporalVariable[] stack;
 			private ushort top;
@@ -70,58 +71,7 @@ namespace Backend
 
 		#endregion
 
-		#region Try Catch Finally information
-
-		enum ContextKind
-		{
-			None,
-			Try,
-			Catch,
-			Finally
-		}
-
-		class TryInformation
-		{
-			public uint BeginOffset { get; set; }
-			public uint EndOffset { get; set; }
-			public IDictionary<uint, CatchInformation> ExceptionHandlers { get; private set; }
-			public FinallyInformation Finally { get; set; }
-
-			public TryInformation(uint begin, uint end)
-			{
-				this.BeginOffset = begin;
-				this.EndOffset = end;
-				this.ExceptionHandlers = new Dictionary<uint, CatchInformation>();
-			}
-		}
-
-		class CatchInformation
-		{
-			public ITypeReference ExceptionType { get; set; }
-			public uint BeginOffset { get; set; }
-			public uint EndOffset { get; set; }
-
-			public CatchInformation(uint begin, uint end, ITypeReference exceptionType)
-			{
-				this.BeginOffset = begin;
-				this.EndOffset = end;
-				this.ExceptionType = exceptionType;
-			}
-		}
-
-		class FinallyInformation
-		{
-			public uint BeginOffset { get; set; }
-			public uint EndOffset { get; set; }
-
-			public FinallyInformation(uint begin, uint end)
-			{
-				this.BeginOffset = begin;
-				this.EndOffset = end;
-			}
-		}
-
-		#endregion
+		#region class BasicBlockInfo
 
 		private enum BasicBlockStatus
 		{
@@ -133,7 +83,7 @@ namespace Backend
 		private class BasicBlockInfo
 		{
 			public uint Offset { get; private set; }
-			public bool CanFlowFallThrough { get; set; }
+			public bool CanEnterByFallThrough { get; set; }
 			public ushort StackSizeAtEntry { get; set; }
 			public BasicBlockStatus Status { get; set; }
 			public IList<Instruction> Instructions { get; private set; }
@@ -141,10 +91,12 @@ namespace Backend
 			public BasicBlockInfo(uint offset)
 			{
 				this.Offset = offset;
-				this.CanFlowFallThrough = true;
+				this.CanEnterByFallThrough = true;
 				this.Instructions = new List<Instruction>();
 			}
 		}
+
+		#endregion
 
 		private IMetadataHost host;
 		private IMethodDefinition method;
@@ -152,11 +104,10 @@ namespace Backend
 		private LocalVariable thisParameter;
 		private IDictionary<IParameterDefinition, LocalVariable> parameters;
 		private IDictionary<ILocalDefinition, LocalVariable> locals;
-		private IDictionary<uint, TryInformation> trys;
 		private OperandStack stack;
-		private ContextKind contextKind;
-		private TryInformation tryInfo;
 		private MethodBody body;
+		private Map<uint, IExceptionHandlerBlock> exceptionHandlersStart;
+		private Map<uint, IExceptionHandlerBlock> exceptionHandlersEnd;
 		private IDictionary<uint, BasicBlockInfo> basicBlocks;
 		private Stack<uint> pendingBasicBlocks;
 
@@ -167,9 +118,9 @@ namespace Backend
 			this.sourceLocationProvider = sourceLocationProvider;
 			this.parameters = new Dictionary<IParameterDefinition, LocalVariable>();
 			this.locals = new Dictionary<ILocalDefinition, LocalVariable>();
-			this.trys = new Dictionary<uint, TryInformation>();
 			this.stack = new OperandStack(method.Body.MaxStack);
-
+			this.exceptionHandlersStart = new Map<uint, IExceptionHandlerBlock>();
+			this.exceptionHandlersEnd = new Map<uint, IExceptionHandlerBlock>();
 			this.basicBlocks = new SortedDictionary<uint, BasicBlockInfo>();
 			this.pendingBasicBlocks = new Stack<uint>();
 
@@ -190,45 +141,17 @@ namespace Backend
 				var l = new LocalVariable(name);
 				this.locals.Add(local, l);
 			}
-
-			foreach (var exinf in method.Body.OperationExceptionInformation)
-			{
-				TryInformation tryInfo;
-
-				if (this.trys.ContainsKey(exinf.TryStartOffset))
-				{
-					tryInfo = this.trys[exinf.TryStartOffset];
-				}
-				else
-				{
-					tryInfo = new TryInformation(exinf.TryStartOffset, exinf.TryEndOffset);
-					this.trys.Add(tryInfo.BeginOffset, tryInfo);
-				}
-
-				switch (exinf.HandlerKind)
-				{
-					case HandlerKind.Finally:
-						tryInfo.Finally = new FinallyInformation(exinf.HandlerStartOffset, exinf.HandlerEndOffset);
-						break;
-
-					case HandlerKind.Catch:
-						var catchInfo = new CatchInformation(exinf.HandlerStartOffset, exinf.HandlerEndOffset, exinf.ExceptionType);
-						tryInfo.ExceptionHandlers.Add(catchInfo.BeginOffset, catchInfo);
-						break;
-				}
-			}
 		}
 
 		public MethodBody Execute()
 		{
-			tryInfo = null;
-			contextKind = ContextKind.None;
 			body = new MethodBody(method);
 
 			this.FillBodyVariables(body);
 
 			if (method.Body.Size == 0) return body;
 
+			this.FillBodyExceptionHandlers(body);
 			this.RecognizeBasicBlocks();
 			var operations = this.GetLinkedOperations();
 
@@ -287,15 +210,54 @@ namespace Backend
 			}
 		}
 
+		private void FillBodyExceptionHandlers(MethodBody body)
+		{
+			foreach (var exinf in method.Body.OperationExceptionInformation)
+			{
+				var end = exinf.TryEndOffset - 2;
+				var tryHandler = new TryExceptionHandler(exinf.TryStartOffset, end);
+				body.ExceptionHandlers.Add(tryHandler);
+
+				this.exceptionHandlersStart.Add(exinf.TryStartOffset, tryHandler);
+				this.exceptionHandlersEnd.Add(end, tryHandler);
+
+				switch (exinf.HandlerKind)
+				{
+					case HandlerKind.Catch:
+						end = exinf.HandlerEndOffset - 2;
+						var catchHandler = new CatchExceptionHandler(exinf.HandlerStartOffset, end, exinf.ExceptionType);
+						tryHandler.Handler = catchHandler;
+
+						this.exceptionHandlersStart.Add(exinf.HandlerStartOffset, catchHandler);
+						this.exceptionHandlersEnd.Add(end, catchHandler);						
+						break;
+
+					case HandlerKind.Finally:
+						end = exinf.HandlerEndOffset - 1;
+						var finallyHandler = new FinallyExceptionHandler(exinf.HandlerStartOffset, end);
+						tryHandler.Handler = finallyHandler;
+
+						this.exceptionHandlersStart.Add(exinf.HandlerStartOffset, finallyHandler);
+						this.exceptionHandlersEnd.Add(end, finallyHandler);
+						break;
+				}
+			}
+		}
+
 		private void RecognizeBasicBlocks()
 		{
 			var nextOperationIsLeader = true;
-			var flowFallThrough = true;
+			var fallThroughNextBlock = true;
 			BasicBlockInfo basicBlock;
 			uint offset;
 
 			foreach (var op in method.Body.Operations)
 			{
+				if (exceptionHandlersStart.ContainsKey(op.Offset))
+				{
+					nextOperationIsLeader = true;
+				}
+
 				if (nextOperationIsLeader)
 				{
 					nextOperationIsLeader = false;
@@ -311,8 +273,8 @@ namespace Backend
 						basicBlocks.Add(offset, basicBlock);
 					}
 
-					basicBlock.CanFlowFallThrough = flowFallThrough;
-					flowFallThrough = true;
+					basicBlock.CanEnterByFallThrough = fallThroughNextBlock;
+					fallThroughNextBlock = true;
 				}
 
 				switch (op.OperationCode)
@@ -322,7 +284,7 @@ namespace Backend
 					case OperationCode.Endfilter:
 					case OperationCode.Throw:
 					case OperationCode.Rethrow:
-						flowFallThrough = false;
+						fallThroughNextBlock = false;
 						nextOperationIsLeader = true;
 						break;
 
@@ -330,7 +292,7 @@ namespace Backend
 					case OperationCode.Br_S:
 					case OperationCode.Leave:
 					case OperationCode.Leave_S:
-						flowFallThrough = false;
+						fallThroughNextBlock = false;
 						goto case OperationCode.Beq;
 
 					case OperationCode.Beq:
@@ -393,13 +355,13 @@ namespace Backend
 				basicBlock.Status = BasicBlockStatus.Pending;
 				pendingBasicBlocks.Push(offset);
 
-				if (isBranchTarget || basicBlock.CanFlowFallThrough)
+				if (isBranchTarget || basicBlock.CanEnterByFallThrough)
 				{
 					basicBlock.StackSizeAtEntry = stack.Size;
 				}				
 			}
 
-			if ((isBranchTarget || basicBlock.CanFlowFallThrough) &&
+			if ((isBranchTarget || basicBlock.CanEnterByFallThrough) &&
 				basicBlock.StackSizeAtEntry != stack.Size)
 			{
 				throw new Exception("Basic block with different stack size at entry!");
@@ -408,6 +370,8 @@ namespace Backend
 
 		private void ProcessBasicBlock(BasicBlockInfo bb, LinkedListNode<IOperation> operation)
 		{
+			this.ProcessExceptionHandling(bb);
+
 			while (operation != null)
 			{
 				var op = operation.Value;
@@ -418,8 +382,6 @@ namespace Backend
 					this.AddToPendingBasicBlocks(op.Offset, false);
 					return;
 				}
-
-				this.ProcessExceptionHandling(bb, op.Offset);
 
 				switch (op.OperationCode)
 				{
@@ -947,34 +909,37 @@ namespace Backend
 			}
 		}
 
-		private void ProcessExceptionHandling(BasicBlockInfo bb, uint offset)
+		private void ProcessExceptionHandling(BasicBlockInfo bb)
 		{
-			if (trys.ContainsKey(offset))
+			if (exceptionHandlersStart.ContainsKey(bb.Offset))
 			{
-				contextKind = ContextKind.Try;
-				tryInfo = trys[offset];					
+				var handlerBlocks = exceptionHandlersStart[bb.Offset];
 
-				var instruction = new TryInstruction(offset);
-				bb.Instructions.Add(instruction);
-			}
-
-			if (tryInfo != null)
-			{
-				if (tryInfo.ExceptionHandlers.ContainsKey(offset))
+				foreach (var block in handlerBlocks)
 				{
-					contextKind = ContextKind.Catch;
-					var catchInfo = tryInfo.ExceptionHandlers[offset];						
-					// push the exception into the stack
-					var exception = stack.Push();
+					Instruction instruction;
 
-					var instruction = new CatchInstruction(offset, exception, catchInfo.ExceptionType);
-					bb.Instructions.Add(instruction);
-				}
+					switch (block.Kind)
+					{
+						case ExceptionHandlerBlockKind.Try:
+							instruction = new TryInstruction(bb.Offset);
+							break;
 
-				if (tryInfo.Finally != null && tryInfo.Finally.BeginOffset == offset)
-				{
-					contextKind = ContextKind.Finally;
-					var instruction = new FinallyInstruction(offset);
+						case ExceptionHandlerBlockKind.Catch:
+							// push the exception into the stack
+							var exception = stack.Push();
+							var catchBlock = block as CatchExceptionHandler;
+							instruction = new CatchInstruction(bb.Offset, exception, catchBlock.ExceptionType);
+							break;
+
+						case ExceptionHandlerBlockKind.Finally:
+							instruction = new FinallyInstruction(bb.Offset);
+							break;
+
+						default:
+							throw new Exception("Unknown ExceptionHandlerKind.");
+					}
+
 					bb.Instructions.Add(instruction);
 				}
 			}
@@ -987,6 +952,11 @@ namespace Backend
 
 			var instruction = new SwitchInstruction(op.Offset, operand, targets);
 			bb.Instructions.Add(instruction);
+
+			foreach (var target in targets)
+			{
+				this.AddToPendingBasicBlocks(target, true);
+			}
 		}
 
 		private void ProcessThrow(BasicBlockInfo bb, IOperation op)
@@ -1225,43 +1195,78 @@ namespace Backend
 
 		private void ProcessEndFinally(BasicBlockInfo bb, IOperation op)
 		{
-			var target = string.Format("L_{0:X4}", tryInfo.Finally.EndOffset);
-			contextKind = ContextKind.None;
 			stack.Clear();
 
-			var instruction = new UnconditionalBranchInstruction(op.Offset, 0);
-			instruction.Target = target;
-			bb.Instructions.Add(instruction);
+			if (exceptionHandlersEnd.ContainsKey(op.Offset))
+			{
+				var handlers = exceptionHandlersEnd[op.Offset];
+
+				foreach (var handler in handlers)
+				{
+					if (handler.Kind == ExceptionHandlerBlockKind.Finally)
+					{
+						var branch = new UnconditionalBranchInstruction(op.Offset, op.Offset + 1);
+						bb.Instructions.Add(branch);
+					}
+				}
+			}
 		}
 
 		private void ProcessLeave(BasicBlockInfo bb, IOperation op)
 		{
-			BranchInstruction instruction;
-			var target = string.Format("L_{0:X4}", op.Value);
+			var isTryFinallyEnd = false;
+	
+			stack.Clear();
 
-			if (contextKind == ContextKind.Try)
+			if (exceptionHandlersEnd.ContainsKey(op.Offset))
 			{
-				foreach (var catchInfo in tryInfo.ExceptionHandlers)
+				var handlers = exceptionHandlersEnd[op.Offset];
+				var catchs = new List<BranchInstruction>();
+				var finallys = new List<BranchInstruction>();
+
+				foreach (var handler in handlers)
 				{
-					instruction = new ExceptionalBranchInstruction(op.Offset, catchInfo.Value.BeginOffset, catchInfo.Value.ExceptionType);
-					bb.Instructions.Add(instruction);
+					if (handler.Kind == ExceptionHandlerBlockKind.Try)
+					{
+						var tryHandler = handler as TryExceptionHandler;
+
+						if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Catch)
+						{
+							var catchHandler = tryHandler.Handler as CatchExceptionHandler;
+							var branch = new ExceptionalBranchInstruction(op.Offset, 0, catchHandler.ExceptionType);
+							branch.Target = catchHandler.Start;
+							catchs.Add(branch);
+						}
+						else if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Finally)
+						{
+							isTryFinallyEnd = true;
+							var finallyHandler = tryHandler.Handler as FinallyExceptionHandler;
+							var branch = new UnconditionalBranchInstruction(op.Offset, 0);
+							branch.Target = finallyHandler.Start;
+							finallys.Add(branch);
+						}
+					}
+				}
+
+				foreach (var branch in catchs)
+				{
+					bb.Instructions.Add(branch);
+				}
+
+				foreach (var branch in finallys)
+				{
+					bb.Instructions.Add(branch);
 				}
 			}
 
-			if (contextKind == ContextKind.None ||
-				tryInfo.ExceptionHandlers.Count == 0)
+			if (!isTryFinallyEnd)
 			{
-				target = string.Format("L_{0:X4}'", tryInfo.Finally.BeginOffset);
+				var target = (uint)op.Value;
+				var instruction = new UnconditionalBranchInstruction(op.Offset, target);
+				bb.Instructions.Add(instruction);
+
+				this.AddToPendingBasicBlocks(target, true);
 			}
-
-			contextKind = ContextKind.None;
-			stack.Clear();
-
-			instruction = new UnconditionalBranchInstruction(op.Offset, 0);
-			instruction.Target = target;
-			bb.Instructions.Add(instruction);
-
-			this.AddToPendingBasicBlocks((uint)op.Value, true);
 		}
 
 		private void ProcessUnconditionalBranch(BasicBlockInfo bb, IOperation op)

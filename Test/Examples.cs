@@ -55,7 +55,7 @@ namespace Test
 
 		public void ExampleTryCatch()
 		{
-			int a = 0;
+			var a = 0;
 
 			try
 			{
@@ -75,7 +75,7 @@ namespace Test
 
 		public void ExampleTryFinally()
 		{
-			int a = 0;
+			var a = 0;
 
 			try
 			{
@@ -91,7 +91,7 @@ namespace Test
 
 		public void ExampleTryCatchFinally()
 		{
-			int a = 0;
+			var a = 0;
 
 			try
 			{
@@ -111,6 +111,37 @@ namespace Test
 			}
 
 			a = 5;
+		}
+
+		public void ExampleNestedTryCatchFinally()
+		{
+			var a = 0;
+
+			try
+			{
+				a = 1;
+
+				try
+				{
+					a = 2;
+				}
+				catch (NotImplementedException ex1)
+				{
+					a = 3;
+				}
+				catch (NullReferenceException ex2)
+				{
+					a = 4;
+				}
+
+				a = 5;
+			}
+			finally
+			{
+				a = 6;
+			}
+
+			a = 7;
 		}
 
 		public void ExampleIf()

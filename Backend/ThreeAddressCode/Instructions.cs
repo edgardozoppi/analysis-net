@@ -304,12 +304,11 @@ namespace Backend.ThreeAddressCode
 		public TryInstruction(uint label)
 			: base(label)
 		{
-			this.Label = string.Format("{0}'", this.Label);
 		}
 
 		public override string ToString()
 		{
-			return string.Format("{0}: try;", this.Label);
+			return string.Format("{0}:  try;", this.Label);
 		}
 	}
 
@@ -318,12 +317,11 @@ namespace Backend.ThreeAddressCode
 		public FinallyInstruction(uint label)
 			: base(label)
 		{
-			this.Label = string.Format("{0}'", this.Label);
 		}
 
 		public override string ToString()
 		{
-			return string.Format("{0}: finally;", this.Label);
+			return string.Format("{0}:  finally;", this.Label);
 		}
 	}
 
@@ -334,7 +332,6 @@ namespace Backend.ThreeAddressCode
 		public CatchInstruction(uint label, Variable result, ITypeReference exceptionType)
 			: base(label, result)
 		{
-			this.Label = string.Format("{0}'", this.Label);
 			this.ExceptionType = exceptionType;
 		}
 
@@ -346,7 +343,7 @@ namespace Backend.ThreeAddressCode
 		public override string ToString()
 		{
 			var type = TypeHelper.GetTypeName(this.ExceptionType);
-			return string.Format("{0}: catch {1} {2};", this.Label, type, this.Result);
+			return string.Format("{0}:  catch {1} {2};", this.Label, type, this.Result);
 		}
 	}
 
@@ -499,9 +496,8 @@ namespace Backend.ThreeAddressCode
 		public ITypeReference ExceptionType { get; set; }
 
 		public ExceptionalBranchInstruction(uint label, uint target, ITypeReference exceptionType)
-			: base (label, target)
+			: base(label, target)
 		{
-			this.Target = string.Format("{0}'", this.Target);
 			this.ExceptionType = exceptionType;
 		}
 
