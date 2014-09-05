@@ -25,6 +25,16 @@ namespace Console
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Olden\TSP\TSP\bin\Debug\TSP.exe"; // total 7 | ok 0 | unk 7
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Large\luindex\bin\NLucene.exe"; // total 146 | ok 73 | unk 73
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Large\lusearch\bin\NLucene2.exe"; // total 188 | ok 85 | unk 103
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Spec\SpecRaytracer\SpecRaytracer\bin\Debug\SpecRaytracer.exe"; // total 35 | ok 25 | unk 10
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Spec\DB\DB\bin\Debug\DB.exe"; // total 17 | ok 9 | unk 8
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\DelegateTests\DelegateTests\bin\Debug\DelegateTests.exe"; // total 3 | ok 3 | unk 0
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\FilterMarkSumExample\FilterMarkSumExample\bin\Debug\FilterMarkSumExample.exe"; // total 5 | ok 4 | unk 1
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\LibQuantum\LibQuantum\bin\Debug\LibQuantum.exe"; // total  | ok  | unk 
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\MRaytracer\MRaytracer\bin\Debug\MRaytracer.exe"; // total 5 | ok 5 | unk 0
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\RList\RList\bin\Debug\RList.exe"; // total 3 | ok 1 | unk 2
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\SetAndDict\SetAndDict\bin\Debug\SetAndDict.exe"; // total 16 | ok 14 | unk 2
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\TList\TList\bin\Debug\TList.exe"; // total 10 | ok 1 | unk 9
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\Tree\Tree\bin\Debug\Tree.exe"; // total 0 | ok 0 | unk 0
 
 			using (var host = new PeReader.DefaultHost())
 			using (var assembly = new Assembly(host))
@@ -44,8 +54,14 @@ namespace Console
 		private static void DisplayLoopsInfo(int totalLoops, int recognizedLoops)
 		{
 			var unknownLoops = totalLoops - recognizedLoops;
-			var perRecognizedLoops = recognizedLoops * 100 / totalLoops;
-			var perUnknownLoops = unknownLoops * 100 / totalLoops;
+			var perRecognizedLoops = 0;
+			var perUnknownLoops = 0;
+
+			if (totalLoops > 0)
+			{
+				perRecognizedLoops = recognizedLoops * 100 / totalLoops;
+				perUnknownLoops = unknownLoops * 100 / totalLoops;
+			}
 
 			System.Console.WriteLine("Total loops:\t\t{0}", totalLoops);
 			System.Console.WriteLine("Recognized loops:\t{0} ({1}%)", recognizedLoops, perRecognizedLoops);
