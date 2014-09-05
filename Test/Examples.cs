@@ -217,6 +217,16 @@ namespace Test
 			}
 		}
 
+		public void ExampleBackwardLoop(int p)
+		{
+			var i = 100;
+
+			while (i > p)
+			{
+				i--;
+			}
+		}
+
 		public void ExampleLoopConditionWithTwoVars()
 		{
 			var a = 0;

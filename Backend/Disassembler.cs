@@ -191,10 +191,12 @@ namespace Backend
 		{
 			if (thisParameter != null)
 			{
-				body.Variables.Add(thisParameter);
+				body.Parameters.Add(thisParameter);
 			}
 
-			body.Variables.UnionWith(parameters.Values);
+			body.Parameters.AddRange(parameters.Values);
+
+			body.Variables.UnionWith(body.Parameters);
 			body.Variables.UnionWith(locals.Values);
 			body.Variables.UnionWith(stack.Variables);
 		}
@@ -203,10 +205,7 @@ namespace Backend
 		{
 			foreach (var basicBlock in basicBlocks.Values)
 			{
-				foreach (var instruction in basicBlock.Instructions)
-				{
-					body.Instructions.Add(instruction);
-				}
+				body.Instructions.AddRange(basicBlock.Instructions);
 			}
 		}
 
@@ -1103,7 +1102,9 @@ namespace Backend
 			arguments.Reverse();
 
 			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
+			{
 				result = stack.Push();
+			}
 
 			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
 			bb.Instructions.Add(instruction);
@@ -1132,7 +1133,9 @@ namespace Backend
 			arguments.Reverse();
 
 			if (calleeType.Type.TypeCode != PrimitiveTypeCode.Void)
+			{
 				result = stack.Push();
+			}
 
 			var instruction = new IndirectMethodCallInstruction(op.Offset, result, calleePointer, calleeType, arguments);
 			bb.Instructions.Add(instruction);
@@ -1150,14 +1153,12 @@ namespace Backend
 				arguments.Add(thisParameter);
 			}
 
-			foreach (var par in parameters)
-			{
-				var arg = par.Value;
-				arguments.Add(arg);
-			}
+			arguments.AddRange(parameters.Values);
 
 			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
+			{
 				result = stack.Push();
+			}
 
 			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
 			bb.Instructions.Add(instruction);
@@ -1197,6 +1198,9 @@ namespace Backend
 		{
 			stack.Clear();
 
+			// TODO: Maybe we don't need to add this branch instruction
+			// since it is jumping to the next one,
+			// so it is the same as falling through
 			if (exceptionHandlersEnd.ContainsKey(op.Offset))
 			{
 				var handlers = exceptionHandlersEnd[op.Offset];
@@ -1248,15 +1252,8 @@ namespace Backend
 					}
 				}
 
-				foreach (var branch in catchs)
-				{
-					bb.Instructions.Add(branch);
-				}
-
-				foreach (var branch in finallys)
-				{
-					bb.Instructions.Add(branch);
-				}
+				bb.Instructions.AddRange(catchs);
+				bb.Instructions.AddRange(finallys);
 			}
 
 			if (!isTryFinallyEnd)
@@ -1283,7 +1280,9 @@ namespace Backend
 			Variable operand = null;
 
 			if (method.Type.TypeCode != PrimitiveTypeCode.Void)
+			{
 				operand = stack.Pop();
+			}
 
 			var instruction = new ReturnInstruction(op.Offset, operand);
 			bb.Instructions.Add(instruction);
@@ -1457,7 +1456,9 @@ namespace Backend
 
 			//TODO: borrar esto en algun momento
 			if (type == null)
+			{
 				throw new Exception("Error while processing load token instruction.");
+			}
 
 			var result = stack.Push();
 			var instruction = new LoadTokenInstruction(op.Offset, result, type);

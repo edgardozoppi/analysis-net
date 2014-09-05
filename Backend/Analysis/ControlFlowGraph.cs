@@ -34,7 +34,9 @@ namespace Backend.Analysis
 			var sb = new StringBuilder(" ");
 
 			foreach (var node in this.Body)
+			{
 				sb.AppendFormat("B{0} ", node.Id);
+			}
 
 			return sb.ToString();
 		}
@@ -422,7 +424,7 @@ namespace Backend.Analysis
 					{
 						if (pred.ImmediateDominator != null)
 						{
-							new_idom = ControlFlowGraph.FindCommonParent(pred, new_idom);
+							new_idom = ControlFlowGraph.FindCommonAncestor(pred, new_idom);
 						}
 					}
 
@@ -441,7 +443,7 @@ namespace Backend.Analysis
 			cfg.Entry.ImmediateDominator = null;
 		}
 
-		private static CFGNode FindCommonParent(CFGNode a, CFGNode b)
+		private static CFGNode FindCommonAncestor(CFGNode a, CFGNode b)
 		{
 			while (a.ForwardIndex != b.ForwardIndex)
 			{
@@ -601,7 +603,9 @@ namespace Backend.Analysis
 				if (new_node)
 				{
 					foreach (var pred in node.Predecessors)
+					{
 						nodes.Push(pred);
+					}
 				}
 			}
 			while (nodes.Count > 0);

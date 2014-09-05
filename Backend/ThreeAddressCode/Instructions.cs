@@ -775,9 +775,7 @@ namespace Backend.ThreeAddressCode
 			get
 			{
 				//TODO: arguments could be modified only for reference types
-				var result = new HashSet<Variable>(this.Arguments);
-				result.Add(this.Result);
-				return result;
+				return new HashSet<Variable>(this.Arguments) { this.Result };
 			}
 		}
 

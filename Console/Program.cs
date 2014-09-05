@@ -29,7 +29,7 @@ namespace Console
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Spec\DB\DB\bin\Debug\DB.exe"; // total 17 | ok 9 | unk 8
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\DelegateTests\DelegateTests\bin\Debug\DelegateTests.exe"; // total 3 | ok 3 | unk 0
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\FilterMarkSumExample\FilterMarkSumExample\bin\Debug\FilterMarkSumExample.exe"; // total 5 | ok 4 | unk 1
-			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\LibQuantum\LibQuantum\bin\Debug\LibQuantum.exe"; // total  | ok  | unk 
+			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\LibQuantum\LibQuantum\bin\Debug\LibQuantum.exe"; // total 54 | ok 34 | unk 20
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\MRaytracer\MRaytracer\bin\Debug\MRaytracer.exe"; // total 5 | ok 5 | unk 0
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\RList\RList\bin\Debug\RList.exe"; // total 3 | ok 1 | unk 2
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\SetAndDict\SetAndDict\bin\Debug\SetAndDict.exe"; // total 16 | ok 14 | unk 2

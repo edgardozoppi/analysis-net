@@ -45,6 +45,7 @@ Test/Test.csproj -text
 /foreach_collection.dgml -text
 /grammar_tac.txt -text
 /instructions.txt -text
+/loop_bound_analysis_results.txt -text
 /loops.txt -text
 /while.dgml -text
 /while_ssa.dgml -text
