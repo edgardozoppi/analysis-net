@@ -241,6 +241,18 @@ namespace Test
 			}
 		}
 
+		public void ExampleLoopShortCircuitCondition()
+		{
+			var i = 0;
+			var j = 2;
+
+			while (i < 5 && j < 6)
+			{
+				i++;
+				j++;
+			}
+		}
+
 		public void ExampleIndependentNestedLoops()
 		{
 			var a = 0;
