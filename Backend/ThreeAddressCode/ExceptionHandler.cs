@@ -10,6 +10,7 @@ namespace Backend.ThreeAddressCode
 	{
 		Try,
 		Catch,
+		Fault,
 		Finally
 	}
 
@@ -63,6 +64,25 @@ namespace Backend.ThreeAddressCode
 		{
 			var type = TypeHelper.GetTypeName(this.ExceptionType);
 			return string.Format("catch {0} handler {1} to {2}", type, this.Start, this.End);
+		}
+	}
+
+	public class FaultExceptionHandler : IExceptionHandler
+	{
+		public ExceptionHandlerBlockKind Kind { get; private set; }
+		public string Start { get; set; }
+		public string End { get; set; }
+
+		public FaultExceptionHandler(uint start, uint end)
+		{
+			this.Kind = ExceptionHandlerBlockKind.Fault;
+			this.Start = string.Format("L_{0:X4}", start);
+			this.End = string.Format("L_{0:X4}", end);
+		}
+
+		public override string ToString()
+		{
+			return string.Format("fault handler {0} to {1}", this.Start, this.End);
 		}
 	}
 

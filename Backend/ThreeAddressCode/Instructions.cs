@@ -312,6 +312,19 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
+	public class FaultInstruction : Instruction
+	{
+		public FaultInstruction(uint label)
+			: base(label)
+		{
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  fault;", this.Label);
+		}
+	}
+
 	public class FinallyInstruction : Instruction
 	{
 		public FinallyInstruction(uint label)
@@ -617,23 +630,23 @@ namespace Backend.ThreeAddressCode
 
 	public class LoadTokenInstruction : DefinitionInstruction
 	{
-		public ITypeReference Type { get; set; }
+		public IReference Token { get; set; }
 
-		public LoadTokenInstruction(uint label, Variable result, ITypeReference type)
+		public LoadTokenInstruction(uint label, Variable result, IReference token)
 			: base(label, result)
 		{
-			this.Type = type;
+			this.Token = token;
 		}
 
 		public override IExpression ToExpression()
 		{
-			return new TokenExpression(this.Type);
+			return new TokenExpression(this.Token);
 		}
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Type);
-			return string.Format("{0}:  {1} = token {2};", this.Label, this.Result, type);
+			//var type = TypeHelper.GetTypeName(this.Token);
+			return string.Format("{0}:  {1} = token {2};", this.Label, this.Result, this.Token);
 		}
 	}
 

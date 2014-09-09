@@ -307,8 +307,37 @@ namespace Backend.Analysis
 		#endregion
 
 		#region Topological Sort
-		
+
 		private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
+		{
+			var result = new CFGNode[cfg.Nodes.Count];
+			var visited = new bool[cfg.Nodes.Count];
+			var index = cfg.Nodes.Count - 1;
+
+			ControlFlowGraph.DepthFirstSearch(result, visited, cfg.Entry, ref index);
+			return result;
+		}
+
+		private static void DepthFirstSearch(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
+		{
+			var alreadyVisited = visited[node.Id];
+
+			if (!alreadyVisited)
+			{
+				visited[node.Id] = true;
+
+				foreach (var succ in node.Successors)
+				{
+					ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
+				}
+
+				node.ForwardIndex = index;
+				result[index] = node;
+				index--;
+			}
+		}
+
+		private static CFGNode[] ComputeForwardTopologicalSort2(ControlFlowGraph cfg)
 		{
 			// reverse postorder traversal from entry node
 			// status == 0: never pushed into stack
@@ -417,15 +446,13 @@ namespace Backend.Analysis
 				for (var i = 1; i < sorted_nodes.Length; ++i)
 				{
 					var node = sorted_nodes[i];
-					var new_idom = node.Predecessors.First();
-					var predecessors = node.Predecessors.Skip(1);
+					var predecessors = node.Predecessors.Where(p => p.ImmediateDominator != null);
+					var new_idom = predecessors.First();
+					predecessors = predecessors.Skip(1);
 
 					foreach (var pred in predecessors)
 					{
-						if (pred.ImmediateDominator != null)
-						{
-							new_idom = ControlFlowGraph.FindCommonAncestor(pred, new_idom);
-						}
+						new_idom = ControlFlowGraph.FindCommonAncestor(pred, new_idom);
 					}
 
 					var old_idom = node.ImmediateDominator;

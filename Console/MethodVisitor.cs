@@ -26,6 +26,9 @@ namespace Console
 
 		public override IMethodDefinition Rewrite(IMethodDefinition methodDefinition)
 		{
+			var signature = MemberHelper.GetMethodSignature(methodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.ParameterName); 
+			System.Console.WriteLine(signature);
+
 			var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
 			var methodBody = disassembler.Execute();
 

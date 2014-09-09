@@ -333,11 +333,11 @@ namespace Backend.ThreeAddressCode
 
 	public class TokenExpression : IExpression
 	{
-		public ITypeReference Type { get; set; }
+		public IReference Token { get; set; }
 
-		public TokenExpression(ITypeReference type)
+		public TokenExpression(IReference token)
 		{
-			this.Type = type;
+			this.Token = token;
 		}
 
 		public ISet<Variable> Variables
@@ -365,18 +365,18 @@ namespace Backend.ThreeAddressCode
 			var other = obj as TokenExpression;
 
 			return other != null &&
-				this.Type.Equals(other.Type);
+				this.Token.Equals(other.Token);
 		}
 
 		public override int GetHashCode()
 		{
-			return this.Type.GetHashCode();
+			return this.Token.GetHashCode();
 		}
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Type);
-			return string.Format("token {0}", type);
+			//var type = TypeHelper.GetTypeName(this.Token);
+			return string.Format("token {0}", this.Token);
 		}
 	}
 

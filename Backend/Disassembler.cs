@@ -105,7 +105,6 @@ namespace Backend
 		private IDictionary<IParameterDefinition, LocalVariable> parameters;
 		private IDictionary<ILocalDefinition, LocalVariable> locals;
 		private OperandStack stack;
-		private MethodBody body;
 		private Map<uint, IExceptionHandlerBlock> exceptionHandlersStart;
 		private Map<uint, IExceptionHandlerBlock> exceptionHandlersEnd;
 		private IDictionary<uint, BasicBlockInfo> basicBlocks;
@@ -145,7 +144,7 @@ namespace Backend
 
 		public MethodBody Execute()
 		{
-			body = new MethodBody(method);
+			var body = new MethodBody(method);
 
 			this.FillBodyVariables(body);
 
@@ -229,6 +228,15 @@ namespace Backend
 
 						this.exceptionHandlersStart.Add(exinf.HandlerStartOffset, catchHandler);
 						this.exceptionHandlersEnd.Add(end, catchHandler);						
+						break;
+
+					case HandlerKind.Fault:
+						end = exinf.HandlerEndOffset - 1;
+						var faultHandler = new FaultExceptionHandler(exinf.HandlerStartOffset, end);
+						tryHandler.Handler = faultHandler;
+
+						this.exceptionHandlersStart.Add(exinf.HandlerStartOffset, faultHandler);
+						this.exceptionHandlersEnd.Add(end, faultHandler);
 						break;
 
 					case HandlerKind.Finally:
@@ -931,6 +939,10 @@ namespace Backend
 							instruction = new CatchInstruction(bb.Offset, exception, catchBlock.ExceptionType);
 							break;
 
+						case ExceptionHandlerBlockKind.Fault:
+							instruction = new FaultInstruction(bb.Offset);
+							break;
+
 						case ExceptionHandlerBlockKind.Finally:
 							instruction = new FinallyInstruction(bb.Offset);
 							break;
@@ -1207,7 +1219,8 @@ namespace Backend
 
 				foreach (var handler in handlers)
 				{
-					if (handler.Kind == ExceptionHandlerBlockKind.Finally)
+					if (handler.Kind == ExceptionHandlerBlockKind.Finally ||
+						handler.Kind == ExceptionHandlerBlockKind.Fault)
 					{
 						var branch = new UnconditionalBranchInstruction(op.Offset, op.Offset + 1);
 						bb.Instructions.Add(branch);
@@ -1240,6 +1253,13 @@ namespace Backend
 							var branch = new ExceptionalBranchInstruction(op.Offset, 0, catchHandler.ExceptionType);
 							branch.Target = catchHandler.Start;
 							catchs.Add(branch);
+						}
+						else if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Fault)
+						{
+							var faultHandler = tryHandler.Handler as FaultExceptionHandler;
+							var branch = new ExceptionalBranchInstruction(op.Offset, 0, host.PlatformType.SystemException);
+							branch.Target = faultHandler.Start;
+							finallys.Add(branch);
 						}
 						else if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Finally)
 						{
@@ -1452,7 +1472,7 @@ namespace Backend
 
 		private void ProcessLoadToken(BasicBlockInfo bb, IOperation op)
 		{
-			var type = op.Value as ITypeReference;
+			var type = op.Value as IReference;
 
 			//TODO: borrar esto en algun momento
 			if (type == null)
@@ -1500,19 +1520,21 @@ namespace Backend
 
 		private void ProcessStoreInstanceField(BasicBlockInfo bb, IOperation op)
 		{
-			var field = op.Value as IFieldDefinition;
+			var field = op.Value as IFieldReference;
 			var source = stack.Pop();
 			var obj = stack.Pop();
-			var dest = new InstanceFieldAccess(obj, field.Name.Value);
+			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+			var dest = new InstanceFieldAccess(obj, fieldName);
 			var instruction = new StoreInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessStoreStaticField(BasicBlockInfo bb, IOperation op)
 		{
-			var field = op.Value as IFieldDefinition;
+			var field = op.Value as IFieldReference;
 			var source = stack.Pop();
-			var dest = new StaticFieldAccess(field.ContainingType, field.Name.Value);
+			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+			var dest = new StaticFieldAccess(field.ContainingType, fieldName);
 			var instruction = new StoreInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}

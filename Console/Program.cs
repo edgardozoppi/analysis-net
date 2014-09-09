@@ -10,12 +10,12 @@ namespace Console
 	{
 		static void Main(string[] args)
 		{
-			const string root = @"..\..\..";
+			//const string root = @"..\..\..";
 			//const string root = @"C:"; // casa
-			//const string root = @"C:\Users\Edgar\Projects"; // facu
+			const string root = @"C:\Users\Edgar\Projects"; // facu
 
-			const string input = root + @"\Test\bin\Debug\Test.dll";
-			//const string input = root + @"\Test projects\Json\Src\Newtonsoft.Json\bin\Debug\Net45\Newtonsoft.Json.dll";
+			//const string input = root + @"\Test\bin\Debug\Test.dll";
+			const string input = root + @"\Test projects\Json\Src\Newtonsoft.Json\bin\Debug\Net45\Newtonsoft.Json.dll";
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Olden\BH\BH\bin\Debug\BH.exe"; // total 37 | ok 33 | unk 4
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Olden\BiSort\BiSort\bin\Debug\BiSort.exe"; // total 3 | ok 0 | unk 3
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Olden\Em3d\Em3d\bin\Debug\Em3d.exe"; // total 18 | ok 14 | unk 4
