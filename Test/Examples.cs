@@ -9,6 +9,31 @@ namespace Test
 	{
 		public int x, y;
 
+		public void ExampleAAA(int a, int b)
+		{
+			b = 1;
+
+			while (a < 5)
+			{
+				try
+				{
+					b = 2;
+					if (a == 1) break;
+					b = 3;
+				}
+				catch
+				{
+					b = 4;
+					if (a == 2) continue;
+					b = 5;
+				}
+
+				a++;
+			}
+
+			b = 6;
+		}
+
 		public void ExampleShortCircuitCondition()
 		{
 			if (x != 0 && y != 0)
