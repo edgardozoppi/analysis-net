@@ -175,20 +175,52 @@ namespace Backend.Analysis
 		#region Generation
 
 		public static ControlFlowGraph Generate(MethodBody method)
-		{			
-			var leaders = ControlFlowGraph.CreateNodes(method);
-			var cfg = ControlFlowGraph.ConnectNodes(method, leaders);
+		{
+			var instructions = ControlFlowGraph.FilterExceptionHandlers(method);
+			var leaders = ControlFlowGraph.CreateNodes(instructions);
+			var cfg = ControlFlowGraph.ConnectNodes(instructions, leaders);
 
 			return cfg;
 		}
 
-		private static IDictionary<string, CFGNode> CreateNodes(MethodBody method)
+		private static IList<Instruction> FilterExceptionHandlers(MethodBody method)
+		{
+			var instructions = new List<Instruction>();
+			var handlers = method.ExceptionHandlers.Select(h => h.Handler).ToDictionary(h => h.Start);
+			var i = 0;
+
+			while (i < method.Instructions.Count)
+			{
+				var instruction = instructions[i];
+
+				if (handlers.ContainsKey(instruction.Label))
+				{
+					var handler = handlers[instruction.Label];
+
+					do
+					{
+						i++;
+						instruction = instructions[i];
+					}
+					while (!instruction.Label.Equals(handler.End));
+				}
+				else
+				{
+					instructions.Add(instruction);
+					i++;
+				}
+			}
+
+			return instructions;
+		}
+
+		private static IDictionary<string, CFGNode> CreateNodes(IList<Instruction> instructions)
 		{
 			var leaders = new Dictionary<string, CFGNode>();
 			var nextIsLeader = true;
 			var nodeId = 2;
 
-			foreach (var instruction in method.Instructions)
+			foreach (var instruction in instructions)
 			{
 				var isLeader = nextIsLeader;
 				nextIsLeader = false;
@@ -242,14 +274,14 @@ namespace Backend.Analysis
 			return leaders;
 		}
 
-		private static ControlFlowGraph ConnectNodes(MethodBody method, IDictionary<string, CFGNode> leaders)
+		private static ControlFlowGraph ConnectNodes(IList<Instruction> instructions, IDictionary<string, CFGNode> leaders)
 		{
 			var cfg = new ControlFlowGraph();
 			var connectWithPreviousNode = true;
 			var current = cfg.Entry;
 			CFGNode previous;
 
-			foreach (var instruction in method.Instructions)
+			foreach (var instruction in instructions)
 			{
 				if (leaders.ContainsKey(instruction.Label))
 				{
@@ -315,6 +347,14 @@ namespace Backend.Analysis
 			var index = cfg.Nodes.Count - 1;
 
 			ControlFlowGraph.DepthFirstSearch(result, visited, cfg.Entry, ref index);
+
+			if (result.Any(n => n == null))
+			{
+				var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
+
+				throw new Exception("Error");
+			}
+
 			return result;
 		}
 

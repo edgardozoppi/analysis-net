@@ -212,7 +212,8 @@ namespace Backend
 		{
 			foreach (var exinf in method.Body.OperationExceptionInformation)
 			{
-				var end = exinf.TryEndOffset - 2;
+				//var end = exinf.TryEndOffset - 2;
+				var end = exinf.TryEndOffset;
 				var tryHandler = new TryExceptionHandler(exinf.TryStartOffset, end);
 				body.ExceptionHandlers.Add(tryHandler);
 
@@ -222,7 +223,8 @@ namespace Backend
 				switch (exinf.HandlerKind)
 				{
 					case HandlerKind.Catch:
-						end = exinf.HandlerEndOffset - 2;
+						//end = exinf.HandlerEndOffset - 2;
+						end = exinf.HandlerEndOffset;
 						var catchHandler = new CatchExceptionHandler(exinf.HandlerStartOffset, end, exinf.ExceptionType);
 						tryHandler.Handler = catchHandler;
 
@@ -231,7 +233,8 @@ namespace Backend
 						break;
 
 					case HandlerKind.Fault:
-						end = exinf.HandlerEndOffset - 1;
+						//end = exinf.HandlerEndOffset - 1; // - 4
+						end = exinf.HandlerEndOffset;
 						var faultHandler = new FaultExceptionHandler(exinf.HandlerStartOffset, end);
 						tryHandler.Handler = faultHandler;
 
@@ -240,7 +243,8 @@ namespace Backend
 						break;
 
 					case HandlerKind.Finally:
-						end = exinf.HandlerEndOffset - 1;
+						//end = exinf.HandlerEndOffset - 1; // - 4
+						end = exinf.HandlerEndOffset;
 						var finallyHandler = new FinallyExceptionHandler(exinf.HandlerStartOffset, end);
 						tryHandler.Handler = finallyHandler;
 
@@ -1210,23 +1214,23 @@ namespace Backend
 		{
 			stack.Clear();
 
-			// TODO: Maybe we don't need to add this branch instruction
-			// since it is jumping to the next one,
-			// so it is the same as falling through
-			if (exceptionHandlersEnd.ContainsKey(op.Offset))
-			{
-				var handlers = exceptionHandlersEnd[op.Offset];
+			//// TODO: Maybe we don't need to add this branch instruction
+			//// since it is jumping to the next one,
+			//// so it is the same as falling through
+			//if (exceptionHandlersEnd.ContainsKey(op.Offset))
+			//{
+			//	var handlers = exceptionHandlersEnd[op.Offset];
 
-				foreach (var handler in handlers)
-				{
-					if (handler.Kind == ExceptionHandlerBlockKind.Finally ||
-						handler.Kind == ExceptionHandlerBlockKind.Fault)
-					{
-						var branch = new UnconditionalBranchInstruction(op.Offset, op.Offset + 1);
-						bb.Instructions.Add(branch);
-					}
-				}
-			}
+			//	foreach (var handler in handlers)
+			//	{
+			//		if (handler.Kind == ExceptionHandlerBlockKind.Finally ||
+			//			handler.Kind == ExceptionHandlerBlockKind.Fault)
+			//		{
+			//			var branch = new UnconditionalBranchInstruction(op.Offset, op.Offset + 1);
+			//			bb.Instructions.Add(branch);
+			//		}
+			//	}
+			//}
 		}
 
 		private void ProcessLeave(BasicBlockInfo bb, IOperation op)
@@ -1235,46 +1239,46 @@ namespace Backend
 	
 			stack.Clear();
 
-			if (exceptionHandlersEnd.ContainsKey(op.Offset))
-			{
-				var handlers = exceptionHandlersEnd[op.Offset];
-				var catchs = new List<BranchInstruction>();
-				var finallys = new List<BranchInstruction>();
+			//if (exceptionHandlersEnd.ContainsKey(op.Offset))
+			//{
+			//	var handlers = exceptionHandlersEnd[op.Offset];
+			//	var catchs = new List<BranchInstruction>();
+			//	var finallys = new List<BranchInstruction>();
 
-				foreach (var handler in handlers)
-				{
-					if (handler.Kind == ExceptionHandlerBlockKind.Try)
-					{
-						var tryHandler = handler as TryExceptionHandler;
+			//	foreach (var handler in handlers)
+			//	{
+			//		if (handler.Kind == ExceptionHandlerBlockKind.Try)
+			//		{
+			//			var tryHandler = handler as TryExceptionHandler;
 
-						if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Catch)
-						{
-							var catchHandler = tryHandler.Handler as CatchExceptionHandler;
-							var branch = new ExceptionalBranchInstruction(op.Offset, 0, catchHandler.ExceptionType);
-							branch.Target = catchHandler.Start;
-							catchs.Add(branch);
-						}
-						else if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Fault)
-						{
-							var faultHandler = tryHandler.Handler as FaultExceptionHandler;
-							var branch = new ExceptionalBranchInstruction(op.Offset, 0, host.PlatformType.SystemException);
-							branch.Target = faultHandler.Start;
-							finallys.Add(branch);
-						}
-						else if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Finally)
-						{
-							isTryFinallyEnd = true;
-							var finallyHandler = tryHandler.Handler as FinallyExceptionHandler;
-							var branch = new UnconditionalBranchInstruction(op.Offset, 0);
-							branch.Target = finallyHandler.Start;
-							finallys.Add(branch);
-						}
-					}
-				}
+			//			if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Catch)
+			//			{
+			//				var catchHandler = tryHandler.Handler as CatchExceptionHandler;
+			//				var branch = new ExceptionalBranchInstruction(op.Offset, 0, catchHandler.ExceptionType);
+			//				branch.Target = catchHandler.Start;
+			//				catchs.Add(branch);
+			//			}
+			//			else if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Fault)
+			//			{
+			//				var faultHandler = tryHandler.Handler as FaultExceptionHandler;
+			//				var branch = new ExceptionalBranchInstruction(op.Offset, 0, host.PlatformType.SystemException);
+			//				branch.Target = faultHandler.Start;
+			//				finallys.Add(branch);
+			//			}
+			//			else if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Finally)
+			//			{
+			//				isTryFinallyEnd = true;
+			//				var finallyHandler = tryHandler.Handler as FinallyExceptionHandler;
+			//				var branch = new UnconditionalBranchInstruction(op.Offset, 0);
+			//				branch.Target = finallyHandler.Start;
+			//				finallys.Add(branch);
+			//			}
+			//		}
+			//	}
 
-				bb.Instructions.AddRange(catchs);
-				bb.Instructions.AddRange(finallys);
-			}
+			//	bb.Instructions.AddRange(catchs);
+			//	bb.Instructions.AddRange(finallys);
+			//}
 
 			if (!isTryFinallyEnd)
 			{
