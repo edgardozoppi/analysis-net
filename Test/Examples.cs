@@ -9,7 +9,27 @@ namespace Test
 	{
 		public int x, y;
 
-		public void ExampleAAA(int a, int b)
+		public void ExampleShortCircuitCondition()
+		{
+			if (x != 0 && y != 0)
+			{
+				x = y;
+			}
+		}
+
+		public Point(int a, int b)
+		{
+			x = a;
+			y = b;
+		}
+	}
+
+	public class Examples
+	{
+		public int F1;
+		private static int F2 = 0;
+
+		public void ExampleComplexControlFlow(int a, int b)
 		{
 			b = 1;
 
@@ -33,26 +53,6 @@ namespace Test
 
 			b = 6;
 		}
-
-		public void ExampleShortCircuitCondition()
-		{
-			if (x != 0 && y != 0)
-			{
-				x = y;
-			}
-		}
-
-		public Point(int a, int b)
-		{
-			x = a;
-			y = b;
-		}
-	}
-
-	public class Examples
-	{
-		public int F1;
-		private static int F2 = 0;
 
 		public void ExampleSwitch(PlatformID x)
 		{

@@ -191,7 +191,7 @@ namespace Backend.Analysis
 
 			while (i < method.Instructions.Count)
 			{
-				var instruction = instructions[i];
+				var instruction = method.Instructions[i];
 
 				if (handlers.ContainsKey(instruction.Label))
 				{
@@ -200,7 +200,7 @@ namespace Backend.Analysis
 					do
 					{
 						i++;
-						instruction = instructions[i];
+						instruction = method.Instructions[i];
 					}
 					while (!instruction.Label.Equals(handler.End));
 				}
@@ -340,44 +340,44 @@ namespace Backend.Analysis
 
 		#region Topological Sort
 
+		//private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
+		//{
+		//    var result = new CFGNode[cfg.Nodes.Count];
+		//    var visited = new bool[cfg.Nodes.Count];
+		//    var index = cfg.Nodes.Count - 1;
+
+		//    ControlFlowGraph.DepthFirstSearch(result, visited, cfg.Entry, ref index);
+
+		//    //if (result.Any(n => n == null))
+		//    //{
+		//    //    var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
+
+		//    //    throw new Exception("Error");
+		//    //}
+
+		//    return result;
+		//}
+
+		//private static void DepthFirstSearch(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
+		//{
+		//    var alreadyVisited = visited[node.Id];
+
+		//    if (!alreadyVisited)
+		//    {
+		//        visited[node.Id] = true;
+
+		//        foreach (var succ in node.Successors)
+		//        {
+		//            ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
+		//        }
+
+		//        node.ForwardIndex = index;
+		//        result[index] = node;
+		//        index--;
+		//    }
+		//}
+
 		private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
-		{
-			var result = new CFGNode[cfg.Nodes.Count];
-			var visited = new bool[cfg.Nodes.Count];
-			var index = cfg.Nodes.Count - 1;
-
-			ControlFlowGraph.DepthFirstSearch(result, visited, cfg.Entry, ref index);
-
-			if (result.Any(n => n == null))
-			{
-				var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
-
-				throw new Exception("Error");
-			}
-
-			return result;
-		}
-
-		private static void DepthFirstSearch(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
-		{
-			var alreadyVisited = visited[node.Id];
-
-			if (!alreadyVisited)
-			{
-				visited[node.Id] = true;
-
-				foreach (var succ in node.Successors)
-				{
-					ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
-				}
-
-				node.ForwardIndex = index;
-				result[index] = node;
-				index--;
-			}
-		}
-
-		private static CFGNode[] ComputeForwardTopologicalSort2(ControlFlowGraph cfg)
 		{
 			// reverse postorder traversal from entry node
 			// status == 0: never pushed into stack
@@ -418,6 +418,13 @@ namespace Backend.Analysis
 				}
 			}
 			while (stack.Count > 0);
+
+			//if (result.Any(n => n == null))
+			//{
+			//    var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
+
+			//    throw new Exception("Error");
+			//}
 
 			return result;
 		}
@@ -463,6 +470,13 @@ namespace Backend.Analysis
 				}
 			}
 			while (stack.Count > 0);
+
+			//if (result.Any(n => n == null))
+			//{
+			//    var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
+
+			//    throw new Exception("Error");
+			//}
 
 			return result;
 		}
