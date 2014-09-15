@@ -12,7 +12,7 @@ Backend/MethodBody.cs -text
 Backend/Properties/AssemblyInfo.cs -text
 Backend/Serialization/DGMLSerializer.cs -text
 Backend/Serialization/DOTSerializer.cs -text
-Backend/ThreeAddressCode/ExceptionHandler.cs -text
+Backend/ThreeAddressCode/ExceptionHandlers.cs -text
 Backend/ThreeAddressCode/Expressions.cs -text
 Backend/ThreeAddressCode/Instructions.cs -text
 Backend/ThreeAddressCode/Operands.cs -text

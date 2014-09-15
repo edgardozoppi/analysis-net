@@ -75,7 +75,7 @@
     <Compile Include="Analysis\StaticSingleAssignmentAnalysis.cs" />
     <Compile Include="Analysis\SymbolicAnalysis.cs" />
     <Compile Include="Disassembler.cs" />
-    <Compile Include="ThreeAddressCode\ExceptionHandler.cs" />
+    <Compile Include="ThreeAddressCode\ExceptionHandlers.cs" />
     <Compile Include="ThreeAddressCode\Expressions.cs" />
     <Compile Include="ThreeAddressCode\Instructions.cs" />
     <Compile Include="MethodBody.cs" />

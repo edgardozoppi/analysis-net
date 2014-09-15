@@ -10,7 +10,7 @@ namespace Backend
 	public class MethodBody
 	{
 		public IMethodDefinition MethodDefinition { get; private set; }
-		public IList<TryExceptionHandler> ExceptionHandlers { get; private set; }
+		public IList<ProtectedBlock> ProtectedBlocks { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
 		public IList<Variable> Parameters { get; private set; }
 		public ISet<Variable> Variables { get; private set; }
@@ -18,7 +18,7 @@ namespace Backend
 		public MethodBody(IMethodDefinition methodDefinition)
 		{
 			this.MethodDefinition = methodDefinition;
-			this.ExceptionHandlers = new List<TryExceptionHandler>();
+			this.ProtectedBlocks = new List<ProtectedBlock>();
 			this.Instructions = new List<Instruction>();
 			this.Parameters = new List<Variable>();
 			this.Variables = new HashSet<Variable>();
@@ -38,7 +38,7 @@ namespace Backend
 				result.AppendLine();
 			}
 
-			foreach (var handler in this.ExceptionHandlers)
+			foreach (var handler in this.ProtectedBlocks)
 			{
 				result.AppendLine();
 				result.Append(handler);

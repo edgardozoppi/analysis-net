@@ -25,14 +25,14 @@ namespace Backend.ThreeAddressCode
 	{
 	}
 
-	public class TryExceptionHandler : IExceptionHandlerBlock
+	public class ProtectedBlock : IExceptionHandlerBlock
 	{
 		public ExceptionHandlerBlockKind Kind { get; private set; }
 		public string Start { get; set; }
 		public string End { get; set; }
 		public IExceptionHandler Handler { get; set; }
 
-		public TryExceptionHandler(uint start, uint end)
+		public ProtectedBlock(uint start, uint end)
 		{
 			this.Kind = ExceptionHandlerBlockKind.Try;
 			this.Start = string.Format("L_{0:X4}", start);

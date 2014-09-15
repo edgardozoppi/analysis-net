@@ -214,8 +214,8 @@ namespace Backend
 			{
 				//var end = exinf.TryEndOffset - 2;
 				var end = exinf.TryEndOffset;
-				var tryHandler = new TryExceptionHandler(exinf.TryStartOffset, end);
-				body.ExceptionHandlers.Add(tryHandler);
+				var tryHandler = new ProtectedBlock(exinf.TryStartOffset, end);
+				body.ProtectedBlocks.Add(tryHandler);
 
 				this.exceptionHandlersStart.Add(exinf.TryStartOffset, tryHandler);
 				this.exceptionHandlersEnd.Add(end, tryHandler);

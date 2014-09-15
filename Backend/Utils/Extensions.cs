@@ -1,4 +1,5 @@
-﻿using Backend.ThreeAddressCode;
+﻿using Backend.Analysis;
+using Backend.ThreeAddressCode;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +25,12 @@ namespace Backend.Utils
 		public static Subset<T> ToEmptySubset<T>(this T[] universe)
 		{
 			return new Subset<T>(universe, true);
+		}
+
+		public static ISet<Variable> ModifiedVariables(this CFGNode node)
+		{
+			var result = node.Instructions.SelectMany(i => i.ModifiedVariables);
+			return new HashSet<Variable>(result);
 		}
 
 		public static IExpression ToExpression(this IValue value)

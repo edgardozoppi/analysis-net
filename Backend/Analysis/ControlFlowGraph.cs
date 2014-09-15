@@ -176,6 +176,7 @@ namespace Backend.Analysis
 
 		public static ControlFlowGraph Generate(MethodBody method)
 		{
+			//var instructions = method.Instructions;
 			var instructions = ControlFlowGraph.FilterExceptionHandlers(method);
 			var leaders = ControlFlowGraph.CreateNodes(instructions);
 			var cfg = ControlFlowGraph.ConnectNodes(instructions, leaders);
@@ -186,7 +187,7 @@ namespace Backend.Analysis
 		private static IList<Instruction> FilterExceptionHandlers(MethodBody method)
 		{
 			var instructions = new List<Instruction>();
-			var handlers = method.ExceptionHandlers.Select(h => h.Handler).ToDictionary(h => h.Start);
+			var handlers = method.ProtectedBlocks.Select(h => h.Handler).ToDictionary(h => h.Start);
 			var i = 0;
 
 			while (i < method.Instructions.Count)
