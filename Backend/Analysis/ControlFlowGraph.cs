@@ -176,10 +176,9 @@ namespace Backend.Analysis
 
 		public static ControlFlowGraph Generate(MethodBody method)
 		{
-			//var instructions = method.Instructions;
-			var instructions = ControlFlowGraph.FilterExceptionHandlers(method);
-			var leaders = ControlFlowGraph.CreateNodes(instructions);
-			var cfg = ControlFlowGraph.ConnectNodes(instructions, leaders);
+			//var instructions = ControlFlowGraph.FilterExceptionHandlers(method);
+			var leaders = ControlFlowGraph.CreateNodes(method);
+			var cfg = ControlFlowGraph.ConnectNodes(method, leaders);
 
 			return cfg;
 		}
@@ -215,13 +214,13 @@ namespace Backend.Analysis
 			return instructions;
 		}
 
-		private static IDictionary<string, CFGNode> CreateNodes(IList<Instruction> instructions)
+		private static IDictionary<string, CFGNode> CreateNodes(MethodBody method)
 		{
 			var leaders = new Dictionary<string, CFGNode>();
 			var nextIsLeader = true;
 			var nodeId = 2;
 
-			foreach (var instruction in instructions)
+			foreach (var instruction in method.Instructions)
 			{
 				var isLeader = nextIsLeader;
 				nextIsLeader = false;
@@ -275,14 +274,18 @@ namespace Backend.Analysis
 			return leaders;
 		}
 
-		private static ControlFlowGraph ConnectNodes(IList<Instruction> instructions, IDictionary<string, CFGNode> leaders)
+		private static ControlFlowGraph ConnectNodes(MethodBody method, IDictionary<string, CFGNode> leaders)
 		{
 			var cfg = new ControlFlowGraph();
 			var connectWithPreviousNode = true;
 			var current = cfg.Entry;
 			CFGNode previous;
 
-			foreach (var instruction in instructions)
+			var activeProtectedBlocks = new HashSet<ProtectedBlock>();
+			var protectedBlocksStart = method.ProtectedBlocks.ToLookup(pb => pb.Start);
+			var protectedBlocksEnd = method.ProtectedBlocks.ToLookup(pb => pb.End);
+
+			foreach (var instruction in method.Instructions)
 			{
 				if (leaders.ContainsKey(instruction.Label))
 				{
@@ -296,6 +299,24 @@ namespace Backend.Analysis
 					if (connectWithPreviousNode && previous.Id != current.Id)
 					{
 						cfg.ConnectNodes(previous, current);
+					}
+
+					if (protectedBlocksStart.Contains(instruction.Label))
+					{
+						var protectedBlocks = protectedBlocksStart[instruction.Label];
+						activeProtectedBlocks.UnionWith(protectedBlocks);
+					}
+
+					if (protectedBlocksEnd.Contains(instruction.Label))
+					{
+						var protectedBlocks = protectedBlocksEnd[instruction.Label];
+						activeProtectedBlocks.ExceptWith(protectedBlocks);
+					}
+
+					foreach (var block in activeProtectedBlocks)
+					{
+						var target = leaders[block.Handler.Start];
+						cfg.ConnectNodes(current, target);
 					}
 				}
 

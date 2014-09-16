@@ -29,7 +29,7 @@ namespace Test
 		public int F1;
 		private static int F2 = 0;
 
-		public void ExampleComplexControlFlow(int a, int b)
+		public void ExampleComplexTryCatch(int a, int b)
 		{
 			b = 1;
 
