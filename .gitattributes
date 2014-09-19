@@ -16,6 +16,9 @@ Backend/ThreeAddressCode/ExceptionHandlers.cs -text
 Backend/ThreeAddressCode/Expressions.cs -text
 Backend/ThreeAddressCode/Instructions.cs -text
 Backend/ThreeAddressCode/Operands.cs -text
+Backend/ThreeAddressCode/TypeDefinitions.cs -text
+Backend/ThreeAddressCode/Types.cs -text
+Backend/TypesExtractor.cs -text
 Backend/Utils/Exceptions.cs -text
 Backend/Utils/Extensions.cs -text
 Backend/Utils/Map.cs -text

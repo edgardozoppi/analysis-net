@@ -15,6 +15,8 @@ namespace Console
 			//const string root = @"C:\Users\Edgar\Projects"; // facu
 
 			const string input = root + @"\Test\bin\Debug\Test.dll";
+			//const string input = root + @"\Test projects\SharpCompress\bin\SharpCompress.dll"; // total  | ok  | unk 
+			//const string input = root + @"\Test projects\FtpLib\bin\Debug\ftplib.dll"; // total 4 | ok 0 | unk 4
 			//const string input = root + @"\Test projects\Json\Src\Newtonsoft.Json\bin\Debug\Net45\Newtonsoft.Json.dll"; // total 250 | ok 75 | unk 175
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Olden\BH\BH\bin\Debug\BH.exe"; // total 37 | ok 33 | unk 4
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Olden\BiSort\BiSort\bin\Debug\BiSort.exe"; // total 3 | ok 0 | unk 3
@@ -40,6 +42,9 @@ namespace Console
 			using (var assembly = new Assembly(host))
 			{
 				assembly.Load(input);
+
+				var extractor = new TypesExtractor(host);
+
 
 				var visitor = new MethodVisitor(host, assembly.PdbReader);
 				visitor.Rewrite(assembly.Module);

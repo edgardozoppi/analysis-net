@@ -15,6 +15,7 @@ namespace Backend.ThreeAddressCode
 
 	public interface IValue : IVariableContainer, IExpressible
 	{
+		IType Type { get; set; }
 	}
 
 	public interface IAssignableValue : IValue
@@ -319,7 +320,7 @@ namespace Backend.ThreeAddressCode
 
 		public override string Name
 		{
-			get { return string.Format("t{0}", this.Index); }
+			get { return string.Format("$t{0}", this.Index); }
 		}
 	}
 
