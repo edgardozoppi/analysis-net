@@ -29,8 +29,9 @@ namespace Backend
 
 			public TemporalVariable New(IType type)
 			{
-				var variable = new TemporalVariable(variableIndex++, type);
+				var variable = new TemporalVariable(variableIndex++);
 				variables.Add(variable);
+				return variable;
 			}
 		}
 
@@ -74,7 +75,7 @@ namespace Backend
 				return clone;
 			}
 
-			public TemporalVariable Push(IType type)
+			public TemporalVariable Push(IType type = null)
 			{
 				if (top >= stack.Length) throw new InvalidOperationException();
 				var variable = factory.New(type);

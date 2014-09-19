@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Cci;
+using Backend;
 
 namespace Console
 {
@@ -44,7 +45,7 @@ namespace Console
 				assembly.Load(input);
 
 				var extractor = new TypesExtractor(host);
-
+				extractor.Extract(assembly.Module);
 
 				var visitor = new MethodVisitor(host, assembly.PdbReader);
 				visitor.Rewrite(assembly.Module);

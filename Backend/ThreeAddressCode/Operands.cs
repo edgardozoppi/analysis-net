@@ -15,7 +15,7 @@ namespace Backend.ThreeAddressCode
 
 	public interface IValue : IVariableContainer, IExpressible
 	{
-		IType Type { get; set; }
+		//IType Type { get; set; }
 	}
 
 	public interface IAssignableValue : IValue
