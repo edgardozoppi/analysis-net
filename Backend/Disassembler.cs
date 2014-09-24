@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.Cci;
 using Backend.ThreeAddressCode;
 using Backend.Utils;
+using Backend.ThreeAddressCode.Types;
 
 namespace Backend
 {
@@ -113,6 +114,7 @@ namespace Backend
 		{
 			public uint Offset { get; private set; }
 			public bool CanEnterByFallThrough { get; set; }
+			public ushort StackSizeAtEntry { get; set; }
 			public OperandStack Stack { get; set; }
 			public BasicBlockStatus Status { get; set; }
 			public IList<Instruction> Instructions { get; private set; }
@@ -174,9 +176,6 @@ namespace Backend
 		public MethodBody Execute()
 		{
 			var body = new MethodBody(method);
-
-			this.FillBodyVariables(body);
-
 			if (method.Body.Size == 0) return body;
 
 			this.FillBodyExceptionHandlers(body);
@@ -201,7 +200,9 @@ namespace Backend
 				this.ProcessBasicBlock(basicBlock, firstOperation);
 			}
 
+			this.FillBodyVariables(body);
 			this.FillBodyInstructions(body);
+
 			return body;
 		}
 
@@ -402,12 +403,13 @@ namespace Backend
 
 				if (isBranchTarget || basicBlock.CanEnterByFallThrough)
 				{
+					basicBlock.StackSizeAtEntry = stack.Size;
 					basicBlock.Stack = stack.Clone();
 				}				
 			}
 
 			if ((isBranchTarget || basicBlock.CanEnterByFallThrough) &&
-				basicBlock.Stack.Size != stack.Size)
+				basicBlock.StackSizeAtEntry != stack.Size)
 			{
 				throw new Exception("Basic block with different stack size at entry!");
 			}

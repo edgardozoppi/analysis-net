@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Backend.ThreeAddressCode
+namespace Backend.ThreeAddressCode.Types
 {
 	public interface IType
 	{
@@ -78,15 +78,58 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 	
-	public class ReferenceType : IReferenceType
+	public class BasicType : IType
 	{
-		public IReferenceTypeDefinition Definition { get; set; }
-		public IList<IType> TypeParameters { get; private set; }
+		public string Name { get; set; }
+		public IList<IType> GenericArguments { get; private set; }
 
-		public ReferenceType(IReferenceTypeDefinition definition)
+		public BasicType(string name)
 		{
-			this.Definition = definition;
-			this.TypeParameters = new List<IType>();
+			this.Name = name;
+			this.GenericArguments = new List<IType>();
+		}
+
+		public override string ToString()
+		{
+			var arguments = string.Empty;
+
+			if (this.GenericArguments.Count > 0)
+			{
+				arguments = string.Join(", ", this.GenericArguments);
+				arguments = string.Format("<{0}>", arguments);
+			}
+
+			return string.Format("{0}{1}", this.Name, arguments);
+		}
+	}
+
+	public class TypeVariable : IType
+	{
+		public string Name { get; set; }
+
+		public TypeVariable(string name)
+		{
+			this.Name = name;
+		}
+
+		public override string ToString()
+		{
+			return this.Name;
+		}
+	}
+
+	public class PointerType : IReferenceType
+	{
+		public IType TargetType { get; set; }
+
+		public PointerType(IType targetType)
+		{
+			this.TargetType = targetType;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}*", this.TargetType);
 		}
 	}
 
@@ -97,6 +140,11 @@ namespace Backend.ThreeAddressCode
 		public ArrayType(IType elementsType)
 		{
 			this.ElementsType = elementsType;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}[]", this.ElementsType);
 		}
 	}
 }
