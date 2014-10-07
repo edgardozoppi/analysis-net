@@ -4,18 +4,19 @@ using System.Linq;
 using System.Text;
 
 using Microsoft.Cci;
+using Microsoft.Cci.Immutable;
 
 namespace Backend.ThreeAddressCode
 {
 	public interface IVariableContainer
 	{
-		ISet<Variable> Variables { get; }
-		void Replace(Variable oldvar, Variable newvar);
+		ISet<IVariable> Variables { get; }
+		void Replace(IVariable oldvar, IVariable newvar);
 	}
 
 	public interface IValue : IVariableContainer, IExpressible
 	{
-		//IType Type { get; set; }
+		ITypeReference Type { get; }
 	}
 
 	public interface IAssignableValue : IValue
@@ -40,12 +41,17 @@ namespace Backend.ThreeAddressCode
 			this.Method = method;
 		}
 
-		ISet<Variable> IVariableContainer.Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(); }
+			get { return this.Method.Type; }
 		}
 
-		void IVariableContainer.Replace(Variable oldvar, Variable newvar)
+		ISet<IVariable> IVariableContainer.Variables
+		{
+			get { return new HashSet<IVariable>(); }
+		}
+
+		void IVariableContainer.Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
 
@@ -82,21 +88,26 @@ namespace Backend.ThreeAddressCode
 
 	public class VirtualMethod : IMethodSignature
 	{
-		public Variable Instance { get; set; }
+		public IVariable Instance { get; set; }
 		public IMethodReference Method { get; set; }
 
-		public VirtualMethod(Variable instance, IMethodReference method)
+		public VirtualMethod(IVariable instance, IMethodReference method)
 		{
 			this.Instance = instance;
 			this.Method = method;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>() { this.Instance }; }
+			get { return this.Method.Type; }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>() { this.Instance }; }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Instance.Equals(oldvar)) this.Instance = newvar;
 		}
@@ -105,9 +116,9 @@ namespace Backend.ThreeAddressCode
 		{
 			var result = this;
 
-			if (oldexpr is Variable && newexpr is Variable)
+			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var instance = (this.Instance as IExpression).Replace(oldexpr, newexpr) as Variable;
+				var instance = (this.Instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
 				result = new VirtualMethod(instance, this.Method);
 			}
 
@@ -161,12 +172,17 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
-		ISet<Variable> IVariableContainer.Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(); }
+			get { return null; }
 		}
 
-		void IVariableContainer.Replace(Variable oldvar, Variable newvar)
+		ISet<IVariable> IVariableContainer.Variables
+		{
+			get { return new HashSet<IVariable>(); }
+		}
+
+		void IVariableContainer.Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
 
@@ -189,18 +205,19 @@ namespace Backend.ThreeAddressCode
 	public class Constant : IInmediateValue
 	{
 		public object Value { get; set; }
+		public ITypeReference Type { get; set; }
 
 		public Constant(object value)
 		{
 			this.Value = value;
 		}
 
-		ISet<Variable> IVariableContainer.Variables
+		ISet<IVariable> IVariableContainer.Variables
 		{
-			get { return new HashSet<Variable>(); }
+			get { return new HashSet<IVariable>(); }
 		}
 
-		void IVariableContainer.Replace(Variable oldvar, Variable newvar)
+		void IVariableContainer.Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
 
@@ -252,16 +269,27 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public abstract class Variable : IInmediateValue, IReferenceable
+	public interface IVariable : IInmediateValue, IReferenceable
 	{
-		public abstract string Name { get; }
+		string Name { get; }
+	}
 
-		ISet<Variable> IVariableContainer.Variables
+	public class LocalVariable : IVariable
+	{
+		public string Name { get; set; }
+		public ITypeReference Type { get; set; }
+
+		public LocalVariable(string name)
 		{
-			get { return new HashSet<Variable>() { this }; }
+			this.Name = name;
 		}
 
-		void IVariableContainer.Replace(Variable oldvar, Variable newvar)
+		ISet<IVariable> IVariableContainer.Variables
+		{
+			get { return new HashSet<IVariable>() { this }; }
+		}
+
+		void IVariableContainer.Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
 
@@ -278,7 +306,7 @@ namespace Backend.ThreeAddressCode
 
 		public override bool Equals(object obj)
 		{
-			var other = obj as Variable;
+			var other = obj as IVariable;
 			return other != null &&
 				this.Name.Equals(other.Name);
 		}
@@ -294,23 +322,9 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class LocalVariable : Variable
+	public class TemporalVariable : IVariable
 	{
-		private string name;
-
-		public LocalVariable(string name)
-		{
-			this.name = name;
-		}
-
-		public override string Name
-		{
-			get { return this.name; }
-		}
-	}
-
-	public class TemporalVariable : Variable
-	{
+		public ITypeReference Type { get; set; }
 		public uint Index { get; set; }
 
 		public TemporalVariable(uint index)
@@ -318,40 +332,17 @@ namespace Backend.ThreeAddressCode
 			this.Index = index;
 		}
 
-		public override string Name
+		public string Name
 		{
 			get { return string.Format("$t{0}", this.Index); }
 		}
-	}
 
-	public class DerivedVariable : Variable
-	{
-		public Variable Original { get; set; }
-		public uint Index { get; set; }
-
-		public DerivedVariable(Variable original, uint index)
+		ISet<IVariable> IVariableContainer.Variables
 		{
-			this.Original = original;
-			this.Index = index;
+			get { return new HashSet<IVariable>() { this }; }
 		}
 
-		public override string Name
-		{
-			get { return string.Format("{0}{1}", this.Original, this.Index); }
-		}
-	}
-
-	public abstract class FieldAccess : IAssignableValue, IReferenceable, IExpression
-	{
-		public string FieldName { get; set; }
-		public abstract string Name { get; }
-
-		public virtual ISet<Variable> Variables
-		{
-			get { return new HashSet<Variable>(); }
-		}
-
-		public virtual void Replace(Variable oldvar, Variable newvar)
+		void IVariableContainer.Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
 
@@ -368,7 +359,7 @@ namespace Backend.ThreeAddressCode
 
 		public override bool Equals(object obj)
 		{
-			var other = obj as Variable;
+			var other = obj as IVariable;
 			return other != null &&
 				this.Name.Equals(other.Name);
 		}
@@ -384,38 +375,177 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class StaticFieldAccess : FieldAccess
+	public class DerivedVariable : IVariable
 	{
-		public ITypeReference ContainingType { get; set; }
+		public IVariable Original { get; set; }
+		public uint Index { get; set; }
 
-		public StaticFieldAccess(ITypeReference containingType, string fieldName)
+		public DerivedVariable(IVariable original, uint index)
 		{
-			this.ContainingType = containingType;
-			this.FieldName = fieldName;
+			this.Original = original;
+			this.Index = index;
 		}
 
-		public override string Name
+		public string Name
 		{
-			get { return string.Format("{0}::{1}", this.ContainingType, this.FieldName); }
+			get { return string.Format("{0}{1}", this.Original, this.Index); }
+		}
+
+		public ITypeReference Type
+		{
+			get { return this.Original.Type; }
+		}
+
+		ISet<IVariable> IVariableContainer.Variables
+		{
+			get { return new HashSet<IVariable>() { this }; }
+		}
+
+		void IVariableContainer.Replace(IVariable oldvar, IVariable newvar)
+		{
+		}
+
+		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)
+		{
+			if (this.Equals(oldexpr)) return newexpr;
+			return this;
+		}
+
+		IExpression IExpressible.ToExpression()
+		{
+			return this;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as IVariable;
+			return other != null &&
+				this.Name.Equals(other.Name);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			return this.Name;
 		}
 	}
 
-	public class InstanceFieldAccess : FieldAccess, IExpression
+	public interface IFieldAccess : IAssignableValue, IReferenceable, IExpression
 	{
-		public Variable Instance { get; set; }
+		string Name { get; }
+		string FieldName { get; }
+	}
 
-		public InstanceFieldAccess(Variable instance, string fieldName)
+	public class StaticFieldAccess : IFieldAccess
+	{
+		public IFieldReference Field { get; set; }
+
+		public StaticFieldAccess(IFieldReference field)
+		{
+			this.Field = field;
+		}
+
+		public string FieldName
+		{
+			get
+			{
+				var fieldName = MemberHelper.GetMemberSignature(this.Field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+				return fieldName;
+			}
+		}
+
+		public string Name
+		{
+			get
+			{
+				var type = TypeHelper.GetTypeName(this.Field.ContainingType);
+				return string.Format("{0}::{1}", type, this.FieldName);
+			}
+		}
+
+		public ITypeReference Type
+		{
+			get { return this.Field.Type; }
+		}
+
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(); }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
+		{
+		}
+
+		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)
+		{
+			if (this.Equals(oldexpr)) return newexpr;
+			return this;
+		}
+
+		IExpression IExpressible.ToExpression()
+		{
+			return this;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as IVariable;
+			return other != null &&
+				this.Name.Equals(other.Name);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			return this.Name;
+		}
+	}
+
+	public class InstanceFieldAccess : IFieldAccess
+	{
+		public IFieldReference Field { get; set; }
+		public IVariable Instance { get; set; }
+
+		public InstanceFieldAccess(IVariable instance, IFieldReference field)
 		{
 			this.Instance = instance;
-			this.FieldName = fieldName;
+			this.Field = field;
 		}
 
-		public override ISet<Variable> Variables
+		public string FieldName
 		{
-			get { return new HashSet<Variable>() { this.Instance }; }
+			get
+			{
+				var fieldName = MemberHelper.GetMemberSignature(this.Field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+				return fieldName;
+			}
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public string Name
+		{
+			get { return string.Format("{0}.{1}", this.Instance, this.FieldName); }
+		}
+
+		public ITypeReference Type
+		{
+			get { return this.Field.Type; }
+		}
+
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>() { this.Instance }; }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Instance.Equals(oldvar)) this.Instance = newvar;
 		}
@@ -425,10 +555,10 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldexpr)) return newexpr;
 			var result = this;
 
-			if (oldexpr is Variable && newexpr is Variable)
+			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var instance = (this.Instance as IExpression).Replace(oldexpr, newexpr) as Variable;
-				result = new InstanceFieldAccess(instance, this.FieldName);
+				var instance = (this.Instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
+				result = new InstanceFieldAccess(instance, this.Field);
 			}
 
 			return result;
@@ -439,29 +569,121 @@ namespace Backend.ThreeAddressCode
 			return this;
 		}
 
-		public override string Name
+		public override bool Equals(object obj)
+		{
+			var other = obj as IVariable;
+			return other != null &&
+				this.Name.Equals(other.Name);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			return this.Name;
+		}
+	}
+
+	public class ArrayLengthAccess : IFieldAccess
+	{
+		public IVariable Instance { get; set; }
+
+		public ArrayLengthAccess(IVariable instance)
+		{
+			this.Instance = instance;
+		}
+
+		public string FieldName
+		{
+			get { return "Length"; }
+		}
+
+		public string Name
 		{
 			get { return string.Format("{0}.{1}", this.Instance, this.FieldName); }
+		}
+
+		public ITypeReference Type
+		{
+			get { return null; }
+		}
+
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>() { this.Instance }; }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
+		{
+			if (this.Instance.Equals(oldvar)) this.Instance = newvar;
+		}
+
+		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)
+		{
+			if (this.Equals(oldexpr)) return newexpr;
+			var result = this;
+
+			if (oldexpr is IVariable && newexpr is IVariable)
+			{
+				var instance = (this.Instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
+				result = new ArrayLengthAccess(instance);
+			}
+
+			return result;
+		}
+
+		IExpression IExpressible.ToExpression()
+		{
+			return this;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as IVariable;
+			return other != null &&
+				this.Name.Equals(other.Name);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			return this.Name;
 		}
 	}
 
 	public class ArrayElementAccess : IAssignableValue, IReferenceable, IExpression
 	{
-		public Variable Array { get; set; }
-		public Variable Index { get; set; }
+		public IVariable Array { get; set; }
+		public IVariable Index { get; set; }
 
-		public ArrayElementAccess(Variable array, Variable index)
+		public ArrayElementAccess(IVariable array, IVariable index)
 		{
 			this.Array = array;
 			this.Index = index;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>() { this.Array, this.Index }; }
+			get
+			{
+				var type = this.Array.Type as IArrayTypeReference;
+				return type.ElementType;
+			}
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>() { this.Array, this.Index }; }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Array.Equals(oldvar)) this.Array = newvar;
 			if (this.Index.Equals(oldvar)) this.Index = newvar;
@@ -472,10 +694,10 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldexpr)) return newexpr;
 			var result = this;
 
-			if (oldexpr is Variable && newexpr is Variable)
+			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var array = (this.Array as IExpression).Replace(oldexpr, newexpr) as Variable;
-				var index = (this.Index as IExpression).Replace(oldexpr, newexpr) as Variable;
+				var array = (this.Array as IExpression).Replace(oldexpr, newexpr) as IVariable;
+				var index = (this.Index as IExpression).Replace(oldexpr, newexpr) as IVariable;
 				result = new ArrayElementAccess(array, index);
 			}
 
@@ -509,19 +731,28 @@ namespace Backend.ThreeAddressCode
 
 	public class Dereference : IAssignableValue, IReferenceable, IExpression
 	{
-		public Variable Reference { get; set; }
+		public IVariable Reference { get; set; }
 
-		public Dereference(Variable reference)
+		public Dereference(IVariable reference)
 		{
 			this.Reference = reference;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>() { this.Reference }; }
+			get
+			{
+				var type = this.Reference.Type as IPointerTypeReference;
+				return type.TargetType;
+			}
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>() { this.Reference }; }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Reference.Equals(oldvar)) this.Reference = newvar;
 		}
@@ -531,9 +762,9 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldexpr)) return newexpr;
 			var result = this;
 
-			if (oldexpr is Variable && newexpr is Variable)
+			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var reference = (this.Reference as IExpression).Replace(oldexpr, newexpr) as Variable;
+				var reference = (this.Reference as IExpression).Replace(oldexpr, newexpr) as IVariable;
 				result = new Dereference(reference);
 			}
 
@@ -572,12 +803,17 @@ namespace Backend.ThreeAddressCode
 			this.Value = value;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(this.Value.Variables); }
+			get { return ManagedPointerType.GetManagedPointerType(this.Value.Type, null); }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(this.Value.Variables); }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Value.Equals(oldvar)) this.Value = newvar;
 			else this.Value.Replace(oldvar, newvar);

@@ -78,6 +78,45 @@ namespace Backend.ThreeAddressCode.Types
 		}
 	}
 	
+	public static class PrimitiveTypes
+	{
+		public static UnknownType UnknownType
+		{
+			get { return UnknownType.Value; }
+		}
+
+		public static UnknownType Int32
+		{
+			get { return null; }
+		}
+
+		public static UnknownType IntPtr
+		{
+			get { return null; }
+		}
+	}
+
+	public class UnknownType : IType
+	{
+		private static UnknownType value;
+
+		private UnknownType() { }
+
+		public static UnknownType Value
+		{
+			get
+			{
+				if (value == null) value = new UnknownType();
+				return value;
+			}
+		}
+
+		public override string ToString()
+		{
+			return "UNK";
+		}
+	}
+
 	public class BasicType : IType
 	{
 		public string Name { get; set; }

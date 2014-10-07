@@ -2,6 +2,7 @@
 Backend/*.user
 Backend/bin
 Backend/obj
+Console/*.user
 Console/bin
 Console/obj
 Test/bin

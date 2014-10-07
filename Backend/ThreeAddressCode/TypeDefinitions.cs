@@ -86,7 +86,7 @@ namespace Backend.ThreeAddressCode.Types
 		public IType ReturnType { get; set; }
 		public string Name { get; set; }
 		public IList<TypeVariable> GenericParameters { get; private set; }
-		public IList<Variable> Parameters { get; private set; }
+		public IList<IVariable> Parameters { get; private set; }
 		public bool IsStatic { get; set; }
 		public bool IsConstructor { get; set; }
 
@@ -95,7 +95,7 @@ namespace Backend.ThreeAddressCode.Types
 			this.Name = name;
 			this.ReturnType = returnType;
 			this.GenericParameters = new List<TypeVariable>();
-			this.Parameters = new List<Variable>();
+			this.Parameters = new List<IVariable>();
 		}
 
 		public override string ToString()

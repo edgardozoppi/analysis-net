@@ -27,10 +27,10 @@ namespace Backend.Utils
 			return new Subset<T>(universe, true);
 		}
 
-		public static ISet<Variable> ModifiedVariables(this CFGNode node)
+		public static ISet<IVariable> ModifiedVariables(this CFGNode node)
 		{
 			var result = node.Instructions.SelectMany(i => i.ModifiedVariables);
-			return new HashSet<Variable>(result);
+			return new HashSet<IVariable>(result);
 		}
 
 		public static IExpression ToExpression(this IValue value)
@@ -38,13 +38,13 @@ namespace Backend.Utils
 			return value as IExpression;
 		}
 
-		public static IExpression GetValue(this IDictionary<Variable, IExpression> equalities, Variable variable)
+		public static IExpression GetValue(this IDictionary<IVariable, IExpression> equalities, IVariable variable)
 		{
 			var result = equalities.ContainsKey(variable) ? equalities[variable] : variable;
 			return result;
 		}
 
-		public static IExpression ReplaceVariables<T>(this IExpression expr, IDictionary<Variable, T> equalities) where T : IExpression
+		public static IExpression ReplaceVariables<T>(this IExpression expr, IDictionary<IVariable, T> equalities) where T : IExpression
 		{
 			foreach (var variable in expr.Variables)
 			{

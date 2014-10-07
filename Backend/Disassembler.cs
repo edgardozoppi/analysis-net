@@ -5,91 +5,61 @@ using System.Text;
 using Microsoft.Cci;
 using Backend.ThreeAddressCode;
 using Backend.Utils;
-using Backend.ThreeAddressCode.Types;
 
 namespace Backend
 {
 	public class Disassembler
 	{
-		#region TemporalVariablesFactory
-
-		private class TemporalVariablesFactory
-		{
-			private IList<TemporalVariable> variables;
-			private uint variableIndex;
-
-			public TemporalVariablesFactory()
-			{
-				this.variables = new List<TemporalVariable>();
-			}
-
-			public IList<TemporalVariable> Variables
-			{
-				get { return variables; }
-			}
-
-			public TemporalVariable New(IType type)
-			{
-				var variable = new TemporalVariable(variableIndex++);
-				variables.Add(variable);
-				return variable;
-			}
-		}
-
-		#endregion
-
 		#region class OperandStack
 
 		private class OperandStack
 		{
-			private TemporalVariablesFactory factory;
 			private TemporalVariable[] stack;
 			private ushort top;
 
-			public OperandStack(TemporalVariablesFactory factory, ushort capacity)
-			{				
-				this.stack = new TemporalVariable[capacity];
-				this.factory = factory;
+			public OperandStack(ushort capacity)
+			{
+				stack = new TemporalVariable[capacity];
+
+				for (var i = 0u; i < capacity; ++i)
+					stack[i] = new TemporalVariable(i);
 			}
 
-			public ushort Capacity
+			public IEnumerable<TemporalVariable> Variables
 			{
-				get { return (ushort)stack.Length; }
+				get { return this.stack; }
+			}
+
+			public int Capacity
+			{
+				get { return stack.Length; }
 			}
 
 			public ushort Size
 			{
 				get { return top; }
+				set
+				{
+					if (value < 0 || value > stack.Length) throw new InvalidOperationException();
+					top = value;
+				}
 			}
 
 			public void Clear()
 			{
 				top = 0;
-				Array.Clear(stack, 0, stack.Length);
 			}
 
-			public OperandStack Clone()
-			{
-				var clone = new OperandStack(factory, this.Capacity);
-				stack.CopyTo(clone.stack, 0);
-				clone.top = top;
-				return clone;
-			}
-
-			public TemporalVariable Push(IType type = null)
+			public TemporalVariable Push()
 			{
 				if (top >= stack.Length) throw new InvalidOperationException();
-				var variable = factory.New(type);
-				stack[top++] = variable;
-				return variable;
+				return stack[top++];
 			}
 
 			public TemporalVariable Pop()
 			{
 				if (top <= 0) throw new InvalidOperationException();
-				var variable = stack[--top];
-				stack[top] = null;
-				return variable;
+				return stack[--top];
 			}
 
 			public TemporalVariable Top()
@@ -115,7 +85,6 @@ namespace Backend
 			public uint Offset { get; private set; }
 			public bool CanEnterByFallThrough { get; set; }
 			public ushort StackSizeAtEntry { get; set; }
-			public OperandStack Stack { get; set; }
 			public BasicBlockStatus Status { get; set; }
 			public IList<Instruction> Instructions { get; private set; }
 
@@ -135,7 +104,7 @@ namespace Backend
 		private LocalVariable thisParameter;
 		private IDictionary<IParameterDefinition, LocalVariable> parameters;
 		private IDictionary<ILocalDefinition, LocalVariable> locals;
-		private TemporalVariablesFactory temporals;
+		private OperandStack stack;
 		private Map<uint, IExceptionHandlerBlock> exceptionHandlersStart;
 		private Map<uint, IExceptionHandlerBlock> exceptionHandlersEnd;
 		private IDictionary<uint, BasicBlockInfo> basicBlocks;
@@ -148,7 +117,7 @@ namespace Backend
 			this.sourceLocationProvider = sourceLocationProvider;
 			this.parameters = new Dictionary<IParameterDefinition, LocalVariable>();
 			this.locals = new Dictionary<ILocalDefinition, LocalVariable>();
-			this.temporals = new TemporalVariablesFactory();
+			this.stack = new OperandStack(method.Body.MaxStack);
 			this.exceptionHandlersStart = new Map<uint, IExceptionHandlerBlock>();
 			this.exceptionHandlersEnd = new Map<uint, IExceptionHandlerBlock>();
 			this.basicBlocks = new SortedDictionary<uint, BasicBlockInfo>();
@@ -176,6 +145,7 @@ namespace Backend
 		public MethodBody Execute()
 		{
 			var body = new MethodBody(method);
+
 			if (method.Body.Size == 0) return body;
 
 			this.FillBodyExceptionHandlers(body);
@@ -191,12 +161,7 @@ namespace Backend
 				var firstOperation = operations[offset];
 
 				basicBlock.Status = BasicBlockStatus.Processed;
-				
-				if (basicBlock.Stack == null)
-				{
-					basicBlock.Stack = new OperandStack(temporals, method.Body.MaxStack);
-				}
-
+				stack.Size = basicBlock.StackSizeAtEntry;
 				this.ProcessBasicBlock(basicBlock, firstOperation);
 			}
 
@@ -232,7 +197,7 @@ namespace Backend
 
 			body.Variables.UnionWith(body.Parameters);
 			body.Variables.UnionWith(locals.Values);
-			body.Variables.UnionWith(temporals.Variables);
+			body.Variables.UnionWith(stack.Variables);
 		}
 
 		private void FillBodyInstructions(MethodBody body)
@@ -392,7 +357,7 @@ namespace Backend
 			}
 		}
 
-		private void AddToPendingBasicBlocks(uint offset, OperandStack stack, bool isBranchTarget)
+		private void AddToPendingBasicBlocks(uint offset, bool isBranchTarget)
 		{
 			var basicBlock = basicBlocks[offset];
 
@@ -404,7 +369,6 @@ namespace Backend
 				if (isBranchTarget || basicBlock.CanEnterByFallThrough)
 				{
 					basicBlock.StackSizeAtEntry = stack.Size;
-					basicBlock.Stack = stack.Clone();
 				}				
 			}
 
@@ -426,7 +390,7 @@ namespace Backend
 
 				if (op.Offset > bb.Offset && basicBlocks.ContainsKey(op.Offset))
 				{
-					this.AddToPendingBasicBlocks(op.Offset, bb.Stack, false);
+					this.AddToPendingBasicBlocks(op.Offset, false);
 					return;
 				}
 
@@ -851,7 +815,7 @@ namespace Backend
 						throw new NotImplementedException("Invalid opcode: No.");
 
 					case OperationCode.Pop:
-						bb.Stack.Pop();
+						stack.Pop();
 						break;
 
 					//case OperationCode.Readonly_:
@@ -974,7 +938,7 @@ namespace Backend
 
 						case ExceptionHandlerBlockKind.Catch:
 							// push the exception into the stack
-							var exception = bb.Stack.Push();
+							var exception = stack.Push();
 							var catchBlock = block as CatchExceptionHandler;
 							instruction = new CatchInstruction(bb.Offset, exception, catchBlock.ExceptionType);
 							break;
@@ -999,21 +963,21 @@ namespace Backend
 		private void ProcessSwitch(BasicBlockInfo bb, IOperation op)
 		{
 			var targets = op.Value as uint[];
-			var operand = bb.Stack.Pop();
+			var operand = stack.Pop();
 
 			var instruction = new SwitchInstruction(op.Offset, operand, targets);
 			bb.Instructions.Add(instruction);
 
 			foreach (var target in targets)
 			{
-				this.AddToPendingBasicBlocks(target, bb.Stack, true);
+				this.AddToPendingBasicBlocks(target, true);
 			}
 		}
 
 		private void ProcessThrow(BasicBlockInfo bb, IOperation op)
 		{
-			var exception = bb.Stack.Pop();
-			bb.Stack.Clear();
+			var exception = stack.Pop();
+			stack.Clear();
 
 			var instruction = new ThrowInstruction(op.Offset, exception);
 			bb.Instructions.Add(instruction);
@@ -1027,8 +991,8 @@ namespace Backend
 
 		private void ProcessLocalAllocation(BasicBlockInfo bb, IOperation op)
 		{
-			var numberOfBytes = bb.Stack.Pop();
-			var targetAddress = bb.Stack.Push();
+			var numberOfBytes = stack.Pop();
+			var targetAddress = stack.Push();
 
 			var instruction = new LocalAllocationInstruction(op.Offset, targetAddress, numberOfBytes);
 			bb.Instructions.Add(instruction);
@@ -1036,9 +1000,9 @@ namespace Backend
 
 		private void ProcessInitializeMemory(BasicBlockInfo bb, IOperation op)
 		{
-			var numberOfBytes = bb.Stack.Pop();
-			var fillValue = bb.Stack.Pop();
-			var targetAddress = bb.Stack.Pop();
+			var numberOfBytes = stack.Pop();
+			var fillValue = stack.Pop();
+			var targetAddress = stack.Pop();
 
 			var instruction = new InitializeMemoryInstruction(op.Offset, targetAddress, fillValue, numberOfBytes);
 			bb.Instructions.Add(instruction);
@@ -1046,7 +1010,7 @@ namespace Backend
 
 		private void ProcessInitializeObject(BasicBlockInfo bb, IOperation op)
 		{
-			var targetAddress = bb.Stack.Pop();
+			var targetAddress = stack.Pop();
 			var instruction = new InitializeObjectInstruction(op.Offset, targetAddress);
 			bb.Instructions.Add(instruction);
 		}
@@ -1056,36 +1020,36 @@ namespace Backend
 			var arrayType = op.Value as IArrayTypeReference;
 			var elementType = arrayType.ElementType;
 			var rank = arrayType.Rank;
-			var lowerBounds = new List<Variable>();
-			var sizes = new List<Variable>();
+			var lowerBounds = new List<IVariable>();
+			var sizes = new List<IVariable>();
 
 			if (withLowerBounds)
 			{
 				for (uint i = 0; i < arrayType.Rank; i++)
 				{
-					var operand = bb.Stack.Pop();
+					var operand = stack.Pop();
 					lowerBounds.Add(operand);
 				}
 			}
 
 			for (uint i = 0; i < arrayType.Rank; i++)
 			{
-				var operand = bb.Stack.Pop();
+				var operand = stack.Pop();
 				sizes.Add(operand);
 			}
 
 			lowerBounds.Reverse();
 			sizes.Reverse();
 
-			var result = bb.Stack.Push();
+			var result = stack.Push();
 			var instruction = new CreateArrayInstruction(op.Offset, result, elementType, rank, lowerBounds, sizes);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessCopyObject(BasicBlockInfo bb, IOperation op)
 		{
-			var sourceAddress = bb.Stack.Pop();
-			var targetAddress = bb.Stack.Pop();
+			var sourceAddress = stack.Pop();
+			var targetAddress = stack.Pop();
 
 			var instruction = new CopyObjectInstruction(op.Offset, targetAddress, sourceAddress);
 			bb.Instructions.Add(instruction);
@@ -1093,9 +1057,9 @@ namespace Backend
 
 		private void ProcessCopyMemory(BasicBlockInfo bb, IOperation op)
 		{
-			var numberOfBytes = bb.Stack.Pop();
-			var sourceAddress = bb.Stack.Pop();
-			var targetAddress = bb.Stack.Pop();
+			var numberOfBytes = stack.Pop();
+			var sourceAddress = stack.Pop();
+			var targetAddress = stack.Pop();
 
 			var instruction = new CopyMemoryInstruction(op.Offset, targetAddress, sourceAddress, numberOfBytes);
 			bb.Instructions.Add(instruction);
@@ -1104,21 +1068,21 @@ namespace Backend
 		private void ProcessCreateObject(BasicBlockInfo bb, IOperation op)
 		{
 			var callee = op.Value as IMethodReference;
-			var arguments = new List<Variable>();
+			var arguments = new List<IVariable>();
 
 			foreach (var par in callee.Parameters)
 			{
-				var arg = bb.Stack.Pop();
+				var arg = stack.Pop();
 				arguments.Add(arg);
 			}
 
 			foreach (var par in callee.ExtraParameters)
 			{
-				var arg = bb.Stack.Pop();
+				var arg = stack.Pop();
 				arguments.Add(arg);
 			}
 
-			var result = bb.Stack.Push();
+			var result = stack.Push();
 			arguments.Add(result);
 			arguments.Reverse();
 
@@ -1129,25 +1093,25 @@ namespace Backend
 		private void ProcessMethodCall(BasicBlockInfo bb, IOperation op)
 		{
 			var callee = op.Value as IMethodReference;
-			var arguments = new List<Variable>();
-			Variable result = null;
+			var arguments = new List<IVariable>();
+			IVariable result = null;
 
 			foreach (var par in callee.Parameters)
 			{
-				var arg = bb.Stack.Pop();
+				var arg = stack.Pop();
 				arguments.Add(arg);
 			}
 
 			foreach (var par in callee.ExtraParameters)
 			{
-				var arg = bb.Stack.Pop();
+				var arg = stack.Pop();
 				arguments.Add(arg);
 			}
 
 			if (!callee.IsStatic)
 			{
 				// Adding implicit this parameter
-				var argThis = bb.Stack.Pop();
+				var argThis = stack.Pop();
 				arguments.Add(argThis);
 			}
 
@@ -1155,7 +1119,7 @@ namespace Backend
 
 			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
 			{
-				result = bb.Stack.Push();
+				result = stack.Push();
 			}
 
 			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
@@ -1165,20 +1129,20 @@ namespace Backend
 		private void ProcessMethodCallIndirect(BasicBlockInfo bb, IOperation op)
 		{
 			var calleeType = op.Value as IFunctionPointerTypeReference;
-			var calleePointer = bb.Stack.Pop();
-			var arguments = new List<Variable>();
-			Variable result = null;
+			var calleePointer = stack.Pop();
+			var arguments = new List<IVariable>();
+			IVariable result = null;
 
 			foreach (var par in calleeType.Parameters)
 			{
-				var arg = bb.Stack.Pop();
+				var arg = stack.Pop();
 				arguments.Add(arg);
 			}
 
 			if (!calleeType.IsStatic)
 			{
 				// Adding implicit this parameter
-				var argThis = bb.Stack.Pop();
+				var argThis = stack.Pop();
 				arguments.Add(argThis);
 			}
 
@@ -1186,7 +1150,7 @@ namespace Backend
 
 			if (calleeType.Type.TypeCode != PrimitiveTypeCode.Void)
 			{
-				result = bb.Stack.Push();
+				result = stack.Push();
 			}
 
 			var instruction = new IndirectMethodCallInstruction(op.Offset, result, calleePointer, calleeType, arguments);
@@ -1196,8 +1160,8 @@ namespace Backend
 		private void ProcessJumpCall(BasicBlockInfo bb, IOperation op)
 		{
 			var callee = op.Value as IMethodReference;
-			var arguments = new List<Variable>();
-			Variable result = null;
+			var arguments = new List<IVariable>();
+			IVariable result = null;
 
 			if (!callee.IsStatic)
 			{
@@ -1209,7 +1173,7 @@ namespace Backend
 
 			if (callee.Type.TypeCode != PrimitiveTypeCode.Void)
 			{
-				result = bb.Stack.Push();
+				result = stack.Push();
 			}
 
 			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
@@ -1219,7 +1183,7 @@ namespace Backend
 		private void ProcessSizeof(BasicBlockInfo bb, IOperation op)
 		{
 			var type = op.Value as ITypeReference;
-			var result = bb.Stack.Push();
+			var result = stack.Push();
 			var instruction = new SizeofInstruction(op.Offset, result, type);
 			bb.Instructions.Add(instruction);
 		}
@@ -1227,28 +1191,28 @@ namespace Backend
 		private void ProcessUnaryConditionalBranch(BasicBlockInfo bb, IOperation op, bool value)
 		{
 			var right = new Constant(value);
-			var left = bb.Stack.Pop();
+			var left = stack.Pop();
 			var target = (uint)op.Value;
 			var instruction = new ConditionalBranchInstruction(op.Offset, left, BranchOperation.Eq, right, target);
 			bb.Instructions.Add(instruction);
 
-			this.AddToPendingBasicBlocks(target, bb.Stack, true);
+			this.AddToPendingBasicBlocks(target, true);
 		}
 
 		private void ProcessBinaryConditionalBranch(BasicBlockInfo bb, IOperation op, BranchOperation condition)
 		{
-			var right = bb.Stack.Pop();
-			var left = bb.Stack.Pop();
+			var right = stack.Pop();
+			var left = stack.Pop();
 			var target = (uint)op.Value;
 			var instruction = new ConditionalBranchInstruction(op.Offset, left, condition, right, target);
 			bb.Instructions.Add(instruction);
 
-			this.AddToPendingBasicBlocks(target, bb.Stack, true);
+			this.AddToPendingBasicBlocks(target, true);
 		}
 
 		private void ProcessEndFinally(BasicBlockInfo bb, IOperation op)
 		{
-			bb.Stack.Clear();
+			stack.Clear();
 
 			//// TODO: Maybe we don't need to add this branch instruction
 			//// since it is jumping to the next one,
@@ -1273,7 +1237,7 @@ namespace Backend
 		{
 			var isTryFinallyEnd = false;
 	
-			bb.Stack.Clear();
+			stack.Clear();
 
 			//if (exceptionHandlersEnd.ContainsKey(op.Offset))
 			//{
@@ -1322,7 +1286,7 @@ namespace Backend
 				var instruction = new UnconditionalBranchInstruction(op.Offset, target);
 				bb.Instructions.Add(instruction);
 
-				this.AddToPendingBasicBlocks(target, bb.Stack, true);
+				this.AddToPendingBasicBlocks(target, true);
 			}
 		}
 
@@ -1332,16 +1296,16 @@ namespace Backend
 			var instruction = new UnconditionalBranchInstruction(op.Offset, target);
 			bb.Instructions.Add(instruction);
 
-			this.AddToPendingBasicBlocks(target, bb.Stack, true);
+			this.AddToPendingBasicBlocks(target, true);
 		}
 
 		private void ProcessReturn(BasicBlockInfo bb, IOperation op)
 		{
-			Variable operand = null;
+			IVariable operand = null;
 
 			if (method.Type.TypeCode != PrimitiveTypeCode.Void)
 			{
-				operand = bb.Stack.Pop();
+				operand = stack.Pop();
 			}
 
 			var instruction = new ReturnInstruction(op.Offset, operand);
@@ -1351,7 +1315,7 @@ namespace Backend
 		private void ProcessLoadConstant(BasicBlockInfo bb, IOperation op)
 		{
 			var source = new Constant(op.Value);
-			var dest = bb.Stack.Push();
+			var dest = stack.Push();
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
@@ -1366,7 +1330,7 @@ namespace Backend
 				source = parameters[argument];
 			}
 
-			var dest = bb.Stack.Push();
+			var dest = stack.Push();
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
@@ -1381,7 +1345,7 @@ namespace Backend
 				operand = parameters[argument];
 			}
 
-			var dest = bb.Stack.Push();
+			var dest = stack.Push();
 			var source = new Reference(operand);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1391,7 +1355,7 @@ namespace Backend
 		{
 			var local = op.Value as ILocalDefinition;
 			var source = locals[local];
-			var dest = bb.Stack.Push();
+			var dest = stack.Push();
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
@@ -1400,7 +1364,7 @@ namespace Backend
 		{
 			var local = op.Value as ILocalDefinition;
 			var operand = locals[local];
-			var dest = bb.Stack.Push();
+			var dest = stack.Push();
 			var source = new Reference(operand);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1408,8 +1372,8 @@ namespace Backend
 
 		private void ProcessLoadIndirect(BasicBlockInfo bb, IOperation op)
 		{
-			var address = bb.Stack.Pop();
-			var dest = bb.Stack.Push();
+			var address = stack.Pop();
+			var dest = stack.Push();
 			var source = new Dereference(address);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1418,10 +1382,9 @@ namespace Backend
 		private void ProcessLoadInstanceField(BasicBlockInfo bb, IOperation op)
 		{
 			var field = op.Value as IFieldReference;
-			var obj = bb.Stack.Pop();
-			var dest = bb.Stack.Push();
-			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-			var source = new InstanceFieldAccess(obj, fieldName);
+			var obj = stack.Pop();
+			var dest = stack.Push();
+			var source = new InstanceFieldAccess(obj, field);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
@@ -1429,9 +1392,8 @@ namespace Backend
 		private void ProcessLoadStaticField(BasicBlockInfo bb, IOperation op)
 		{
 			var field = op.Value as IFieldReference;
-			var dest = bb.Stack.Push();
-			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-			var source = new StaticFieldAccess(field.ContainingType, fieldName);
+			var dest = stack.Push();
+			var source = new StaticFieldAccess(field);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
@@ -1439,10 +1401,9 @@ namespace Backend
 		private void ProcessLoadInstanceFieldAddress(BasicBlockInfo bb, IOperation op)
 		{
 			var field = op.Value as IFieldReference;
-			var obj = bb.Stack.Pop();
-			var dest = bb.Stack.Push();
-			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-			var access = new InstanceFieldAccess(obj, fieldName);
+			var obj = stack.Pop();
+			var dest = stack.Push();
+			var access = new InstanceFieldAccess(obj, field);
 			var source = new Reference(access);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1451,9 +1412,8 @@ namespace Backend
 		private void ProcessLoadStaticFieldAddress(BasicBlockInfo bb, IOperation op)
 		{
 			var field = op.Value as IFieldReference;
-			var dest = bb.Stack.Push();
-			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-			var access = new StaticFieldAccess(field.ContainingType, fieldName);
+			var dest = stack.Push();
+			var access = new StaticFieldAccess(field);
 			var source = new Reference(access);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1461,18 +1421,18 @@ namespace Backend
 
 		private void ProcessLoadArrayLength(BasicBlockInfo bb, IOperation op)
 		{
-			var array = bb.Stack.Pop();
-			var dest = bb.Stack.Push();
-			var length = new InstanceFieldAccess(array, "Length");
+			var array = stack.Pop();
+			var dest = stack.Push();
+			var length = new ArrayLengthAccess(array);
 			var instruction = new LoadInstruction(op.Offset, dest, length);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessLoadArrayElement(BasicBlockInfo bb, IOperation op)
 		{
-			var index = bb.Stack.Pop();
-			var array = bb.Stack.Pop();			
-			var dest = bb.Stack.Push();
+			var index = stack.Pop();
+			var array = stack.Pop();			
+			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, index);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1480,9 +1440,9 @@ namespace Backend
 
 		private void ProcessLoadArrayElementAddress(BasicBlockInfo bb, IOperation op)
 		{
-			var index = bb.Stack.Pop();
-			var array = bb.Stack.Pop();
-			var dest = bb.Stack.Push();
+			var index = stack.Pop();
+			var array = stack.Pop();
+			var dest = stack.Push();
 			var access = new ArrayElementAccess(array, index);
 			var source = new Reference(access);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
@@ -1492,7 +1452,7 @@ namespace Backend
 		private void ProcessLoadMethodAddress(BasicBlockInfo bb, IOperation op)
 		{
 			var method = op.Value as IMethodReference;
-			var dest = bb.Stack.Push();
+			var dest = stack.Push();
 			var signature = new StaticMethod(method);
 			var source = new Reference(signature);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
@@ -1502,8 +1462,8 @@ namespace Backend
 		private void ProcessLoadVirtualMethodAddress(BasicBlockInfo bb, IOperation op)
 		{
 			var method = op.Value as IMethodReference;
-			var obj = bb.Stack.Pop();
-			var dest = bb.Stack.Push();
+			var obj = stack.Pop();
+			var dest = stack.Push();
 			var signature = new VirtualMethod(obj, method);
 			var source = new Reference(signature);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
@@ -1520,7 +1480,7 @@ namespace Backend
 				throw new Exception("Error while processing load token instruction.");
 			}
 
-			var result = bb.Stack.Push();
+			var result = stack.Push();
 			var instruction = new LoadTokenInstruction(op.Offset, result, type);
 			bb.Instructions.Add(instruction);
 		}
@@ -1535,7 +1495,7 @@ namespace Backend
 				dest = parameters[argument];
 			}
 			
-			var source = bb.Stack.Pop();
+			var source = stack.Pop();
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
@@ -1544,15 +1504,15 @@ namespace Backend
 		{
 			var local = op.Value as ILocalDefinition;
 			var dest = locals[local];
-			var source = bb.Stack.Pop();
+			var source = stack.Pop();
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessStoreIndirect(BasicBlockInfo bb, IOperation op)
 		{
-			var source = bb.Stack.Pop();
-			var address = bb.Stack.Pop();
+			var source = stack.Pop();
+			var address = stack.Pop();
 			var dest = new Dereference(address);
 			var instruction = new StoreInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1561,10 +1521,9 @@ namespace Backend
 		private void ProcessStoreInstanceField(BasicBlockInfo bb, IOperation op)
 		{
 			var field = op.Value as IFieldReference;
-			var source = bb.Stack.Pop();
-			var obj = bb.Stack.Pop();
-			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-			var dest = new InstanceFieldAccess(obj, fieldName);
+			var source = stack.Pop();
+			var obj = stack.Pop();
+			var dest = new InstanceFieldAccess(obj, field);
 			var instruction = new StoreInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
@@ -1572,18 +1531,17 @@ namespace Backend
 		private void ProcessStoreStaticField(BasicBlockInfo bb, IOperation op)
 		{
 			var field = op.Value as IFieldReference;
-			var source = bb.Stack.Pop();
-			var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-			var dest = new StaticFieldAccess(field.ContainingType, fieldName);
+			var source = stack.Pop();
+			var dest = new StaticFieldAccess(field);
 			var instruction = new StoreInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessStoreArrayElement(BasicBlockInfo bb, IOperation op)
 		{
-			var source = bb.Stack.Pop();
-			var index = bb.Stack.Pop();
-			var array = bb.Stack.Pop();
+			var source = stack.Pop();
+			var index = stack.Pop();
+			var array = stack.Pop();
 			var dest = new ArrayElementAccess(array, index);
 			var instruction = new StoreInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1603,17 +1561,17 @@ namespace Backend
 
 		private void ProcessUnaryOperation(BasicBlockInfo bb, IOperation op, UnaryOperation operation)
 		{
-			var operand = bb.Stack.Pop();
-			var dest = bb.Stack.Push();
+			var operand = stack.Pop();
+			var dest = stack.Push();
 			var instruction = new UnaryInstruction(op.Offset, dest, operation, operand);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessBinaryOperation(BasicBlockInfo bb, IOperation op, BinaryOperation operation)
 		{
-			var right = bb.Stack.Pop();
-			var left = bb.Stack.Pop();
-			var dest = bb.Stack.Push();
+			var right = stack.Pop();
+			var left = stack.Pop();
+			var dest = stack.Push();
 			var instruction = new BinaryInstruction(op.Offset, dest, left, operation, right);
 			bb.Instructions.Add(instruction);
 		}
@@ -1626,16 +1584,16 @@ namespace Backend
 
 		private void ProcessConversion(BasicBlockInfo bb, IOperation op, ITypeReference type)
 		{
-			var operand = bb.Stack.Pop();
-			var result = bb.Stack.Push();
+			var operand = stack.Pop();
+			var result = stack.Push();
 			var instruction = new ConvertInstruction(op.Offset, result, type, operand);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessDup(BasicBlockInfo bb, IOperation op)
 		{
-			var source = bb.Stack.Top();
-			var dest = bb.Stack.Push();
+			var source = stack.Top();
+			var dest = stack.Push();
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}

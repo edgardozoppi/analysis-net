@@ -8,10 +8,10 @@ using Backend.Utils;
 
 namespace Backend.Analysis
 {
-	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, IInmediateValue>> 
+	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IInmediateValue>> 
 	{
-		private IDictionary<Variable, IInmediateValue>[] GEN;
-		private ISet<Variable>[] KILL;
+		private IDictionary<IVariable, IInmediateValue>[] GEN;
+		private ISet<IVariable>[] KILL;
 
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
 		{
@@ -20,24 +20,24 @@ namespace Backend.Analysis
 			this.ComputeKill();
 		}
 
-		protected override IDictionary<Variable, IInmediateValue> InitialValue(CFGNode node)
+		protected override IDictionary<IVariable, IInmediateValue> InitialValue(CFGNode node)
 		{
-			return new Dictionary<Variable, IInmediateValue>();
+			return new Dictionary<IVariable, IInmediateValue>();
 		}
 
-		protected override IDictionary<Variable, IInmediateValue> DefaultValue(CFGNode node)
+		protected override IDictionary<IVariable, IInmediateValue> DefaultValue(CFGNode node)
 		{
 			return GEN[node.Id];
 		}
 
-		protected override bool Compare(IDictionary<Variable, IInmediateValue> left, IDictionary<Variable, IInmediateValue> right)
+		protected override bool Compare(IDictionary<IVariable, IInmediateValue> left, IDictionary<IVariable, IInmediateValue> right)
 		{
 			return left.SequenceEqual(right);
 		}
 
-		protected override IDictionary<Variable, IInmediateValue> Join(IDictionary<Variable, IInmediateValue> left, IDictionary<Variable, IInmediateValue> right)
+		protected override IDictionary<IVariable, IInmediateValue> Join(IDictionary<IVariable, IInmediateValue> left, IDictionary<IVariable, IInmediateValue> right)
 		{
-			var result = new Dictionary<Variable, IInmediateValue>(left);
+			var result = new Dictionary<IVariable, IInmediateValue>(left);
 
 			foreach (var copy in right)
 			{
@@ -62,17 +62,17 @@ namespace Backend.Analysis
 			return result;
 		}
 
-		protected override IDictionary<Variable, IInmediateValue> Flow(CFGNode node, IDictionary<Variable, IInmediateValue> input)
+		protected override IDictionary<IVariable, IInmediateValue> Flow(CFGNode node, IDictionary<IVariable, IInmediateValue> input)
 		{
-			IDictionary<Variable, IInmediateValue> result;
+			IDictionary<IVariable, IInmediateValue> result;
 
 			if (input == null)
 			{
-				result = new Dictionary<Variable, IInmediateValue>();
+				result = new Dictionary<IVariable, IInmediateValue>();
 			}
 			else
 			{
-				result = new Dictionary<Variable, IInmediateValue>(input);
+				result = new Dictionary<IVariable, IInmediateValue>(input);
 			}
 
 			foreach (var instruction in node.Instructions)
@@ -95,7 +95,7 @@ namespace Backend.Analysis
 
 		private void ComputeGen()
 		{
-			GEN = new IDictionary<Variable, IInmediateValue>[this.cfg.Nodes.Count];
+			GEN = new IDictionary<IVariable, IInmediateValue>[this.cfg.Nodes.Count];
 
 			foreach (var node in this.cfg.Nodes)
 			{
@@ -106,11 +106,11 @@ namespace Backend.Analysis
 
 		private void ComputeKill()
 		{
-			KILL = new ISet<Variable>[this.cfg.Nodes.Count];
+			KILL = new ISet<IVariable>[this.cfg.Nodes.Count];
 
 			foreach (var node in this.cfg.Nodes)
 			{
-				var kill = new HashSet<Variable>();
+				var kill = new HashSet<IVariable>();
 
 				foreach (var instruction in node.Instructions)
 				{
@@ -121,7 +121,7 @@ namespace Backend.Analysis
 			}
 		}
 
-		private void RemoveCopiesWithVariable(IDictionary<Variable, IInmediateValue> copies, Variable variable)
+		private void RemoveCopiesWithVariable(IDictionary<IVariable, IInmediateValue> copies, IVariable variable)
 		{
 			var array = copies.ToArray();
 
@@ -135,9 +135,9 @@ namespace Backend.Analysis
 			}
 		}
 
-		private KeyValuePair<Variable, IInmediateValue>? Flow(Instruction instruction, IDictionary<Variable, IInmediateValue> copies)
+		private KeyValuePair<IVariable, IInmediateValue>? Flow(Instruction instruction, IDictionary<IVariable, IInmediateValue> copies)
 		{
-			KeyValuePair<Variable, IInmediateValue>? result = null;
+			KeyValuePair<IVariable, IInmediateValue>? result = null;
 
 			if (instruction is DefinitionInstruction)
 			{
@@ -145,7 +145,7 @@ namespace Backend.Analysis
 
 				if (definition.HasResult)
 				{
-					result = new KeyValuePair<Variable, IInmediateValue>(definition.Result, UnknownValue.Value);
+					result = new KeyValuePair<IVariable, IInmediateValue>(definition.Result, UnknownValue.Value);
 				}
 				
 				if (definition is LoadInstruction)
@@ -155,11 +155,11 @@ namespace Backend.Analysis
 					if (assignment.Operand is Constant)
 					{
 						var constant = assignment.Operand as Constant;
-						result = new KeyValuePair<Variable, IInmediateValue>(assignment.Result, constant);
+						result = new KeyValuePair<IVariable, IInmediateValue>(assignment.Result, constant);
 					}
-					else if (assignment.Operand is Variable)
+					else if (assignment.Operand is IVariable)
 					{
-						var variable = assignment.Operand as Variable;
+						var variable = assignment.Operand as IVariable;
 						IInmediateValue operand = variable;
 
 						if (copies.ContainsKey(variable))
@@ -167,7 +167,7 @@ namespace Backend.Analysis
 							operand = copies[variable];
 						}
 
-						result = new KeyValuePair<Variable, IInmediateValue>(assignment.Result, operand);
+						result = new KeyValuePair<IVariable, IInmediateValue>(assignment.Result, operand);
 					}
 				}
 			}

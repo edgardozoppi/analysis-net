@@ -10,6 +10,8 @@ namespace Backend
 {
 	public class TypesExtractor
 	{
+		#region class TypesTraverser
+
 		private class TypesTraverser : Cci.MetadataTraverser
 		{
 			private Cci.IMetadataHost host;
@@ -54,7 +56,7 @@ namespace Backend
 				var name = typedef.Name.Value;
 				var type = new EnumDefinition(name);
 
-				type.UnderlayingType = this.ExtractType(typedef.UnderlyingType) as BasicType;
+				type.UnderlayingType = TypesExtractor.ExtractType(typedef.UnderlyingType) as BasicType;
 				this.ExtractConstants(type.Constants, typedef.Fields);
 
 				types.Add(name, type);
@@ -97,7 +99,7 @@ namespace Backend
 					basedef = host.PlatformType.SystemObject;
 				}
 
-				type.Base = this.ExtractType(basedef) as BasicType;
+				type.Base = TypesExtractor.ExtractType(basedef) as BasicType;
 
 				this.ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
 				this.ExtractInterfaces(type.Interfaces, typedef.BaseClasses);
@@ -124,7 +126,7 @@ namespace Backend
 				foreach (var methoddef in source)
 				{
 					var name = methoddef.Name.Value;
-					var type = this.ExtractType(methoddef.Type);
+					var type = TypesExtractor.ExtractType(methoddef.Type);
 					var method = new MethodDefinition(name, type);
 
 					this.ExtractGenericParameters(method.GenericParameters, methoddef.GenericParameters);
@@ -151,18 +153,18 @@ namespace Backend
 			{
 				foreach (var interfaceref in source)
 				{
-					var type = this.ExtractType(interfaceref) as BasicType;
+					var type = TypesExtractor.ExtractType(interfaceref) as BasicType;
 
 					dest.Add(type);
 				}
 			}
 
-			private void ExtractParameters(IList<Variable> dest, IEnumerable<Cci.IParameterDefinition> source)
+			private void ExtractParameters(IList<IVariable> dest, IEnumerable<Cci.IParameterDefinition> source)
 			{
 				foreach (var parameterdef in source)
 				{
 					var name = parameterdef.Name.Value;
-					var type = this.ExtractType(parameterdef.Type);
+					var type = TypesExtractor.ExtractType(parameterdef.Type);
 					var parameter = new LocalVariable(name);
 
 					dest.Add(parameter);
@@ -174,72 +176,16 @@ namespace Backend
 				foreach (var fielddef in source)
 				{
 					var name = fielddef.Name.Value;
-					var type = this.ExtractType(fielddef.Type);
+					var type = TypesExtractor.ExtractType(fielddef.Type);
 					var field = new FieldDefinition(name, type);
 
 					field.IsStatic = fielddef.IsStatic;
 					dest.Add(name, field);
 				}
 			}
-
-			private IType ExtractType(Cci.ITypeReference typeref)
-			{
-				IType result = null;
-
-				if (typeref is Cci.IArrayTypeReference)
-				{
-					var atyperef = typeref as Cci.IArrayTypeReference;
-					var elements = this.ExtractType(atyperef.ElementType);
-					var type = new ArrayType(elements);
-
-					result = type;
-				}
-				else if (typeref is Cci.IPointerTypeReference)
-				{
-					var ptyperef = typeref as Cci.IPointerTypeReference;
-					var target = this.ExtractType(ptyperef.TargetType);
-					var type = new PointerType(target);
-
-					result = type;
-				}
-				else if (typeref is Cci.IGenericParameterReference)
-				{
-					var gptyperef = typeref as Cci.IGenericParameterReference;
-					var name = Cci.TypeHelper.GetTypeName(gptyperef, Cci.NameFormattingOptions.OmitContainingType | Cci.NameFormattingOptions.PreserveSpecialNames);
-					var type = new TypeVariable(name);
-
-					result = type;
-				}
-				else if (typeref is Cci.IGenericTypeInstanceReference)
-				{
-					var gtyperef = typeref as Cci.IGenericTypeInstanceReference;
-					var name = Cci.TypeHelper.GetTypeName(gtyperef, Cci.NameFormattingOptions.OmitContainingType | Cci.NameFormattingOptions.PreserveSpecialNames);
-					var type = new BasicType(name);
-
-					this.ExtractGenericType(type, gtyperef);
-					result = type;
-				}
-				else if (typeref is Cci.INamedTypeReference)
-				{
-					var ntyperef = typeref as Cci.INamedTypeReference;
-					var name = Cci.TypeHelper.GetTypeName(ntyperef, Cci.NameFormattingOptions.OmitContainingType | Cci.NameFormattingOptions.PreserveSpecialNames);
-					var type = new BasicType(name);
-
-					result = type;
-				}
-
-				return result;
-			}
-
-			private void ExtractGenericType(BasicType type, Cci.IGenericTypeInstanceReference typeref)
-			{
-				foreach (var argumentref in typeref.GenericArguments)
-				{
-					var typearg = this.ExtractType(argumentref);
-					type.GenericArguments.Add(typearg);
-				}
-			}
 		}
+
+		#endregion
 
 		private TypesTraverser traverser;
 
@@ -252,6 +198,64 @@ namespace Backend
 		{
 			traverser.Traverse(module);
 			return traverser.Types;
+		}
+
+		public static IType ExtractType(Cci.ITypeReference typeref)
+		{
+			IType result = null;
+
+			if (typeref is Cci.IArrayTypeReference)
+			{
+				var atyperef = typeref as Cci.IArrayTypeReference;
+				var elements = TypesExtractor.ExtractType(atyperef.ElementType);
+				var type = new ArrayType(elements);
+
+				result = type;
+			}
+			else if (typeref is Cci.IPointerTypeReference)
+			{
+				var ptyperef = typeref as Cci.IPointerTypeReference;
+				var target = TypesExtractor.ExtractType(ptyperef.TargetType);
+				var type = new PointerType(target);
+
+				result = type;
+			}
+			else if (typeref is Cci.IGenericParameterReference)
+			{
+				var gptyperef = typeref as Cci.IGenericParameterReference;
+				var name = Cci.TypeHelper.GetTypeName(gptyperef, Cci.NameFormattingOptions.OmitContainingType | Cci.NameFormattingOptions.PreserveSpecialNames);
+				var type = new TypeVariable(name);
+
+				result = type;
+			}
+			else if (typeref is Cci.IGenericTypeInstanceReference)
+			{
+				var gtyperef = typeref as Cci.IGenericTypeInstanceReference;
+				var name = Cci.TypeHelper.GetTypeName(gtyperef, Cci.NameFormattingOptions.OmitContainingType | Cci.NameFormattingOptions.PreserveSpecialNames);
+				var type = new BasicType(name);
+
+				TypesExtractor.ExtractGenericType(type, gtyperef);
+				result = type;
+			}
+			else if (typeref is Cci.INamedTypeReference)
+			{
+				var ntyperef = typeref as Cci.INamedTypeReference;
+				var name = Cci.TypeHelper.GetTypeName(ntyperef, Cci.NameFormattingOptions.OmitContainingType | Cci.NameFormattingOptions.PreserveSpecialNames);
+				var type = new BasicType(name);
+
+				result = type;
+			}
+
+			return result;
+		}
+
+		private static void ExtractGenericType(BasicType type, Cci.IGenericTypeInstanceReference typeref)
+		{
+			foreach (var argumentref in typeref.GenericArguments)
+			{
+				var typearg = TypesExtractor.ExtractType(argumentref);
+				type.GenericArguments.Add(typearg);
+			}
 		}
 	}
 }

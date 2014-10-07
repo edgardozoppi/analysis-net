@@ -51,58 +51,58 @@ namespace Backend.ThreeAddressCode
 			this.Label = string.Format("L_{0:X4}", label);
 		}
 
-		public ISet<Variable> Variables
+		public ISet<IVariable> Variables
 		{
 			get
 			{
-				var result = new HashSet<Variable>();
+				var result = new HashSet<IVariable>();
 				result.UnionWith(this.ModifiedVariables);
 				result.UnionWith(this.UsedVariables);
 				return result;
 			}
 		}
 
-		public virtual ISet<Variable> ModifiedVariables
+		public virtual ISet<IVariable> ModifiedVariables
 		{
-			get { return new HashSet<Variable>(); }
+			get { return new HashSet<IVariable>(); }
 		}
 
-		public virtual ISet<Variable> UsedVariables
+		public virtual ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>(); }
+			get { return new HashSet<IVariable>(); }
 		}
 
-		public virtual void Replace(Variable oldvar, Variable newvar)
+		public virtual void Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
 	}
 
 	public abstract class DefinitionInstruction : Instruction, IExpressible
 	{
-		public Variable Result { get; set; }
+		public IVariable Result { get; set; }
 
 		public bool HasResult
 		{
 			get { return this.Result != null; }
 		}
 
-		public DefinitionInstruction(uint label, Variable result)
+		public DefinitionInstruction(uint label, IVariable result)
 			: base(label)
 		{
 			this.Result = result;
 		}
 
-		public override ISet<Variable> ModifiedVariables
+		public override ISet<IVariable> ModifiedVariables
 		{
 			get
 			{
-				var result = new HashSet<Variable>();
+				var result = new HashSet<IVariable>();
 				if (this.HasResult) result.Add(this.Result);
 				return result;
 			}
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.HasResult && this.Result.Equals(oldvar)) this.Result = newvar;
 		}
@@ -113,10 +113,10 @@ namespace Backend.ThreeAddressCode
 	public class BinaryInstruction : DefinitionInstruction
 	{
 		public BinaryOperation Operation { get; set; }
-		public Variable LeftOperand { get; set; }
-		public Variable RightOperand { get; set; }
+		public IVariable LeftOperand { get; set; }
+		public IVariable RightOperand { get; set; }
 
-		public BinaryInstruction(uint label, Variable result, Variable left, BinaryOperation operation, Variable right)
+		public BinaryInstruction(uint label, IVariable result, IVariable left, BinaryOperation operation, IVariable right)
 			: base(label, result)
 		{
 			this.Operation = operation;
@@ -124,12 +124,12 @@ namespace Backend.ThreeAddressCode
 			this.RightOperand = right;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.LeftOperand, this.RightOperand }; }
+			get { return new HashSet<IVariable>() { this.LeftOperand, this.RightOperand }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Result.Equals(oldvar)) this.Result = newvar;
 			if (this.LeftOperand.Equals(oldvar)) this.LeftOperand = newvar;
@@ -138,7 +138,7 @@ namespace Backend.ThreeAddressCode
 
 		public override IExpression ToExpression()
 		{
-			return new BinaryExpression(this.LeftOperand, this.Operation, this.RightOperand);
+			return new BinaryExpression(this.LeftOperand, this.Operation, this.RightOperand) { Type = this.Result.Type };
 		}
 
 		public override string ToString()
@@ -172,21 +172,21 @@ namespace Backend.ThreeAddressCode
 	public class UnaryInstruction : DefinitionInstruction
 	{
 		public UnaryOperation Operation { get; set; }
-		public Variable Operand { get; set; }
+		public IVariable Operand { get; set; }
 
-		public UnaryInstruction(uint label, Variable result, UnaryOperation operation, Variable operand)
+		public UnaryInstruction(uint label, IVariable result, UnaryOperation operation, IVariable operand)
 			: base(label, result)
 		{
 			this.Operation = operation;
 			this.Operand = operand;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.Operand }; }
+			get { return new HashSet<IVariable>() { this.Operand }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Result.Equals(oldvar)) this.Result = newvar;
 			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
@@ -194,7 +194,7 @@ namespace Backend.ThreeAddressCode
 
 		public override IExpression ToExpression()
 		{
-			return new UnaryExpression(this.Operation, this.Operand);
+			return new UnaryExpression(this.Operation, this.Operand) { Type = this.Result.Type };
 		}
 
 		public override string ToString()
@@ -215,18 +215,18 @@ namespace Backend.ThreeAddressCode
 	{
 		public IValue Operand { get; set; }
 
-		public LoadInstruction(uint label, Variable result, IValue operand)
+		public LoadInstruction(uint label, IVariable result, IValue operand)
 			: base(label, result)
 		{
 			this.Operand = operand;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>(this.Operand.Variables); }
+			get { return new HashSet<IVariable>(this.Operand.Variables); }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Result.Equals(oldvar)) this.Result = newvar;
 			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
@@ -247,21 +247,21 @@ namespace Backend.ThreeAddressCode
 	public class StoreInstruction : Instruction
 	{
 		public IAssignableValue Result { get; set; }
-		public Variable Operand { get; set; }
+		public IVariable Operand { get; set; }
 
-		public StoreInstruction(uint label, IAssignableValue result, Variable operand)
+		public StoreInstruction(uint label, IAssignableValue result, IVariable operand)
 			: base(label)
 		{
 			this.Result = result;
 			this.Operand = operand;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>(this.Result.Variables) { this.Operand }; }
+			get { return new HashSet<IVariable>(this.Result.Variables) { this.Operand }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			this.Result.Replace(oldvar, newvar);
 			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
@@ -342,7 +342,7 @@ namespace Backend.ThreeAddressCode
 	{
 		public ITypeReference ExceptionType { get; set; }
 
-		public CatchInstruction(uint label, Variable result, ITypeReference exceptionType)
+		public CatchInstruction(uint label, IVariable result, ITypeReference exceptionType)
 			: base(label, result)
 		{
 			this.ExceptionType = exceptionType;
@@ -355,31 +355,31 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.ExceptionType);
-			return string.Format("{0}:  catch {1} {2};", this.Label, type, this.Result);
+			var exceptionType = TypeHelper.GetTypeName(this.ExceptionType);
+			return string.Format("{0}:  catch {1} {2};", this.Label, exceptionType, this.Result);
 		}
 	}
 
 	public class ConvertInstruction : DefinitionInstruction
 	{
-		public Variable Operand { get; set; }
-		public ITypeReference Type { get; set; }
+		public IVariable Operand { get; set; }
+		public ITypeReference ConversionType { get; set; }
 		public bool CheckNumericRange { get; set; }
 		public bool TreatOperandAsUnsignedInteger { get; set; }
 
-		public ConvertInstruction(uint label, Variable result, ITypeReference type, Variable operand)
+		public ConvertInstruction(uint label, IVariable result, ITypeReference conversionType, IVariable operand)
 			: base(label, result)
 		{
-			this.Type = type;
+			this.ConversionType = conversionType;
 			this.Operand = operand;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.Operand }; }
+			get { return new HashSet<IVariable>() { this.Operand }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Result.Equals(oldvar)) this.Result = newvar;
 			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
@@ -387,21 +387,21 @@ namespace Backend.ThreeAddressCode
 
 		public override IExpression ToExpression()
 		{
-			return new ConvertExpression(this.Type, this.Operand);
+			return new ConvertExpression(this.Operand, this.ConversionType);
 		}
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Type);
-			return string.Format("{0}:  {1} = {2} as {3};", this.Label, this.Result, this.Operand, type);
+			var conversionType = TypeHelper.GetTypeName(this.ConversionType);
+			return string.Format("{0}:  {1} = {2} as {3};", this.Label, this.Result, this.Operand, conversionType);
 		}
 	}
 
 	public class ReturnInstruction : Instruction
 	{
-		public Variable Operand { get; set; }
+		public IVariable Operand { get; set; }
 
-		public ReturnInstruction(uint label, Variable operand)
+		public ReturnInstruction(uint label, IVariable operand)
 			: base(label)
 		{
 			this.Operand = operand;
@@ -417,17 +417,17 @@ namespace Backend.ThreeAddressCode
 			get { return this.Operand != null; }
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
 			get
 			{
-				var result = new HashSet<Variable>();
+				var result = new HashSet<IVariable>();
 				if (this.HasOperand) result.Add(this.Operand);
 				return result;
 			}
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.HasOperand && this.Operand.Equals(oldvar)) this.Operand = newvar;
 		}
@@ -447,9 +447,9 @@ namespace Backend.ThreeAddressCode
 
 	public class ThrowInstruction : Instruction
 	{
-		public Variable Operand { get; set; }
+		public IVariable Operand { get; set; }
 
-		public ThrowInstruction(uint label, Variable operand)
+		public ThrowInstruction(uint label, IVariable operand)
 			: base(label)
 		{
 			this.Operand = operand;
@@ -465,17 +465,17 @@ namespace Backend.ThreeAddressCode
 			get { return this.Operand != null; }
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
 			get
 			{
-				var result = new HashSet<Variable>();
+				var result = new HashSet<IVariable>();
 				if (this.HasOperand) result.Add(this.Operand);
 				return result;
 			}
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.HasOperand && this.Operand.Equals(oldvar)) this.Operand = newvar;
 		}
@@ -516,8 +516,8 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.ExceptionType);
-			return string.Format("{0}:  on {1} goto {2};", this.Label, type, this.Target);
+			var exceptionType = TypeHelper.GetTypeName(this.ExceptionType);
+			return string.Format("{0}:  on {1} goto {2};", this.Label, exceptionType, this.Target);
 		}
 	}
 
@@ -537,10 +537,10 @@ namespace Backend.ThreeAddressCode
 	public class ConditionalBranchInstruction : BranchInstruction
 	{
 		public BranchOperation Operation { get; set; }
-		public Variable LeftOperand { get; set; }
+		public IVariable LeftOperand { get; set; }
 		public IInmediateValue RightOperand { get; set; }
 
-		public ConditionalBranchInstruction(uint label, Variable left, BranchOperation operation, IInmediateValue right, uint target)
+		public ConditionalBranchInstruction(uint label, IVariable left, BranchOperation operation, IInmediateValue right, uint target)
 			: base(label, target)
 		{
 			this.Operation = operation;
@@ -548,12 +548,12 @@ namespace Backend.ThreeAddressCode
 			this.RightOperand = right;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>(this.RightOperand.Variables) { this.LeftOperand }; }
+			get { return new HashSet<IVariable>(this.RightOperand.Variables) { this.LeftOperand }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.LeftOperand.Equals(oldvar)) this.LeftOperand = newvar;
 			if (this.RightOperand.Equals(oldvar)) this.RightOperand = newvar;
@@ -579,22 +579,22 @@ namespace Backend.ThreeAddressCode
 
 	public class SwitchInstruction : Instruction
 	{
-		public Variable Operand { get; set; }
+		public IVariable Operand { get; set; }
 		public IList<string> Targets { get; private set; }
 
-		public SwitchInstruction(uint label, Variable operand, IEnumerable<uint> targets)
+		public SwitchInstruction(uint label, IVariable operand, IEnumerable<uint> targets)
 			: base(label)
 		{
 			this.Operand = operand;
 			this.Targets = targets.Select(target => string.Format("L_{0:X4}", target)).ToList();
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.Operand }; }
+			get { return new HashSet<IVariable>() { this.Operand }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
 		}
@@ -608,23 +608,23 @@ namespace Backend.ThreeAddressCode
 
 	public class SizeofInstruction : DefinitionInstruction
 	{
-		public ITypeReference Type { get; set; }
+		public ITypeReference MeasuredType { get; set; }
 
-		public SizeofInstruction(uint label, Variable result, ITypeReference type)
+		public SizeofInstruction(uint label, IVariable result, ITypeReference measuredType)
 			: base(label, result)
 		{
-			this.Type = type;
+			this.MeasuredType = measuredType;
 		}
 
 		public override IExpression ToExpression()
 		{
-			return new SizeofExpression(this.Type);
+			return new SizeofExpression(this.MeasuredType);
 		}
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Type);
-			return string.Format("{0}:  {1} = sizeof {2};", this.Label, this.Result, type);
+			var measuredType = TypeHelper.GetTypeName(this.MeasuredType);
+			return string.Format("{0}:  {1} = sizeof {2};", this.Label, this.Result, measuredType);
 		}
 	}
 
@@ -632,7 +632,7 @@ namespace Backend.ThreeAddressCode
 	{
 		public IReference Token { get; set; }
 
-		public LoadTokenInstruction(uint label, Variable result, IReference token)
+		public LoadTokenInstruction(uint label, IVariable result, IReference token)
 			: base(label, result)
 		{
 			this.Token = token;
@@ -653,32 +653,32 @@ namespace Backend.ThreeAddressCode
 	public class MethodCallInstruction : DefinitionInstruction
 	{
 		public IMethodReference Method { get; set; }
-		public IList<Variable> Arguments { get; private set; }
+		public IList<IVariable> Arguments { get; private set; }
 
-		public MethodCallInstruction(uint label, Variable result, IMethodReference method, IEnumerable<Variable> arguments)
+		public MethodCallInstruction(uint label, IVariable result, IMethodReference method, IEnumerable<IVariable> arguments)
 			: base(label, result)
 		{
-			this.Arguments = new List<Variable>(arguments);
+			this.Arguments = new List<IVariable>(arguments);
 			this.Method = method;
 		}
 
-		public override ISet<Variable> ModifiedVariables
+		public override ISet<IVariable> ModifiedVariables
 		{
 			get
 			{
 				//TODO: arguments could be modified only for reference types
-				var result = new HashSet<Variable>(this.Arguments);
+				var result = new HashSet<IVariable>(this.Arguments);
 				if (this.HasResult) result.Add(this.Result);
 				return result;
 			}
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>(this.Arguments); }
+			get { return new HashSet<IVariable>(this.Arguments); }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.HasResult && this.Result.Equals(oldvar)) this.Result = newvar;
 
@@ -712,35 +712,35 @@ namespace Backend.ThreeAddressCode
 
 	public class IndirectMethodCallInstruction : DefinitionInstruction
 	{
-		public IFunctionPointerTypeReference Type { get; set; }
-		public Variable Pointer { get; set; }
-		public IList<Variable> Arguments { get; private set; }
+		public IFunctionPointerTypeReference Function { get; set; }
+		public IVariable Pointer { get; set; }
+		public IList<IVariable> Arguments { get; private set; }
 
-		public IndirectMethodCallInstruction(uint label, Variable result, Variable pointer, IFunctionPointerTypeReference type, IEnumerable<Variable> arguments)
+		public IndirectMethodCallInstruction(uint label, IVariable result, IVariable pointer, IFunctionPointerTypeReference function, IEnumerable<IVariable> arguments)
 			: base(label, result)
 		{
-			this.Arguments = new List<Variable>(arguments);
+			this.Arguments = new List<IVariable>(arguments);
 			this.Pointer = pointer;
-			this.Type = type;
+			this.Function = function;
 		}
 
-		public override ISet<Variable> ModifiedVariables
+		public override ISet<IVariable> ModifiedVariables
 		{
 			get
 			{
 				//TODO: arguments could be modified only for reference types
-				var result = new HashSet<Variable>(this.Arguments);
+				var result = new HashSet<IVariable>(this.Arguments);
 				if (this.HasResult) result.Add(this.Result);
 				return result;
 			}
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>(this.Arguments) { this.Pointer }; }
+			get { return new HashSet<IVariable>(this.Arguments) { this.Pointer }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.HasResult && this.Result.Equals(oldvar)) this.Result = newvar;
 			if (this.Pointer.Equals(oldvar)) this.Pointer = newvar;
@@ -754,7 +754,7 @@ namespace Backend.ThreeAddressCode
 
 		public override IExpression ToExpression()
 		{
-			return new IndirectMethodCallExpression(this.Pointer, this.Type, this.Arguments);
+			return new IndirectMethodCallExpression(this.Pointer, this.Function, this.Arguments);
 		}
 
 		public override string ToString()
@@ -774,30 +774,30 @@ namespace Backend.ThreeAddressCode
 	public class CreateObjectInstruction : DefinitionInstruction
 	{
 		public IMethodReference Constructor { get; set; }
-		public IList<Variable> Arguments { get; private set; }
+		public IList<IVariable> Arguments { get; private set; }
 
-		public CreateObjectInstruction(uint label, Variable result, IMethodReference constructor, IEnumerable<Variable> arguments)
+		public CreateObjectInstruction(uint label, IVariable result, IMethodReference constructor, IEnumerable<IVariable> arguments)
 			: base(label, result)
 		{
-			this.Arguments = new List<Variable>(arguments);
+			this.Arguments = new List<IVariable>(arguments);
 			this.Constructor = constructor;
 		}
 
-		public override ISet<Variable> ModifiedVariables
+		public override ISet<IVariable> ModifiedVariables
 		{
 			get
 			{
 				//TODO: arguments could be modified only for reference types
-				return new HashSet<Variable>(this.Arguments) { this.Result };
+				return new HashSet<IVariable>(this.Arguments) { this.Result };
 			}
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>(this.Arguments); }
+			get { return new HashSet<IVariable>(this.Arguments); }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Result.Equals(oldvar)) this.Result = newvar;
 
@@ -824,11 +824,11 @@ namespace Backend.ThreeAddressCode
 
 	public class CopyMemoryInstruction : Instruction
 	{
-		public Variable NumberOfBytes { get; set; }
-		public Variable SourceAddress { get; set; }
-		public Variable TargetAddress { get; set; }
+		public IVariable NumberOfBytes { get; set; }
+		public IVariable SourceAddress { get; set; }
+		public IVariable TargetAddress { get; set; }
 
-		public CopyMemoryInstruction(uint label, Variable target, Variable source, Variable numberOfBytes)
+		public CopyMemoryInstruction(uint label, IVariable target, IVariable source, IVariable numberOfBytes)
 			: base(label)
 		{
 			this.NumberOfBytes = numberOfBytes;
@@ -836,12 +836,12 @@ namespace Backend.ThreeAddressCode
 			this.TargetAddress = target;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.NumberOfBytes, this.SourceAddress, this.TargetAddress }; }
+			get { return new HashSet<IVariable>() { this.NumberOfBytes, this.SourceAddress, this.TargetAddress }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.NumberOfBytes.Equals(oldvar)) this.NumberOfBytes = newvar;
 			if (this.SourceAddress.Equals(oldvar)) this.SourceAddress = newvar;
@@ -856,22 +856,22 @@ namespace Backend.ThreeAddressCode
 
 	public class LocalAllocationInstruction : Instruction
 	{
-		public Variable NumberOfBytes { get; set; }
-		public Variable TargetAddress { get; set; }
+		public IVariable NumberOfBytes { get; set; }
+		public IVariable TargetAddress { get; set; }
 
-		public LocalAllocationInstruction(uint label, Variable target, Variable numberOfBytes)
+		public LocalAllocationInstruction(uint label, IVariable target, IVariable numberOfBytes)
 			: base(label)
 		{
 			this.NumberOfBytes = numberOfBytes;
 			this.TargetAddress = target;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.NumberOfBytes, this.TargetAddress }; }
+			get { return new HashSet<IVariable>() { this.NumberOfBytes, this.TargetAddress }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.NumberOfBytes.Equals(oldvar)) this.NumberOfBytes = newvar;
 			if (this.TargetAddress.Equals(oldvar)) this.TargetAddress = newvar;
@@ -885,11 +885,11 @@ namespace Backend.ThreeAddressCode
 
 	public class InitializeMemoryInstruction : Instruction
 	{
-		public Variable NumberOfBytes { get; set; }
-		public Variable Value { get; set; }
-		public Variable TargetAddress { get; set; }
+		public IVariable NumberOfBytes { get; set; }
+		public IVariable Value { get; set; }
+		public IVariable TargetAddress { get; set; }
 
-		public InitializeMemoryInstruction(uint label, Variable target, Variable value, Variable numberOfBytes)
+		public InitializeMemoryInstruction(uint label, IVariable target, IVariable value, IVariable numberOfBytes)
 			: base(label)
 		{
 			this.NumberOfBytes = numberOfBytes;
@@ -897,12 +897,12 @@ namespace Backend.ThreeAddressCode
 			this.Value = value;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.NumberOfBytes, this.Value, this.TargetAddress }; }
+			get { return new HashSet<IVariable>() { this.NumberOfBytes, this.Value, this.TargetAddress }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.NumberOfBytes.Equals(oldvar)) this.NumberOfBytes = newvar;
 			if (this.Value.Equals(oldvar)) this.Value = newvar;
@@ -917,20 +917,20 @@ namespace Backend.ThreeAddressCode
 
 	public class InitializeObjectInstruction : Instruction
 	{
-		public Variable TargetAddress { get; set; }
+		public IVariable TargetAddress { get; set; }
 
-		public InitializeObjectInstruction(uint label, Variable target)
+		public InitializeObjectInstruction(uint label, IVariable target)
 			: base(label)
 		{
 			this.TargetAddress = target;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.TargetAddress }; }
+			get { return new HashSet<IVariable>() { this.TargetAddress }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.TargetAddress.Equals(oldvar)) this.TargetAddress = newvar;
 		}
@@ -943,22 +943,22 @@ namespace Backend.ThreeAddressCode
 
 	public class CopyObjectInstruction : Instruction
 	{
-		public Variable SourceAddress { get; set; }
-		public Variable TargetAddress { get; set; }
+		public IVariable SourceAddress { get; set; }
+		public IVariable TargetAddress { get; set; }
 
-		public CopyObjectInstruction(uint label, Variable target, Variable source)
+		public CopyObjectInstruction(uint label, IVariable target, IVariable source)
 			: base(label)
 		{
 			this.SourceAddress = source;
 			this.TargetAddress = target;
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>() { this.SourceAddress, this.TargetAddress }; }
+			get { return new HashSet<IVariable>() { this.SourceAddress, this.TargetAddress }; }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.SourceAddress.Equals(oldvar)) this.SourceAddress = newvar;
 			if (this.TargetAddress.Equals(oldvar)) this.TargetAddress = newvar;
@@ -974,30 +974,30 @@ namespace Backend.ThreeAddressCode
 	{
 		public ITypeReference ElementType { get; set; }
 		public uint Rank { get; set; }
-		public IList<Variable> LowerBounds { get; private set; }
-		public IList<Variable> Sizes { get; private set; }
+		public IList<IVariable> LowerBounds { get; private set; }
+		public IList<IVariable> Sizes { get; private set; }
 
-		public CreateArrayInstruction(uint label, Variable result, ITypeReference elementType, uint rank, IEnumerable<Variable> lowerBounds, IEnumerable<Variable> sizes)
+		public CreateArrayInstruction(uint label, IVariable result, ITypeReference elementType, uint rank, IEnumerable<IVariable> lowerBounds, IEnumerable<IVariable> sizes)
 			: base(label, result)
 		{
 			this.ElementType = elementType;
 			this.Rank = rank;
-			this.LowerBounds = new List<Variable>(lowerBounds);
-			this.Sizes = new List<Variable>(sizes);
+			this.LowerBounds = new List<IVariable>(lowerBounds);
+			this.Sizes = new List<IVariable>(sizes);
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
 			get
 			{
-				var result = new HashSet<Variable>();
+				var result = new HashSet<IVariable>();
 				result.UnionWith(this.LowerBounds);
 				result.UnionWith(this.Sizes);
 				return result;
 			}
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Result.Equals(oldvar)) this.Result = newvar;
 
@@ -1021,29 +1021,27 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			var elementType = TypeHelper.GetTypeName(this.ElementType);
 			var sizes = string.Join(", ", this.Sizes);
-
-			return string.Format("{0}:  {1} = new {2}[{3}];", this.Label, this.Result, elementType, sizes);
+			return string.Format("{0}:  {1} = new {2}[{3}];", this.Label, this.Result, this.ElementType, sizes);
 		}
 	}
 
 	public class PhiInstruction : DefinitionInstruction
 	{
-		public IList<Variable> Arguments { get; private set; }
+		public IList<IVariable> Arguments { get; private set; }
 
-		public PhiInstruction(uint label, Variable result)
+		public PhiInstruction(uint label, IVariable result)
 			: base(label, result)
 		{
-			this.Arguments = new List<Variable>();
+			this.Arguments = new List<IVariable>();
 		}
 
-		public override ISet<Variable> UsedVariables
+		public override ISet<IVariable> UsedVariables
 		{
-			get { return new HashSet<Variable>(this.Arguments); }
+			get { return new HashSet<IVariable>(this.Arguments); }
 		}
 
-		public override void Replace(Variable oldvar, Variable newvar)
+		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Result.Equals(oldvar)) this.Result = newvar;
 

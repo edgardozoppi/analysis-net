@@ -12,16 +12,16 @@ namespace Backend
 		public IMethodDefinition MethodDefinition { get; private set; }
 		public IList<ProtectedBlock> ProtectedBlocks { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
-		public IList<Variable> Parameters { get; private set; }
-		public ISet<Variable> Variables { get; private set; }
+		public IList<IVariable> Parameters { get; private set; }
+		public ISet<IVariable> Variables { get; private set; }
 
 		public MethodBody(IMethodDefinition methodDefinition)
 		{
 			this.MethodDefinition = methodDefinition;
 			this.ProtectedBlocks = new List<ProtectedBlock>();
 			this.Instructions = new List<Instruction>();
-			this.Parameters = new List<Variable>();
-			this.Variables = new HashSet<Variable>();
+			this.Parameters = new List<IVariable>();
+			this.Variables = new HashSet<IVariable>();
 		}
 
 		public override string ToString()

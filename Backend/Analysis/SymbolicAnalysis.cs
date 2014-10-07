@@ -8,10 +8,10 @@ using Backend.Utils;
 
 namespace Backend.Analysis
 {
-	public class SymbolicAnalysis : ForwardDataFlowAnalysis<IDictionary<Variable, IExpression>>
+	public class SymbolicAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IExpression>>
 	{
-		private IDictionary<Variable, IExpression>[] GEN;
-		private ISet<Variable>[] KILL;
+		private IDictionary<IVariable, IExpression>[] GEN;
+		private ISet<IVariable>[] KILL;
 
 		public SymbolicAnalysis(ControlFlowGraph cfg)
 		{
@@ -20,29 +20,29 @@ namespace Backend.Analysis
 			this.ComputeKill();
 		}
 
-		public DataFlowAnalysisResult<IDictionary<Variable, IExpression>> this[CFGNode node]
+		public DataFlowAnalysisResult<IDictionary<IVariable, IExpression>> this[CFGNode node]
 		{
 			get { return this.result[node.Id]; }
 		}
 
-		protected override IDictionary<Variable, IExpression> InitialValue(CFGNode node)
+		protected override IDictionary<IVariable, IExpression> InitialValue(CFGNode node)
 		{
-			return new Dictionary<Variable, IExpression>();
+			return new Dictionary<IVariable, IExpression>();
 		}
 
-		protected override IDictionary<Variable, IExpression> DefaultValue(CFGNode node)
+		protected override IDictionary<IVariable, IExpression> DefaultValue(CFGNode node)
 		{
 			return GEN[node.Id];
 		}
 
-		protected override bool Compare(IDictionary<Variable, IExpression> left, IDictionary<Variable, IExpression> right)
+		protected override bool Compare(IDictionary<IVariable, IExpression> left, IDictionary<IVariable, IExpression> right)
 		{
 			return left.SequenceEqual(right);
 		}
 
-		protected override IDictionary<Variable, IExpression> Join(IDictionary<Variable, IExpression> left, IDictionary<Variable, IExpression> right)
+		protected override IDictionary<IVariable, IExpression> Join(IDictionary<IVariable, IExpression> left, IDictionary<IVariable, IExpression> right)
 		{
-			var result = new Dictionary<Variable, IExpression>(left);
+			var result = new Dictionary<IVariable, IExpression>(left);
 
 			foreach (var equality in right)
 			{
@@ -67,17 +67,17 @@ namespace Backend.Analysis
 			return result;
 		}
 
-		protected override IDictionary<Variable, IExpression> Flow(CFGNode node, IDictionary<Variable, IExpression> input)
+		protected override IDictionary<IVariable, IExpression> Flow(CFGNode node, IDictionary<IVariable, IExpression> input)
 		{
-			IDictionary<Variable, IExpression> result;
+			IDictionary<IVariable, IExpression> result;
 
 			if (input == null)
 			{
-				result = new Dictionary<Variable, IExpression>();
+				result = new Dictionary<IVariable, IExpression>();
 			}
 			else
 			{
-				result = new Dictionary<Variable, IExpression>(input);
+				result = new Dictionary<IVariable, IExpression>(input);
 			}
 
 			foreach (var instruction in node.Instructions)
@@ -100,7 +100,7 @@ namespace Backend.Analysis
 
 		private void ComputeGen()
 		{
-			GEN = new IDictionary<Variable, IExpression>[this.cfg.Nodes.Count];
+			GEN = new IDictionary<IVariable, IExpression>[this.cfg.Nodes.Count];
 
 			foreach (var node in this.cfg.Nodes)
 			{
@@ -111,11 +111,11 @@ namespace Backend.Analysis
 
 		private void ComputeKill()
 		{
-			KILL = new ISet<Variable>[this.cfg.Nodes.Count];
+			KILL = new ISet<IVariable>[this.cfg.Nodes.Count];
 
 			foreach (var node in this.cfg.Nodes)
 			{
-				var kill = new HashSet<Variable>();
+				var kill = new HashSet<IVariable>();
 
 				foreach (var instruction in node.Instructions)
 				{
@@ -126,7 +126,7 @@ namespace Backend.Analysis
 			}
 		}
 
-		private void RemoveEqualitiesWithVariable(IDictionary<Variable, IExpression> equalities, Variable variable)
+		private void RemoveEqualitiesWithVariable(IDictionary<IVariable, IExpression> equalities, IVariable variable)
 		{
 			var array = equalities.ToArray();
 
@@ -140,15 +140,15 @@ namespace Backend.Analysis
 			}
 		}
 
-		private KeyValuePair<Variable, IExpression>? Flow(Instruction instruction, IDictionary<Variable, IExpression> equalities)
+		private KeyValuePair<IVariable, IExpression>? Flow(Instruction instruction, IDictionary<IVariable, IExpression> equalities)
 		{
-			KeyValuePair<Variable, IExpression>? result = null;
+			KeyValuePair<IVariable, IExpression>? result = null;
 
 			if (instruction is LoadInstruction)
 			{
 				var assignment = instruction as LoadInstruction;
 				var expr = assignment.Operand.ToExpression().ReplaceVariables(equalities);
-				result = new KeyValuePair<Variable,IExpression>(assignment.Result, expr);
+				result = new KeyValuePair<IVariable,IExpression>(assignment.Result, expr);
 			}
 			//else if (instruction is PhiInstruction)
 			//{

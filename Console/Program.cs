@@ -44,8 +44,8 @@ namespace Console
 			{
 				assembly.Load(input);
 
-				var extractor = new TypesExtractor(host);
-				extractor.Extract(assembly.Module);
+				//var extractor = new TypesExtractor(host);
+				//extractor.Extract(assembly.Module);
 
 				var visitor = new MethodVisitor(host, assembly.PdbReader);
 				visitor.Rewrite(assembly.Module);

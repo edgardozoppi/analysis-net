@@ -10,13 +10,13 @@ namespace Backend.Analysis
 	{
 		private MethodBody method;
 		private ControlFlowGraph cfg;
-		private IDictionary<CFGNode, IDictionary<Variable, PhiInstruction>> phi_instructions;
+		private IDictionary<CFGNode, IDictionary<IVariable, PhiInstruction>> phi_instructions;
 
 		public StaticSingleAssignmentAnalysis(MethodBody method, ControlFlowGraph cfg)
 		{
 			this.method = method;
 			this.cfg = cfg;
-			this.phi_instructions = new Dictionary<CFGNode, IDictionary<Variable, PhiInstruction>>();
+			this.phi_instructions = new Dictionary<CFGNode, IDictionary<IVariable, PhiInstruction>>();
 		}
 
 		public void Transform()
@@ -31,7 +31,7 @@ namespace Backend.Analysis
 
 		private void InsertPhiInstructions()
 		{
-			var defining_nodes = new Dictionary<Variable, ISet<CFGNode>>();
+			var defining_nodes = new Dictionary<IVariable, ISet<CFGNode>>();
 
 			foreach (var node in cfg.Nodes)
 			{
@@ -73,7 +73,7 @@ namespace Backend.Analysis
 					foreach (var node in current.DominanceFrontier)
 					{
 						if (phi_instructions.ContainsKey(node) && phi_instructions[node].ContainsKey(variable)) continue;
-						IDictionary<Variable, PhiInstruction> node_phi_instructions;
+						IDictionary<IVariable, PhiInstruction> node_phi_instructions;
 						
 						if (phi_instructions.ContainsKey(node))
 						{
@@ -81,7 +81,7 @@ namespace Backend.Analysis
 						}
 						else
 						{
-							node_phi_instructions = new Dictionary<Variable, PhiInstruction>();
+							node_phi_instructions = new Dictionary<IVariable, PhiInstruction>();
 							phi_instructions.Add(node, node_phi_instructions);
 						}
 
@@ -101,8 +101,8 @@ namespace Backend.Analysis
 
 		private void RenameVariables()
 		{
-			var derived_variables = new Dictionary<Variable, Stack<DerivedVariable>>();
-			var indices = new Dictionary<Variable, uint>();
+			var derived_variables = new Dictionary<IVariable, Stack<DerivedVariable>>();
+			var indices = new Dictionary<IVariable, uint>();
 
 			foreach (var variable in method.Variables)
 			{
@@ -117,7 +117,7 @@ namespace Backend.Analysis
 			this.RenameVariables(cfg.Entry, derived_variables, indices);
 		}
 
-		private void RenameVariables(CFGNode node, IDictionary<Variable, Stack<DerivedVariable>> derived_variables, Dictionary<Variable, uint> indices)
+		private void RenameVariables(CFGNode node, IDictionary<IVariable, Stack<DerivedVariable>> derived_variables, Dictionary<IVariable, uint> indices)
 		{
 			foreach (var instruction in node.Instructions)
 			{

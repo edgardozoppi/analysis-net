@@ -1,4 +1,5 @@
 ﻿using Microsoft.Cci;
+using Microsoft.Cci.Immutable;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +22,7 @@ namespace Backend.ThreeAddressCode
 		public BinaryOperation Operation { get; set; }
 		public IExpression Left { get; set; }
 		public IExpression Right { get; set; }
+		public ITypeReference Type { get; set; }
 
 		public BinaryExpression(IExpression left, BinaryOperation operation, IExpression right)
 		{
@@ -29,18 +31,18 @@ namespace Backend.ThreeAddressCode
 			this.Right = right;
 		}
 
-		public ISet<Variable> Variables
+		public ISet<IVariable> Variables
 		{
 			get
 			{
-				var result = new HashSet<Variable>();
+				var result = new HashSet<IVariable>();
 				result.UnionWith(this.Left.Variables);
 				result.UnionWith(this.Right.Variables);
 				return result;
 			}
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Left.Equals(oldvar)) this.Left = newvar;
 			else this.Left.Replace(oldvar, newvar);
@@ -114,6 +116,7 @@ namespace Backend.ThreeAddressCode
 	{
 		public UnaryOperation Operation { get; set; }
 		public IExpression Operand { get; set; }
+		public ITypeReference Type { get; set; }
 
 		public UnaryExpression(UnaryOperation operation, IExpression operand)
 		{
@@ -121,12 +124,12 @@ namespace Backend.ThreeAddressCode
 			this.Operand = operand;
 		}
 
-		public ISet<Variable> Variables
+		public ISet<IVariable> Variables
 		{
 			get { return this.Operand.Variables; }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			this.Operand = this.Operand.Replace(oldvar, newvar);
 		}
@@ -184,12 +187,17 @@ namespace Backend.ThreeAddressCode
 			this.ExceptionType = exceptionType;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(); }
+			get { return this.ExceptionType; }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(); }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
 
@@ -219,28 +227,33 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.ExceptionType);
-			return string.Format("catch {0}", type);
+			var exceptionType = TypeHelper.GetTypeName(this.ExceptionType);
+			return string.Format("catch {0}", exceptionType);
 		}
 	}
 
 	public class ConvertExpression : IExpression
 	{
 		public IExpression Operand { get; set; }
-		public ITypeReference Type { get; set; }
+		public ITypeReference ConvertionType { get; set; }
 
-		public ConvertExpression(ITypeReference type, IExpression operand)
+		public ConvertExpression(IExpression operand, ITypeReference convertionType)
 		{
-			this.Type = type;
 			this.Operand = operand;
+			this.ConvertionType = convertionType;			
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
+		{
+			get { return this.ConvertionType; }
+		}
+
+		public ISet<IVariable> Variables
 		{
 			get { return this.Operand.Variables; }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			this.Operand = this.Operand.Replace(oldvar, newvar);
 		}
@@ -250,7 +263,7 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldexpr)) return newexpr;
 
 			var operand = this.Operand.Replace(oldexpr, newexpr);
-			var result = new ConvertExpression(this.Type, operand);
+			var result = new ConvertExpression(operand, this.ConvertionType);
 
 			return result;
 		}
@@ -277,26 +290,31 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Type);
-			return string.Format("{0} as {1}", this.Operand, type);
+			var convertionType = TypeHelper.GetTypeName(this.ConvertionType);
+			return string.Format("{0} as {1}", this.Operand, convertionType);
 		}
 	}
 
 	public class SizeofExpression : IExpression
 	{
-		public ITypeReference Type { get; set; }
+		public ITypeReference MeasuredType { get; set; }
 
-		public SizeofExpression(ITypeReference type)
+		public SizeofExpression(ITypeReference measuredType)
 		{
-			this.Type = type;
+			this.MeasuredType = measuredType;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(); }
+			get { return null; }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(); }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
 
@@ -316,18 +334,18 @@ namespace Backend.ThreeAddressCode
 			var other = obj as SizeofExpression;
 
 			return other != null &&
-				this.Type.Equals(other.Type);
+				this.MeasuredType.Equals(other.MeasuredType);
 		}
 
 		public override int GetHashCode()
 		{
-			return this.Type.GetHashCode();
+			return this.MeasuredType.GetHashCode();
 		}
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Type);
-			return string.Format("sizeof {0}", type);
+			var measuredType = TypeHelper.GetTypeName(this.MeasuredType);
+			return string.Format("sizeof {0}", measuredType);
 		}
 	}
 
@@ -340,12 +358,17 @@ namespace Backend.ThreeAddressCode
 			this.Token = token;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(); }
+			get { return null; }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(); }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
 
@@ -375,7 +398,6 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			//var type = TypeHelper.GetTypeName(this.Token);
 			return string.Format("token {0}", this.Token);
 		}
 	}
@@ -383,26 +405,31 @@ namespace Backend.ThreeAddressCode
 	public class MethodCallExpression : IExpression
 	{
 		public IMethodReference Method { get; set; }
-		public IList<Variable> Arguments { get; private set; }
+		public IList<IVariable> Arguments { get; private set; }
 
 		public MethodCallExpression(IMethodReference method)
 		{
-			this.Arguments = new List<Variable>();
+			this.Arguments = new List<IVariable>();
 			this.Method = method;
 		}
 
-		public MethodCallExpression(IMethodReference method, IEnumerable<Variable> arguments)
+		public MethodCallExpression(IMethodReference method, IEnumerable<IVariable> arguments)
 		{
-			this.Arguments = new List<Variable>(arguments);
+			this.Arguments = new List<IVariable>(arguments);
 			this.Method = method;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(this.Arguments); }
+			get { return this.Method.Type; }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(this.Arguments); }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			for (var i = 0; i < this.Arguments.Count; ++i)
 			{
@@ -416,10 +443,10 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldexpr)) return newexpr;
 			var result = this;
 
-			if (oldexpr is Variable && newexpr is Variable)
+			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var oldvar = oldexpr as Variable;
-				var newvar = newexpr as Variable;
+				var oldvar = oldexpr as IVariable;
+				var newvar = newexpr as IVariable;
 				result = new MethodCallExpression(this.Method);
 
 				foreach (var argument in this.Arguments)
@@ -465,30 +492,35 @@ namespace Backend.ThreeAddressCode
 
 	public class IndirectMethodCallExpression : IExpression
 	{
-		public IFunctionPointerTypeReference Type { get; set; }
-		public Variable Pointer { get; set; }
-		public IList<Variable> Arguments { get; private set; }
+		public IFunctionPointerTypeReference Function { get; set; }
+		public IVariable Pointer { get; set; }
+		public IList<IVariable> Arguments { get; private set; }
 
-		public IndirectMethodCallExpression(Variable pointer, IFunctionPointerTypeReference type)
+		public IndirectMethodCallExpression(IVariable pointer, IFunctionPointerTypeReference function)
 		{
-			this.Arguments = new List<Variable>();
+			this.Arguments = new List<IVariable>();
 			this.Pointer = pointer;
-			this.Type = type;
+			this.Function = function;
 		}
 
-		public IndirectMethodCallExpression(Variable pointer, IFunctionPointerTypeReference type, IEnumerable<Variable> arguments)
+		public IndirectMethodCallExpression(IVariable pointer, IFunctionPointerTypeReference function, IEnumerable<IVariable> arguments)
 		{
-			this.Arguments = new List<Variable>(arguments);
+			this.Arguments = new List<IVariable>(arguments);
 			this.Pointer = pointer;
-			this.Type = type;
+			this.Function = function;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(this.Arguments) { this.Pointer }; }
+			get { return this.Function.Type; }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(this.Arguments) { this.Pointer }; }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Pointer.Equals(oldvar)) this.Pointer = newvar;
 
@@ -504,14 +536,14 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldexpr)) return newexpr;
 			var result = this;
 
-			if (oldexpr is Variable && newexpr is Variable)
+			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var oldvar = oldexpr as Variable;
-				var newvar = newexpr as Variable;
+				var oldvar = oldexpr as IVariable;
+				var newvar = newexpr as IVariable;
 				var pointer = this.Pointer;
 
 				if (pointer.Equals(oldvar)) pointer = newvar;
-				result = new IndirectMethodCallExpression(pointer, this.Type);
+				result = new IndirectMethodCallExpression(pointer, this.Function);
 
 				foreach (var argument in this.Arguments)
 				{
@@ -535,47 +567,52 @@ namespace Backend.ThreeAddressCode
 
 			return other != null &&
 				this.Pointer.Equals(other.Pointer) &&
-				this.Type.Equals(other.Type) &&
+				this.Function.Equals(other.Function) &&
 				this.Arguments.SequenceEqual(other.Arguments);
 		}
 
 		public override int GetHashCode()
 		{
 			return this.Pointer.GetHashCode() ^
-				this.Type.GetHashCode() ^
+				this.Function.GetHashCode() ^
 				this.Arguments.GetHashCode();
 		}
 
 		public override string ToString()
 		{
 			var arguments = string.Join(", ", this.Arguments);
-			return string.Format("{0}(*{1})({2})", this.Pointer, arguments);
+			return string.Format("(*{0})({1})", this.Pointer, arguments);
 		}
 	}
 
 	public class CreateObjectExpression : IExpression
 	{
 		public IMethodReference Constructor { get; set; }
-		public IList<Variable> Arguments { get; private set; }
+		public IList<IVariable> Arguments { get; private set; }
 
 		public CreateObjectExpression(IMethodReference constructor)
 		{
-			this.Arguments = new List<Variable>();
+			this.Arguments = new List<IVariable>();
 			this.Constructor = constructor;
 		}
 
-		public CreateObjectExpression(IMethodReference constructor, IEnumerable<Variable> arguments)
+		public CreateObjectExpression(IMethodReference constructor, IEnumerable<IVariable> arguments)
 		{
-			this.Arguments = new List<Variable>(arguments);
+			this.Arguments = new List<IVariable>(arguments);
 			this.Constructor = constructor;
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(this.Arguments); }
+			get { return this.Constructor.ContainingType; }
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(this.Arguments); }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			for (var i = 0; i < this.Arguments.Count; ++i)
 			{
@@ -589,10 +626,10 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldexpr)) return newexpr;
 			var result = this;
 
-			if (oldexpr is Variable && newexpr is Variable)
+			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var oldvar = oldexpr as Variable;
-				var newvar = newexpr as Variable;
+				var oldvar = oldexpr as IVariable;
+				var newvar = newexpr as IVariable;
 				result = new CreateObjectExpression(this.Constructor);
 
 				foreach (var argument in this.Arguments)
@@ -639,37 +676,42 @@ namespace Backend.ThreeAddressCode
 	{
 		public ITypeReference ElementType { get; set; }
 		public uint Rank { get; set; }
-		public IList<Variable> LowerBounds { get; private set; }
-		public IList<Variable> Sizes { get; private set; }
+		public IList<IVariable> LowerBounds { get; private set; }
+		public IList<IVariable> Sizes { get; private set; }
 
 		public CreateArrayExpression(ITypeReference elementType, uint rank)
 		{
 			this.ElementType = elementType;
 			this.Rank = rank;
-			this.LowerBounds = new List<Variable>();
-			this.Sizes = new List<Variable>();
+			this.LowerBounds = new List<IVariable>();
+			this.Sizes = new List<IVariable>();
 		}
 
-		public CreateArrayExpression(ITypeReference elementType, uint rank, IEnumerable<Variable> lowerBounds, IEnumerable<Variable> sizes)
+		public CreateArrayExpression(ITypeReference elementType, uint rank, IEnumerable<IVariable> lowerBounds, IEnumerable<IVariable> sizes)
 		{
 			this.ElementType = elementType;
 			this.Rank = rank;
-			this.LowerBounds = new List<Variable>(lowerBounds);
-			this.Sizes = new List<Variable>(sizes);
+			this.LowerBounds = new List<IVariable>(lowerBounds);
+			this.Sizes = new List<IVariable>(sizes);
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
+		{
+			get { return Matrix.GetMatrix(this.ElementType, this.Rank, null); }
+		}
+
+		public ISet<IVariable> Variables
 		{
 			get
 			{
-				var result = new HashSet<Variable>();
+				var result = new HashSet<IVariable>();
 				result.UnionWith(this.LowerBounds);
 				result.UnionWith(this.Sizes);
 				return result;
 			}
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			for (var i = 0; i < this.LowerBounds.Count; ++i)
 			{
@@ -689,10 +731,10 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldexpr)) return newexpr;
 			var result = this;
 
-			if (oldexpr is Variable && newexpr is Variable)
+			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var oldvar = oldexpr as Variable;
-				var newvar = newexpr as Variable;
+				var oldvar = oldexpr as IVariable;
+				var newvar = newexpr as IVariable;
 				result = new CreateArrayExpression(this.ElementType, this.Rank);
 
 				foreach (var bound in this.LowerBounds)
@@ -741,31 +783,45 @@ namespace Backend.ThreeAddressCode
 		{
 			var elementType = TypeHelper.GetTypeName(this.ElementType);
 			var sizes = string.Join(", ", this.Sizes);
-
 			return string.Format("new {0}[{1}]", elementType, sizes);
 		}
 	}
 
 	public class PhiExpression : IExpression
 	{
-		public IList<Variable> Arguments { get; private set; }
+		public IList<IVariable> Arguments { get; private set; }
 
 		public PhiExpression()
 		{
-			this.Arguments = new List<Variable>();
+			this.Arguments = new List<IVariable>();
 		}
 
-		public PhiExpression(IEnumerable<Variable> arguments)
+		public PhiExpression(IEnumerable<IVariable> arguments)
 		{
-			this.Arguments = new List<Variable>(arguments);
+			this.Arguments = new List<IVariable>(arguments);
 		}
 
-		public ISet<Variable> Variables
+		public ITypeReference Type
 		{
-			get { return new HashSet<Variable>(this.Arguments); }
+			get
+			{
+				ITypeReference type = null;
+
+				if (this.Arguments.Count > 0)
+				{
+					type = this.Arguments.First().Type;
+				}
+
+				return type;
+			}
 		}
 
-		public void Replace(Variable oldvar, Variable newvar)
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(this.Arguments); }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			for (var i = 0; i < this.Arguments.Count; ++i)
 			{
@@ -781,10 +837,10 @@ namespace Backend.ThreeAddressCode
 
 			var result = this;
 
-			if (oldexpr is Variable && newexpr is Variable)
+			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var oldvar = oldexpr as Variable;
-				var newvar = newexpr as Variable;
+				var oldvar = oldexpr as IVariable;
+				var newvar = newexpr as IVariable;
 				result = new PhiExpression();
 
 				foreach (var argument in this.Arguments)
