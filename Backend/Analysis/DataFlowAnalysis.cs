@@ -16,11 +16,9 @@ namespace Backend.Analysis
 		protected ControlFlowGraph cfg;
 		protected DataFlowAnalysisResult<T>[] result;
 
-		public abstract void Analyze();
+		public abstract DataFlowAnalysisResult<T>[] Analyze();
 
 		protected abstract T InitialValue(CFGNode node);
-
-		protected abstract T DefaultValue(CFGNode node);
 
 		protected abstract bool Compare(T left, T right);
 
@@ -31,123 +29,121 @@ namespace Backend.Analysis
 
 	public abstract class ForwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
-		public override void Analyze()
+		public override DataFlowAnalysisResult<T>[] Analyze()
 		{
-			bool changed;
 			var sorted_nodes = this.cfg.ForwardOrder;
+			var pending_nodes = new Queue<CFGNode>();
+			var result = new DataFlowAnalysisResult<T>[sorted_nodes.Length];
 
-			this.result = new DataFlowAnalysisResult<T>[sorted_nodes.Length];
-
-			var entry_result = new DataFlowAnalysisResult<T>();
-			entry_result.Output = this.InitialValue(cfg.Entry);
-			this.result[cfg.Entry.Id] = entry_result;
-
-			// Skip first node: entry
-			for (var i = 1; i < sorted_nodes.Length; ++i)
+			for (var i = 0; i < sorted_nodes.Length; ++i)
 			{
-				var node_result = new DataFlowAnalysisResult<T>();
 				var node = sorted_nodes[i];
+				var node_result = new DataFlowAnalysisResult<T>();
 
-				node_result.Output = this.DefaultValue(node);
-				this.result[node.Id]  = node_result;
+				node_result.Output = this.InitialValue(node);
+				result[node.Id] = node_result;
+				pending_nodes.Enqueue(node);
 			}
 
-			do
+			while (pending_nodes.Count > 0)
 			{
-				changed = false;
+				var node = pending_nodes.Dequeue();
+				var node_result = result[node.Id];
 
-				// Skip first node: entry
-				for (var i = 1; i < sorted_nodes.Length; ++i)
+				if (node.Predecessors.Count > 0)
 				{
-					var node = sorted_nodes[i];
-					var node_result = this.result[node.Id];
-
-					var other_predecessors = node.Predecessors.Skip(1);
 					var first_pred = node.Predecessors.First();
-					var pred_result = this.result[first_pred.Id];
+					var other_predecessors = node.Predecessors.Skip(1);
+					var pred_result = result[first_pred.Id];
 					var node_input = pred_result.Output;
 
 					foreach (var pred in other_predecessors)
 					{
-						pred_result = this.result[pred.Id];
+						pred_result = result[pred.Id];
 						node_input = this.Join(node_input, pred_result.Output);
 					}
 
 					node_result.Input = node_input;
+				}				
 
-					var old_output = node_result.Output;
-					var new_output = this.Flow(node, node_input);
-					var equals = this.Compare(new_output, old_output);
+				var old_output = node_result.Output;
+				var new_output = this.Flow(node, node_result.Input);
+				var equals = this.Compare(new_output, old_output);
 
-					if (!equals)
+				if (!equals)
+				{
+					node_result.Output = new_output;
+
+					foreach (var succ in node.Successors)
 					{
-						node_result.Output = new_output;
-						changed = true;
+						if (pending_nodes.Contains(succ)) continue;
+						pending_nodes.Enqueue(succ);
 					}
 				}
 			}
-			while (changed);
+
+			this.result = result;
+			return result;
 		}
 	}
 
 	public abstract class BackwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
-		public override void Analyze()
+		public override DataFlowAnalysisResult<T>[] Analyze()
 		{
-			bool changed;
 			var sorted_nodes = this.cfg.BackwardOrder;
+			var pending_nodes = new Queue<CFGNode>();
+			var result = new DataFlowAnalysisResult<T>[sorted_nodes.Length];
 
-			this.result = new DataFlowAnalysisResult<T>[sorted_nodes.Length];
-
-			var exit_result = new DataFlowAnalysisResult<T>();
-			exit_result.Input = this.InitialValue(cfg.Exit);
-			this.result[cfg.Exit.Id] = exit_result;
-
-			// Skip first node: exit
-			for (var i = 1; i < sorted_nodes.Length; ++i)
+			for (var i = 0; i < sorted_nodes.Length; ++i)
 			{
-				var node_result = new DataFlowAnalysisResult<T>();
 				var node = sorted_nodes[i];
+				var node_result = new DataFlowAnalysisResult<T>();
 
-				node_result.Input = this.DefaultValue(node);
-				this.result[node.Id] = node_result;
+				node_result.Output = this.InitialValue(node);
+				result[node.Id] = node_result;
+				pending_nodes.Enqueue(node);
 			}
 
-			do
+			while (pending_nodes.Count > 0)
 			{
-				changed = false;
+				var node = pending_nodes.Dequeue();
+				var node_result = result[node.Id];
 
-				// Skip first node: exit
-				for (var i = 1; i < sorted_nodes.Length; ++i)
+				if (node.Successors.Count > 0)
 				{
-					var node = sorted_nodes[i];
-					var node_result = this.result[node.Id];
-
-					var other_successors = node.Successors.Skip(1);
 					var first_succ = node.Successors.First();
-					var succ_result = this.result[first_succ.Id];
-					var node_output = succ_result.Output;
+					var other_successors = node.Successors.Skip(1);
+					var succ_result = result[first_succ.Id];
+					var node_output = succ_result.Input;
 
 					foreach (var succ in other_successors)
 					{
-						succ_result = this.result[succ.Id];
-						node_output = this.Join(node_output, succ_result.Input);
+						succ_result = result[succ.Id];
+						node_output = this.Join(node_output, succ_result.Output);
 					}
 
 					node_result.Output = node_output;
+				}
 
-					var old_input = node_result.Input;
-					var new_input = this.Flow(node, node_output);
-					var equals = new_input.Equals(old_input);
+				var old_input = node_result.Input;
+				var new_input = this.Flow(node, node_result.Output);
+				var equals = this.Compare(new_input, old_input);
 
-					if (!equals)
+				if (!equals)
+				{
+					node_result.Input = new_input;
+
+					foreach (var pred in node.Predecessors)
 					{
-						node_result.Input = new_input;
-						changed = true;
+						if (pending_nodes.Contains(pred)) continue;
+						pending_nodes.Enqueue(pred);
 					}
 				}
 			}
-			while (changed);
+
+			this.result = result;
+			return result;
 		}
 	}
 }

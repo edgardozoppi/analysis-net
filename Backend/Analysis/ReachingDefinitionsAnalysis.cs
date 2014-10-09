@@ -24,11 +24,6 @@ namespace Backend.Analysis
 
 		protected override Subset<DefinitionInstruction> InitialValue(CFGNode node)
 		{
-			return this.definitions.ToEmptySubset();
-		}
-
-		protected override Subset<DefinitionInstruction> DefaultValue(CFGNode node)
-		{
 			return GEN[node.Id];
 		}
 

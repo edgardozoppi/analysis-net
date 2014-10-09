@@ -22,11 +22,6 @@ namespace Backend.Analysis
 
 		protected override IDictionary<IVariable, IInmediateValue> InitialValue(CFGNode node)
 		{
-			return new Dictionary<IVariable, IInmediateValue>();
-		}
-
-		protected override IDictionary<IVariable, IInmediateValue> DefaultValue(CFGNode node)
-		{
 			return GEN[node.Id];
 		}
 
