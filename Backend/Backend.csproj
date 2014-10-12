@@ -73,9 +73,9 @@
     <Compile Include="Analysis\LoopBoundAnalysis.cs" />
     <Compile Include="Analysis\LoopInvariant.cs" />
     <Compile Include="Analysis\ReachingDefinitionsAnalysis.cs" />
-    <Compile Include="Analysis\SplitVariablesAnalysis.cs" />
     <Compile Include="Analysis\StaticSingleAssignmentAnalysis.cs" />
     <Compile Include="Analysis\SymbolicAnalysis.cs" />
+    <Compile Include="Analysis\TypeInferenceAnalysis.cs" />
     <Compile Include="Disassembler.cs" />
     <Compile Include="ThreeAddressCode\ExceptionHandlers.cs" />
     <Compile Include="ThreeAddressCode\Expressions.cs" />
@@ -85,13 +85,17 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ThreeAddressCode\TypeDefinitions.cs" />
     <Compile Include="ThreeAddressCode\Types.cs" />
+    <Compile Include="Types.cs" />
     <Compile Include="TypesExtractor.cs" />
+    <Compile Include="Utils\OperationHelper.cs" />
     <Compile Include="Utils\Exceptions.cs" />
     <Compile Include="Serialization\DGMLSerializer.cs" />
     <Compile Include="Serialization\DOTSerializer.cs" />
     <Compile Include="Utils\Extensions.cs" />
     <Compile Include="Utils\Map.cs" />
     <Compile Include="Utils\Subset.cs" />
+    <Compile Include="Visitors\IInstructionVisitor.cs" />
+    <Compile Include="Visitors\InstructionVisitor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

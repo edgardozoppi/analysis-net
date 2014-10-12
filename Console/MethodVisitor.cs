@@ -48,6 +48,12 @@ namespace Console
 			var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
 			ssa.Transform();
 
+			// TODO: despues de tener el codigo en SSA y antes de hacer la inferencia de tipos
+			// hay que splitear las variables originales segun las webs del paper de Jimple.
+
+			var analysis = new TypeInferenceAnalysis(cfg);
+			analysis.Analyze();
+
 			var bounds = new LoopBoundAnalysis(cfg);
 			bounds.Analyze();
 

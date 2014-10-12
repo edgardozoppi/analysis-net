@@ -44,6 +44,8 @@ namespace Console
 			{
 				assembly.Load(input);
 
+				Types.Initialize(host);
+
 				//var extractor = new TypesExtractor(host);
 				//extractor.Extract(assembly.Module);
 

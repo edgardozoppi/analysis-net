@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Cci;
+using Backend.ThreeAddressCode.Values;
+using Backend.ThreeAddressCode.Expressions;
+using Backend.Visitors;
 
-namespace Backend.ThreeAddressCode
+namespace Backend.ThreeAddressCode.Instructions
 {
 	public enum BinaryOperation
 	{
@@ -42,6 +45,14 @@ namespace Backend.ThreeAddressCode
 		Ge
 	}
 
+	public enum ConvertOperation
+	{
+		Conv,
+		Cast,
+		Box,
+		Unbox
+	}
+
 	public abstract class Instruction : IVariableContainer
 	{
 		public string Label { get; set; }
@@ -75,6 +86,11 @@ namespace Backend.ThreeAddressCode
 		public virtual void Replace(IVariable oldvar, IVariable newvar)
 		{
 		}
+
+		public virtual void Accept(IInstructionVisitor visitor)
+		{
+			visitor.Visit(this as Instruction);
+		}
 	}
 
 	public abstract class DefinitionInstruction : Instruction, IExpressible
@@ -107,6 +123,12 @@ namespace Backend.ThreeAddressCode
 			if (this.HasResult && this.Result.Equals(oldvar)) this.Result = newvar;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this as DefinitionInstruction);
+		}
+
 		public abstract IExpression ToExpression();
 	}
 
@@ -115,6 +137,8 @@ namespace Backend.ThreeAddressCode
 		public BinaryOperation Operation { get; set; }
 		public IVariable LeftOperand { get; set; }
 		public IVariable RightOperand { get; set; }
+		public bool OverflowCheck { get; set; }
+		public bool UnsignedOperands { get; set; }
 
 		public BinaryInstruction(uint label, IVariable result, IVariable left, BinaryOperation operation, IVariable right)
 			: base(label, result)
@@ -136,9 +160,19 @@ namespace Backend.ThreeAddressCode
 			if (this.RightOperand.Equals(oldvar)) this.RightOperand = newvar;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override IExpression ToExpression()
 		{
-			return new BinaryExpression(this.LeftOperand, this.Operation, this.RightOperand) { Type = this.Result.Type };
+			var expression = new BinaryExpression(this.LeftOperand, this.Operation, this.RightOperand);
+			expression.OverflowCheck = this.OverflowCheck;
+			expression.UnsignedOperands = this.UnsignedOperands;
+			expression.Type = this.Result.Type;
+			return expression;
 		}
 
 		public override string ToString()
@@ -192,6 +226,12 @@ namespace Backend.ThreeAddressCode
 			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override IExpression ToExpression()
 		{
 			return new UnaryExpression(this.Operation, this.Operand) { Type = this.Result.Type };
@@ -233,6 +273,12 @@ namespace Backend.ThreeAddressCode
 			else this.Operand.Replace(oldvar, newvar);
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override IExpression ToExpression()
 		{
 			return this.Operand.ToExpression();
@@ -267,6 +313,12 @@ namespace Backend.ThreeAddressCode
 			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  {1} = {2};", this.Label, this.Result, this.Operand);
@@ -278,6 +330,12 @@ namespace Backend.ThreeAddressCode
 		public NopInstruction(uint label)
 			: base(label)
 		{
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -293,6 +351,12 @@ namespace Backend.ThreeAddressCode
 		{
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  breakpoint;", this.Label);
@@ -304,6 +368,12 @@ namespace Backend.ThreeAddressCode
 		public TryInstruction(uint label)
 			: base(label)
 		{
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -319,6 +389,12 @@ namespace Backend.ThreeAddressCode
 		{
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  fault;", this.Label);
@@ -330,6 +406,12 @@ namespace Backend.ThreeAddressCode
 		public FinallyInstruction(uint label)
 			: base(label)
 		{
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -348,6 +430,12 @@ namespace Backend.ThreeAddressCode
 			this.ExceptionType = exceptionType;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override IExpression ToExpression()
 		{
 			return new CatchExpression(this.ExceptionType);
@@ -362,16 +450,18 @@ namespace Backend.ThreeAddressCode
 
 	public class ConvertInstruction : DefinitionInstruction
 	{
+		public ConvertOperation Operation { get; set; }
 		public IVariable Operand { get; set; }
 		public ITypeReference ConversionType { get; set; }
-		public bool CheckNumericRange { get; set; }
-		public bool TreatOperandAsUnsignedInteger { get; set; }
+		public bool OverflowCheck { get; set; }
+		public bool UnsignedOperands { get; set; }
 
-		public ConvertInstruction(uint label, IVariable result, ITypeReference conversionType, IVariable operand)
+		public ConvertInstruction(uint label, IVariable result, IVariable operand, ConvertOperation operation, ITypeReference conversionType)
 			: base(label, result)
 		{
-			this.ConversionType = conversionType;
 			this.Operand = operand;
+			this.Operation = operation;
+			this.ConversionType = conversionType;
 		}
 
 		public override ISet<IVariable> UsedVariables
@@ -385,9 +475,18 @@ namespace Backend.ThreeAddressCode
 			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override IExpression ToExpression()
 		{
-			return new ConvertExpression(this.Operand, this.ConversionType);
+			var expression = new ConvertExpression(this.Operand, this.Operation, this.ConversionType);
+			expression.OverflowCheck = this.OverflowCheck;
+			expression.UnsignedOperands = this.UnsignedOperands;
+			return expression;
 		}
 
 		public override string ToString()
@@ -430,6 +529,12 @@ namespace Backend.ThreeAddressCode
 		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.HasOperand && this.Operand.Equals(oldvar)) this.Operand = newvar;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -480,6 +585,12 @@ namespace Backend.ThreeAddressCode
 			if (this.HasOperand && this.Operand.Equals(oldvar)) this.Operand = newvar;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			var operation = "rethrow";
@@ -502,6 +613,12 @@ namespace Backend.ThreeAddressCode
 		{
 			this.Target = string.Format("L_{0:X4}", target);
 		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this as BranchInstruction);
+		}
 	}
 
 	public class ExceptionalBranchInstruction : BranchInstruction
@@ -512,6 +629,12 @@ namespace Backend.ThreeAddressCode
 			: base(label, target)
 		{
 			this.ExceptionType = exceptionType;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -528,6 +651,12 @@ namespace Backend.ThreeAddressCode
 		{
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  goto {1};", this.Label, this.Target);
@@ -539,6 +668,7 @@ namespace Backend.ThreeAddressCode
 		public BranchOperation Operation { get; set; }
 		public IVariable LeftOperand { get; set; }
 		public IInmediateValue RightOperand { get; set; }
+		public bool UnsignedOperands { get; set; }
 
 		public ConditionalBranchInstruction(uint label, IVariable left, BranchOperation operation, IInmediateValue right, uint target)
 			: base(label, target)
@@ -557,6 +687,12 @@ namespace Backend.ThreeAddressCode
 		{
 			if (this.LeftOperand.Equals(oldvar)) this.LeftOperand = newvar;
 			if (this.RightOperand.Equals(oldvar)) this.RightOperand = newvar;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -599,6 +735,12 @@ namespace Backend.ThreeAddressCode
 			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			var targets = string.Join(", ", this.Targets);
@@ -614,6 +756,12 @@ namespace Backend.ThreeAddressCode
 			: base(label, result)
 		{
 			this.MeasuredType = measuredType;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override IExpression ToExpression()
@@ -641,6 +789,12 @@ namespace Backend.ThreeAddressCode
 		public override IExpression ToExpression()
 		{
 			return new TokenExpression(this.Token);
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -687,6 +841,12 @@ namespace Backend.ThreeAddressCode
 				var argument = this.Arguments[i];
 				if (argument.Equals(oldvar)) this.Arguments[i] = newvar;
 			}
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override IExpression ToExpression()
@@ -752,6 +912,12 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override IExpression ToExpression()
 		{
 			return new IndirectMethodCallExpression(this.Pointer, this.Function, this.Arguments);
@@ -808,6 +974,12 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override IExpression ToExpression()
 		{
 			return new CreateObjectExpression(this.Constructor, this.Arguments);
@@ -848,6 +1020,12 @@ namespace Backend.ThreeAddressCode
 			if (this.TargetAddress.Equals(oldvar)) this.TargetAddress = newvar;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  copy {1} bytes from {1} to {2};", this.Label, this.NumberOfBytes, this.SourceAddress, this.TargetAddress);
@@ -875,6 +1053,12 @@ namespace Backend.ThreeAddressCode
 		{
 			if (this.NumberOfBytes.Equals(oldvar)) this.NumberOfBytes = newvar;
 			if (this.TargetAddress.Equals(oldvar)) this.TargetAddress = newvar;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -909,6 +1093,12 @@ namespace Backend.ThreeAddressCode
 			if (this.TargetAddress.Equals(oldvar)) this.TargetAddress = newvar;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  init {1} bytes at {2} with {3};", this.Label, this.NumberOfBytes, this.TargetAddress, this.Value);
@@ -933,6 +1123,12 @@ namespace Backend.ThreeAddressCode
 		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.TargetAddress.Equals(oldvar)) this.TargetAddress = newvar;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -962,6 +1158,12 @@ namespace Backend.ThreeAddressCode
 		{
 			if (this.SourceAddress.Equals(oldvar)) this.SourceAddress = newvar;
 			if (this.TargetAddress.Equals(oldvar)) this.TargetAddress = newvar;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -1014,6 +1216,12 @@ namespace Backend.ThreeAddressCode
 			}
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override IExpression ToExpression()
 		{
 			return new CreateArrayExpression(this.ElementType, this.Rank, this.LowerBounds, this.Sizes);
@@ -1050,6 +1258,12 @@ namespace Backend.ThreeAddressCode
 				var argument = this.Arguments[i];
 				if (argument.Equals(oldvar)) this.Arguments[i] = newvar;
 			}
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override IExpression ToExpression()

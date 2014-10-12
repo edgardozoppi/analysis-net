@@ -4,10 +4,13 @@ using System.Linq;
 using System.Text;
 using Microsoft.Cci;
 using Backend.ThreeAddressCode;
+using Backend.ThreeAddressCode.Instructions;
+using Backend.ThreeAddressCode.Values;
+using Backend.Visitors;
 
 namespace Backend
 {
-	public class MethodBody
+	public class MethodBody : IInstructionContainer
 	{
 		public IMethodDefinition MethodDefinition { get; private set; }
 		public IList<ProtectedBlock> ProtectedBlocks { get; private set; }

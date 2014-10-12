@@ -8,16 +8,16 @@ namespace Backend.Utils
 {
 	public class UnknownBytecodeException : Exception
 	{
-		public IOperation bytecode { get; private set; }
+		public IOperation Opcode { get; private set; }
 
-		public UnknownBytecodeException(IOperation bytecode)
+		public UnknownBytecodeException(OperationCode opcode)
 		{
-			this.bytecode = bytecode;
+			this.Opcode = Opcode;
 		}
 
 		public override string Message
 		{
-			get { return string.Format("Unknown bytecode: {0}", this.bytecode.OperationCode); }
+			get { return string.Format("Unknown bytecode: {0}", this.Opcode); }
 		}
 	}
 }

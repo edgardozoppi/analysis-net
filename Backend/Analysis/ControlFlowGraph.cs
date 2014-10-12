@@ -6,6 +6,8 @@ using System.Collections;
 
 using Backend.ThreeAddressCode;
 using Backend.Utils;
+using Backend.ThreeAddressCode.Instructions;
+using Backend.Visitors;
 
 namespace Backend.Analysis
 {
@@ -59,7 +61,7 @@ namespace Backend.Analysis
 		}
 	}
 
-	public class CFGNode
+	public class CFGNode : IInstructionContainer
 	{
 		private ISet<CFGNode> dominators;
 

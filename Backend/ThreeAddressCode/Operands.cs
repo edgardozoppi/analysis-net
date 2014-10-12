@@ -5,8 +5,9 @@ using System.Text;
 
 using Microsoft.Cci;
 using Microsoft.Cci.Immutable;
+using Backend.ThreeAddressCode.Expressions;
 
-namespace Backend.ThreeAddressCode
+namespace Backend.ThreeAddressCode.Values
 {
 	public interface IVariableContainer
 	{
@@ -27,23 +28,23 @@ namespace Backend.ThreeAddressCode
 	{
 	}
 
-	public interface IMethodSignature : IReferenceable
+	public interface IFunctionReference : IVariableContainer, IExpression
 	{
 		IMethodReference Method { get; set; }
 	}
 
-	public class StaticMethod : IMethodSignature
+	public class StaticMethodReference : IFunctionReference
 	{
 		public IMethodReference Method { get; set; }
 
-		public StaticMethod(IMethodReference method)
+		public StaticMethodReference(IMethodReference method)
 		{
 			this.Method = method;
 		}
 
 		public ITypeReference Type
 		{
-			get { return this.Method.Type; }
+			get { return Backend.Types.Instance.FunctionPointerType(this.Method); }
 		}
 
 		ISet<IVariable> IVariableContainer.Variables
@@ -67,7 +68,7 @@ namespace Backend.ThreeAddressCode
 
 		public override bool Equals(object obj)
 		{
-			var other = obj as StaticMethod;
+			var other = obj as StaticMethodReference;
 			return other != null &&
 				this.Method.Equals(other.Method);
 		}
@@ -82,16 +83,16 @@ namespace Backend.ThreeAddressCode
 			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
 			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
 
-			return string.Format("{0}::{1}", type, method);
+			return string.Format("&{0}::{1}", type, method);
 		}
 	}
 
-	public class VirtualMethod : IMethodSignature
+	public class VirtualMethodReference : IFunctionReference
 	{
 		public IVariable Instance { get; set; }
 		public IMethodReference Method { get; set; }
 
-		public VirtualMethod(IVariable instance, IMethodReference method)
+		public VirtualMethodReference(IVariable instance, IMethodReference method)
 		{
 			this.Instance = instance;
 			this.Method = method;
@@ -99,7 +100,7 @@ namespace Backend.ThreeAddressCode
 
 		public ITypeReference Type
 		{
-			get { return this.Method.Type; }
+			get { return Backend.Types.Instance.FunctionPointerType(this.Method); }
 		}
 
 		public ISet<IVariable> Variables
@@ -119,7 +120,7 @@ namespace Backend.ThreeAddressCode
 			if (oldexpr is IVariable && newexpr is IVariable)
 			{
 				var instance = (this.Instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
-				result = new VirtualMethod(instance, this.Method);
+				result = new VirtualMethodReference(instance, this.Method);
 			}
 
 			return result;
@@ -132,7 +133,7 @@ namespace Backend.ThreeAddressCode
 
 		public override bool Equals(object obj)
 		{
-			var other = obj as VirtualMethod;
+			var other = obj as VirtualMethodReference;
 			return other != null &&
 				this.Instance.Equals(other.Instance) &&
 				this.Method.Equals(other.Method);
@@ -149,17 +150,19 @@ namespace Backend.ThreeAddressCode
 			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
 			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
 
-			return string.Format("{0}::{1}({2})", type, method, this.Instance);
+			return string.Format("&{0}::{1}({2})", type, method, this.Instance);
 		}
 	}
 
 	public interface IInmediateValue : IValue, IExpression
 	{
+		new ITypeReference Type { get; set; }
 	}
 
 	public class UnknownValue : IInmediateValue
 	{
 		private static UnknownValue value;
+		public ITypeReference Type { get; set; }
 
 		private UnknownValue() { }
 
@@ -170,11 +173,6 @@ namespace Backend.ThreeAddressCode
 				if (value == null) value = new UnknownValue();
 				return value;
 			}
-		}
-
-		public ITypeReference Type
-		{
-			get { return null; }
 		}
 
 		ISet<IVariable> IVariableContainer.Variables
@@ -394,6 +392,7 @@ namespace Backend.ThreeAddressCode
 		public ITypeReference Type
 		{
 			get { return this.Original.Type; }
+			set { this.Original.Type = value; }
 		}
 
 		ISet<IVariable> IVariableContainer.Variables
@@ -434,13 +433,13 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public interface IFieldAccess : IAssignableValue, IReferenceable, IExpression
+	public interface IFieldAccess : IExpression
 	{
 		string Name { get; }
 		string FieldName { get; }
 	}
 
-	public class StaticFieldAccess : IFieldAccess
+	public class StaticFieldAccess : IFieldAccess, IAssignableValue, IReferenceable
 	{
 		public IFieldReference Field { get; set; }
 
@@ -510,7 +509,7 @@ namespace Backend.ThreeAddressCode
 		}
 	}
 
-	public class InstanceFieldAccess : IFieldAccess
+	public class InstanceFieldAccess : IFieldAccess, IAssignableValue, IReferenceable
 	{
 		public IFieldReference Field { get; set; }
 		public IVariable Instance { get; set; }
@@ -608,7 +607,7 @@ namespace Backend.ThreeAddressCode
 
 		public ITypeReference Type
 		{
-			get { return null; }
+			get { return Backend.Types.Instance.ArrayLengthType; }
 		}
 
 		public ISet<IVariable> Variables
@@ -671,11 +670,7 @@ namespace Backend.ThreeAddressCode
 
 		public ITypeReference Type
 		{
-			get
-			{
-				var type = this.Array.Type as IArrayTypeReference;
-				return type.ElementType;
-			}
+			get { return Backend.Types.Instance.ArrayElementType(this.Array.Type); }
 		}
 
 		public ISet<IVariable> Variables
@@ -740,11 +735,7 @@ namespace Backend.ThreeAddressCode
 
 		public ITypeReference Type
 		{
-			get
-			{
-				var type = this.Reference.Type as IPointerTypeReference;
-				return type.TargetType;
-			}
+			get { return Backend.Types.Instance.PointerTargetType(this.Reference.Type); }
 		}
 
 		public ISet<IVariable> Variables
@@ -805,7 +796,7 @@ namespace Backend.ThreeAddressCode
 
 		public ITypeReference Type
 		{
-			get { return ManagedPointerType.GetManagedPointerType(this.Value.Type, null); }
+			get { return Backend.Types.Instance.PointerType(this.Value.Type); }
 		}
 
 		public ISet<IVariable> Variables

@@ -5,6 +5,8 @@ using System.Text;
 using Microsoft.Cci;
 using Backend.ThreeAddressCode;
 using Backend.Utils;
+using Backend.ThreeAddressCode.Values;
+using Backend.ThreeAddressCode.Instructions;
 
 namespace Backend
 {
@@ -14,20 +16,22 @@ namespace Backend
 
 		private class OperandStack
 		{
-			private TemporalVariable[] stack;
 			private ushort top;
+			private TemporalVariable[] stack;			
 
 			public OperandStack(ushort capacity)
 			{
 				stack = new TemporalVariable[capacity];
 
 				for (var i = 0u; i < capacity; ++i)
+				{
 					stack[i] = new TemporalVariable(i);
+				}
 			}
 
 			public IEnumerable<TemporalVariable> Variables
 			{
-				get { return this.stack; }
+				get { return stack; }
 			}
 
 			public int Capacity
@@ -125,19 +129,20 @@ namespace Backend
 
 			if (!method.IsStatic)
 			{
-				this.thisParameter = new LocalVariable("this");
+				var t = new LocalVariable("this") { Type = this.method.ContainingType };
+				this.thisParameter = t;
 			}
 
 			foreach (var parameter in method.Parameters)
 			{
-				var p = new LocalVariable(parameter.Name.Value);
+				var p = new LocalVariable(parameter.Name.Value) { Type = parameter.Type };
 				this.parameters.Add(parameter, p);
 			}
 
 			foreach (var local in method.Body.LocalVariables)
 			{
 				var name = this.GetLocalSourceName(local);
-				var l = new LocalVariable(name);
+				var l = new LocalVariable(name) { Type = local.Type };
 				this.locals.Add(local, l);
 			}
 		}
@@ -259,8 +264,6 @@ namespace Backend
 		{
 			var nextOperationIsLeader = true;
 			var fallThroughNextBlock = true;
-			BasicBlockInfo basicBlock;
-			uint offset;
 
 			foreach (var op in method.Body.Operations)
 			{
@@ -271,88 +274,50 @@ namespace Backend
 
 				if (nextOperationIsLeader)
 				{
-					nextOperationIsLeader = false;
-					offset = op.Offset;
+					BasicBlockInfo basicBlock;					
 
-					if (basicBlocks.ContainsKey(offset))
+					if (basicBlocks.ContainsKey(op.Offset))
 					{
-						basicBlock = basicBlocks[offset];
+						basicBlock = basicBlocks[op.Offset];
 					}
 					else
 					{
-						basicBlock = new BasicBlockInfo(offset);
-						basicBlocks.Add(offset, basicBlock);
+						basicBlock = new BasicBlockInfo(op.Offset);
+						basicBlocks.Add(op.Offset, basicBlock);
 					}
 
 					basicBlock.CanEnterByFallThrough = fallThroughNextBlock;
-					fallThroughNextBlock = true;
 				}
 
-				switch (op.OperationCode)
+				var isBranch = OperationHelper.IsBranch(op.OperationCode);
+				fallThroughNextBlock = OperationHelper.CanFallThroughNextOperation(op.OperationCode);
+				nextOperationIsLeader = isBranch || !fallThroughNextBlock;
+
+				if (isBranch)
 				{
-					case OperationCode.Ret:
-					case OperationCode.Endfinally:
-					case OperationCode.Endfilter:
-					case OperationCode.Throw:
-					case OperationCode.Rethrow:
-						fallThroughNextBlock = false;
-						nextOperationIsLeader = true;
-						break;
-
-					case OperationCode.Br:
-					case OperationCode.Br_S:
-					case OperationCode.Leave:
-					case OperationCode.Leave_S:
-						fallThroughNextBlock = false;
-						goto case OperationCode.Beq;
-
-					case OperationCode.Beq:
-					case OperationCode.Beq_S:
-					case OperationCode.Bne_Un:
-					case OperationCode.Bne_Un_S:
-					case OperationCode.Bge:
-					case OperationCode.Bge_S:
-					case OperationCode.Bge_Un:
-					case OperationCode.Bge_Un_S:
-					case OperationCode.Bgt:
-					case OperationCode.Bgt_S:
-					case OperationCode.Bgt_Un:
-					case OperationCode.Bgt_Un_S:
-					case OperationCode.Ble:
-					case OperationCode.Ble_S:
-					case OperationCode.Ble_Un:
-					case OperationCode.Ble_Un_S:
-					case OperationCode.Blt:
-					case OperationCode.Blt_S:
-					case OperationCode.Blt_Un:
-					case OperationCode.Blt_Un_S:
-					case OperationCode.Brfalse:
-					case OperationCode.Brfalse_S:
-					case OperationCode.Brtrue:
-					case OperationCode.Brtrue_S:
-						nextOperationIsLeader = true;
-						offset = (uint)op.Value;
-
-						if (!basicBlocks.ContainsKey(offset))
-						{
-							basicBlock = new BasicBlockInfo(offset);
-							basicBlocks.Add(offset, basicBlock);
-						}
-						break;
-
-					case OperationCode.Switch:
-						nextOperationIsLeader = true;
+					if (op.OperationCode == OperationCode.Switch)
+					{
 						var targets = op.Value as uint[];
 
 						foreach (var target in targets)
 						{
 							if (!basicBlocks.ContainsKey(target))
 							{
-								basicBlock = new BasicBlockInfo(target);
+								var basicBlock = new BasicBlockInfo(target);
 								basicBlocks.Add(target, basicBlock);
 							}
 						}
-						break;
+					}
+					else
+					{
+						var target = (uint)op.Value;
+
+						if (!basicBlocks.ContainsKey(target))
+						{
+							var basicBlock = new BasicBlockInfo(target);
+							basicBlocks.Add(target, basicBlock);
+						}
+					}
 				}
 			}
 		}
@@ -399,64 +364,28 @@ namespace Backend
 					case OperationCode.Add:
 					case OperationCode.Add_Ovf:
 					case OperationCode.Add_Ovf_Un:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Add);
-						break;
-
 					case OperationCode.And:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.And);
-						break;
-
 					case OperationCode.Ceq:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Eq);
-						break;
-
 					case OperationCode.Cgt:
 					case OperationCode.Cgt_Un:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Gt);
-						break;
-
 					case OperationCode.Clt:
 					case OperationCode.Clt_Un:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Lt);
-						break;
-
 					case OperationCode.Div:
 					case OperationCode.Div_Un:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Div);
-						break;
-
 					case OperationCode.Mul:
 					case OperationCode.Mul_Ovf:
 					case OperationCode.Mul_Ovf_Un:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Mul);
-						break;
-
 					case OperationCode.Or:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Or);
-						break;
-
 					case OperationCode.Rem:
 					case OperationCode.Rem_Un:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Rem);
-						break;
-
 					case OperationCode.Shl:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Shl);
-						break;
-
 					case OperationCode.Shr:
 					case OperationCode.Shr_Un:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Shr);
-						break;
-
 					case OperationCode.Sub:
 					case OperationCode.Sub_Ovf:
 					case OperationCode.Sub_Ovf_Un:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Sub);
-						break;
-
 					case OperationCode.Xor:
-						this.ProcessBinaryOperation(bb, op, BinaryOperation.Xor);
+						this.ProcessBinaryOperation(bb, op);
 						break;
 
 					//case OperationCode.Arglist:
@@ -464,12 +393,9 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Array_Create_WithLowerBound:
-						this.ProcessCreateArray(bb, op, true);
-						break;
-
 					case OperationCode.Array_Create:
 					case OperationCode.Newarr:
-						this.ProcessCreateArray(bb, op, false);
+						this.ProcessCreateArray(bb, op);
 						break;
 
 					case OperationCode.Array_Get:
@@ -494,41 +420,25 @@ namespace Backend
 						break;
 
 					case OperationCode.Beq:
-					case OperationCode.Beq_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Eq);
-						break;
-
 					case OperationCode.Bne_Un:
 					case OperationCode.Bne_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Neq);
-						break;
-
 					case OperationCode.Bge:
 					case OperationCode.Bge_S:
 					case OperationCode.Bge_Un:
 					case OperationCode.Bge_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Ge);
-						break;
-
 					case OperationCode.Bgt:
 					case OperationCode.Bgt_S:
 					case OperationCode.Bgt_Un:
 					case OperationCode.Bgt_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Gt);
-						break;
-
 					case OperationCode.Ble:
 					case OperationCode.Ble_S:
 					case OperationCode.Ble_Un:
 					case OperationCode.Ble_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Le);
-						break;
-
 					case OperationCode.Blt:
 					case OperationCode.Blt_S:
 					case OperationCode.Blt_Un:
 					case OperationCode.Blt_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op, BranchOperation.Lt);
+						this.ProcessBinaryConditionalBranch(bb, op);
 						break;
 
 					case OperationCode.Br:
@@ -551,12 +461,9 @@ namespace Backend
 
 					case OperationCode.Brfalse:
 					case OperationCode.Brfalse_S:
-						this.ProcessUnaryConditionalBranch(bb, op, false);
-						break;
-
 					case OperationCode.Brtrue:
 					case OperationCode.Brtrue_S:
-						this.ProcessUnaryConditionalBranch(bb, op, true);
+						this.ProcessUnaryConditionalBranch(bb, op);
 						break;
 
 					case OperationCode.Call:
@@ -577,76 +484,40 @@ namespace Backend
 					case OperationCode.Box:
 					case OperationCode.Unbox:
 					case OperationCode.Unbox_Any:
-						this.ProcessConversion(bb, op);
-						break;
-
 					case OperationCode.Conv_I:
 					case OperationCode.Conv_Ovf_I:
 					case OperationCode.Conv_Ovf_I_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemIntPtr);
-						break;
-
 					case OperationCode.Conv_I1:
 					case OperationCode.Conv_Ovf_I1:
 					case OperationCode.Conv_Ovf_I1_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemInt8);
-						break;
-
 					case OperationCode.Conv_I2:
 					case OperationCode.Conv_Ovf_I2:
 					case OperationCode.Conv_Ovf_I2_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemInt16);
-						break;
-
 					case OperationCode.Conv_I4:
 					case OperationCode.Conv_Ovf_I4:
 					case OperationCode.Conv_Ovf_I4_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemInt32);
-						break;
-
 					case OperationCode.Conv_I8:
 					case OperationCode.Conv_Ovf_I8:
 					case OperationCode.Conv_Ovf_I8_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemInt64);
-						break;
-
 					case OperationCode.Conv_U:
 					case OperationCode.Conv_Ovf_U:
 					case OperationCode.Conv_Ovf_U_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemUIntPtr);
-						break;
-
 					case OperationCode.Conv_U1:
 					case OperationCode.Conv_Ovf_U1:
 					case OperationCode.Conv_Ovf_U1_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemUInt8);
-						break;
-
 					case OperationCode.Conv_U2:
 					case OperationCode.Conv_Ovf_U2:
 					case OperationCode.Conv_Ovf_U2_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemUInt16);
-						break;
-
 					case OperationCode.Conv_U4:
 					case OperationCode.Conv_Ovf_U4:
 					case OperationCode.Conv_Ovf_U4_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemUInt32);
-						break;
-
 					case OperationCode.Conv_U8:
 					case OperationCode.Conv_Ovf_U8:
 					case OperationCode.Conv_Ovf_U8_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemUInt64);
-						break;
-
 					case OperationCode.Conv_R4:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemFloat32);
-						break;
-
 					case OperationCode.Conv_R8:
 					case OperationCode.Conv_R_Un:
-						this.ProcessConversion(bb, op, host.PlatformType.SystemFloat64);
+						this.ProcessConversion(bb, op);
 						break;
 
 					//case OperationCode.Ckfinite:
@@ -663,7 +534,7 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Constrained_:
-						//This prefix is redundant and is not represented in the code model.
+						// This prefix is redundant and is not represented in the code model.
 						break;
 
 					case OperationCode.Cpblk:
@@ -798,11 +669,8 @@ namespace Backend
 					//    break;
 
 					case OperationCode.Neg:
-						this.ProcessUnaryOperation(bb, op, UnaryOperation.Neg);
-						break;
-
 					case OperationCode.Not:
-						this.ProcessUnaryOperation(bb, op, UnaryOperation.Not);
+						this.ProcessUnaryOperation(bb, op);
 						break;
 
 					case OperationCode.Newobj:
@@ -913,8 +781,8 @@ namespace Backend
 					//    break;
 
 					default:
-						//throw new UnknownBytecodeException(bb, op);
 						System.Console.WriteLine("Unknown bytecode: {0}", op.OperationCode);
+						//throw new UnknownBytecodeException(bb, op);
 						break;
 				}
 			}
@@ -1015,15 +883,13 @@ namespace Backend
 			bb.Instructions.Add(instruction);
 		}
 
-		private void ProcessCreateArray(BasicBlockInfo bb, IOperation op, bool withLowerBounds)
+		private void ProcessCreateArray(BasicBlockInfo bb, IOperation op)
 		{
 			var arrayType = op.Value as IArrayTypeReference;
-			var elementType = arrayType.ElementType;
-			var rank = arrayType.Rank;
 			var lowerBounds = new List<IVariable>();
 			var sizes = new List<IVariable>();
 
-			if (withLowerBounds)
+			if (op.OperationCode == OperationCode.Array_Create_WithLowerBound)
 			{
 				for (uint i = 0; i < arrayType.Rank; i++)
 				{
@@ -1042,7 +908,7 @@ namespace Backend
 			sizes.Reverse();
 
 			var result = stack.Push();
-			var instruction = new CreateArrayInstruction(op.Offset, result, elementType, rank, lowerBounds, sizes);
+			var instruction = new CreateArrayInstruction(op.Offset, result, arrayType.ElementType, arrayType.Rank, lowerBounds, sizes);
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1188,8 +1054,9 @@ namespace Backend
 			bb.Instructions.Add(instruction);
 		}
 
-		private void ProcessUnaryConditionalBranch(BasicBlockInfo bb, IOperation op, bool value)
+		private void ProcessUnaryConditionalBranch(BasicBlockInfo bb, IOperation op)
 		{
+			var value = OperationHelper.GetUnaryConditionalBranchValue(op.OperationCode);
 			var right = new Constant(value);
 			var left = stack.Pop();
 			var target = (uint)op.Value;
@@ -1199,12 +1066,16 @@ namespace Backend
 			this.AddToPendingBasicBlocks(target, true);
 		}
 
-		private void ProcessBinaryConditionalBranch(BasicBlockInfo bb, IOperation op, BranchOperation condition)
+		private void ProcessBinaryConditionalBranch(BasicBlockInfo bb, IOperation op)
 		{
+			var condition = OperationHelper.ToBranchOperation(op.OperationCode);
+			var unsigned = OperationHelper.OperandsAreUnsigned(op.OperationCode);
+
 			var right = stack.Pop();
 			var left = stack.Pop();
 			var target = (uint)op.Value;
 			var instruction = new ConditionalBranchInstruction(op.Offset, left, condition, right, target);
+			instruction.UnsignedOperands = unsigned;
 			bb.Instructions.Add(instruction);
 
 			this.AddToPendingBasicBlocks(target, true);
@@ -1314,7 +1185,9 @@ namespace Backend
 
 		private void ProcessLoadConstant(BasicBlockInfo bb, IOperation op)
 		{
-			var source = new Constant(op.Value);
+			var type = OperationHelper.GetOperationType(op.OperationCode);
+
+			var source = new Constant(op.Value) { Type = type };
 			var dest = stack.Push();
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
@@ -1453,8 +1326,7 @@ namespace Backend
 		{
 			var method = op.Value as IMethodReference;
 			var dest = stack.Push();
-			var signature = new StaticMethod(method);
-			var source = new Reference(signature);
+			var source = new StaticMethodReference(method);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
@@ -1464,24 +1336,16 @@ namespace Backend
 			var method = op.Value as IMethodReference;
 			var obj = stack.Pop();
 			var dest = stack.Push();
-			var signature = new VirtualMethod(obj, method);
-			var source = new Reference(signature);
+			var source = new VirtualMethodReference(obj, method);
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessLoadToken(BasicBlockInfo bb, IOperation op)
 		{
-			var type = op.Value as IReference;
-
-			//TODO: borrar esto en algun momento
-			if (type == null)
-			{
-				throw new Exception("Error while processing load token instruction.");
-			}
-
+			var token = op.Value as IReference;
 			var result = stack.Push();
-			var instruction = new LoadTokenInstruction(op.Offset, result, type);
+			var instruction = new LoadTokenInstruction(op.Offset, result, token);
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1559,34 +1423,49 @@ namespace Backend
 			bb.Instructions.Add(instruction);
 		}
 
-		private void ProcessUnaryOperation(BasicBlockInfo bb, IOperation op, UnaryOperation operation)
+		private void ProcessUnaryOperation(BasicBlockInfo bb, IOperation op)
 		{
+			var operation = OperationHelper.ToUnaryOperation(op.OperationCode);
+
 			var operand = stack.Pop();
 			var dest = stack.Push();
 			var instruction = new UnaryInstruction(op.Offset, dest, operation, operand);
 			bb.Instructions.Add(instruction);
 		}
 
-		private void ProcessBinaryOperation(BasicBlockInfo bb, IOperation op, BinaryOperation operation)
+		private void ProcessBinaryOperation(BasicBlockInfo bb, IOperation op)
 		{
+			var operation = OperationHelper.ToBinaryOperation(op.OperationCode);
+			var overflow = OperationHelper.PerformsOverflowCheck(op.OperationCode);
+			var unsigned = OperationHelper.OperandsAreUnsigned(op.OperationCode);
+
 			var right = stack.Pop();
 			var left = stack.Pop();
 			var dest = stack.Push();
 			var instruction = new BinaryInstruction(op.Offset, dest, left, operation, right);
+			instruction.OverflowCheck = overflow;
+			instruction.UnsignedOperands = unsigned;
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessConversion(BasicBlockInfo bb, IOperation op)
 		{
-			var type = op.Value as ITypeReference;
-			this.ProcessConversion(bb, op, type);
-		}
+			var operation = OperationHelper.ToConvertOperation(op.OperationCode);
+			var overflow = OperationHelper.PerformsOverflowCheck(op.OperationCode);
+			var unsigned = OperationHelper.OperandsAreUnsigned(op.OperationCode);
 
-		private void ProcessConversion(BasicBlockInfo bb, IOperation op, ITypeReference type)
-		{
+			var type = op.Value as ITypeReference;
+
+			if (operation == ConvertOperation.Conv)
+			{
+				type = OperationHelper.GetOperationType(op.OperationCode);
+			}
+
 			var operand = stack.Pop();
 			var result = stack.Push();
-			var instruction = new ConvertInstruction(op.Offset, result, type, operand);
+			var instruction = new ConvertInstruction(op.Offset, result, operand, operation, type);
+			instruction.OverflowCheck = overflow;
+			instruction.UnsignedOperands = unsigned;
 			bb.Instructions.Add(instruction);
 		}
 

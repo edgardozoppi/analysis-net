@@ -5,6 +5,9 @@ using System.Text;
 
 using Backend.ThreeAddressCode;
 using Backend.Utils;
+using Backend.ThreeAddressCode.Values;
+using Backend.ThreeAddressCode.Expressions;
+using Backend.ThreeAddressCode.Instructions;
 
 namespace Backend.Analysis
 {

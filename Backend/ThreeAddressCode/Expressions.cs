@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Backend.ThreeAddressCode.Values;
+using Backend.ThreeAddressCode.Instructions;
 
-namespace Backend.ThreeAddressCode
+namespace Backend.ThreeAddressCode.Expressions
 {
 	public interface IExpressible
 	{
@@ -23,6 +25,8 @@ namespace Backend.ThreeAddressCode
 		public IExpression Left { get; set; }
 		public IExpression Right { get; set; }
 		public ITypeReference Type { get; set; }
+		public bool OverflowCheck { get; set; }
+		public bool UnsignedOperands { get; set; }
 
 		public BinaryExpression(IExpression left, BinaryOperation operation, IExpression right)
 		{
@@ -234,18 +238,22 @@ namespace Backend.ThreeAddressCode
 
 	public class ConvertExpression : IExpression
 	{
+		public ConvertOperation Operation { get; set; }
 		public IExpression Operand { get; set; }
-		public ITypeReference ConvertionType { get; set; }
+		public ITypeReference ConversionType { get; set; }
+		public bool OverflowCheck { get; set; }
+		public bool UnsignedOperands { get; set; }
 
-		public ConvertExpression(IExpression operand, ITypeReference convertionType)
+		public ConvertExpression(IExpression operand, ConvertOperation operation, ITypeReference conversionType)
 		{
 			this.Operand = operand;
-			this.ConvertionType = convertionType;			
+			this.Operation = operation;
+			this.ConversionType = conversionType;			
 		}
 
 		public ITypeReference Type
 		{
-			get { return this.ConvertionType; }
+			get { return this.ConversionType; }
 		}
 
 		public ISet<IVariable> Variables
@@ -263,7 +271,7 @@ namespace Backend.ThreeAddressCode
 			if (this.Equals(oldexpr)) return newexpr;
 
 			var operand = this.Operand.Replace(oldexpr, newexpr);
-			var result = new ConvertExpression(operand, this.ConvertionType);
+			var result = new ConvertExpression(operand, this.Operation, this.ConversionType);
 
 			return result;
 		}
@@ -290,7 +298,7 @@ namespace Backend.ThreeAddressCode
 
 		public override string ToString()
 		{
-			var convertionType = TypeHelper.GetTypeName(this.ConvertionType);
+			var convertionType = TypeHelper.GetTypeName(this.ConversionType);
 			return string.Format("{0} as {1}", this.Operand, convertionType);
 		}
 	}
