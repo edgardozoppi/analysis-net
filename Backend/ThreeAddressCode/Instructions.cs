@@ -50,7 +50,8 @@ namespace Backend.ThreeAddressCode.Instructions
 		Conv,
 		Cast,
 		Box,
-		Unbox
+		Unbox,
+		UnboxPtr
 	}
 
 	public abstract class Instruction : IVariableContainer

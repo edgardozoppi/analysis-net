@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Backend.ThreeAddressCode.Instructions;
 using Backend.Visitors;
+using Microsoft.Cci;
 
 namespace Backend.Analysis
 {
@@ -64,6 +65,11 @@ namespace Backend.Analysis
 				instruction.Result.Type = Types.Instance.TokenType(instruction.Token);
 			}
 
+			public override void Visit(StoreInstruction instruction)
+			{
+				// Nothing to do here, only for debugging purposes
+			}
+
 			public override void Visit(UnaryInstruction instruction)
 			{
 				instruction.Result.Type = instruction.Operand.Type;
@@ -71,7 +77,46 @@ namespace Backend.Analysis
 
 			public override void Visit(ConvertInstruction instruction)
 			{
-				
+				var type = instruction.ConversionType;
+
+				switch (instruction.Operation)
+				{
+					case ConvertOperation.Cast:
+						if (type.ResolvedType.IsValueType || type is IGenericParameterReference)
+						{
+							type = Types.Instance.PlatformType.SystemObject;
+						}
+						break;
+
+					case ConvertOperation.Box:
+						if (type.ResolvedType.IsReferenceType)
+						{
+							type = type.ResolvedType;
+						}
+						else
+						{
+							type = Types.Instance.PlatformType.SystemObject;
+						}
+						break;
+
+					case ConvertOperation.Unbox:
+						type = Types.Instance.PointerType(type);
+						break;
+				}
+
+				instruction.Result.Type = type;
+			}
+
+			public override void Visit(PhiInstruction instruction)
+			{
+				var type = instruction.Result.Type;
+
+				foreach (var argument in instruction.Arguments)
+				{
+					type = TypeHelper.MergedType(type, argument.Type);
+				}
+
+				instruction.Result.Type = type;
 			}
 
 			public override void Visit(BinaryInstruction instruction)

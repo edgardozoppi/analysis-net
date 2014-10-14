@@ -16,7 +16,7 @@ namespace Backend.Utils
 				case OperationCode.Castclass:
 				case OperationCode.Isinst:		return ConvertOperation.Cast;
 				case OperationCode.Box:			return ConvertOperation.Box;
-				case OperationCode.Unbox:
+				case OperationCode.Unbox:		return ConvertOperation.UnboxPtr;
 				case OperationCode.Unbox_Any:	return ConvertOperation.Unbox;
 				case OperationCode.Conv_I:
 				case OperationCode.Conv_Ovf_I:
