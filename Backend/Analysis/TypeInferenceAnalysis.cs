@@ -109,9 +109,10 @@ namespace Backend.Analysis
 
 			public override void Visit(PhiInstruction instruction)
 			{
-				var type = instruction.Result.Type;
+				var type = instruction.Arguments.First().Type;
+				var arguments = instruction.Arguments.Skip(1);
 
-				foreach (var argument in instruction.Arguments)
+				foreach (var argument in arguments)
 				{
 					type = TypeHelper.MergedType(type, argument.Type);
 				}
