@@ -99,7 +99,7 @@ namespace Backend.Analysis
 						}
 						break;
 
-					case ConvertOperation.Unbox:
+					case ConvertOperation.UnboxPtr:
 						type = Types.Instance.PointerType(type);
 						break;
 				}

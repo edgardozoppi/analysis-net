@@ -50,6 +50,8 @@ namespace Console
 
 			// TODO: despues de tener el codigo en SSA y antes de hacer la inferencia de tipos
 			// hay que splitear las variables originales segun las webs del paper de Jimple.
+			var splitter = new WebAnalysis(cfg);
+			splitter.Analyze();
 
 			var analysis = new TypeInferenceAnalysis(cfg);
 			analysis.Analyze();

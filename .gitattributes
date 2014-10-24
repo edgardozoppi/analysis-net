@@ -8,6 +8,7 @@ Backend/Analysis/ReachingDefinitionsAnalysis.cs -text
 Backend/Analysis/StaticSingleAssignmentAnalysis.cs -text
 Backend/Analysis/SymbolicAnalysis.cs -text
 Backend/Analysis/TypeInferenceAnalysis.cs -text
+Backend/Analysis/WebAnalysis.cs -text
 Backend/Backend.csproj -text
 Backend/Disassembler.cs -text
 Backend/MethodBody.cs -text
