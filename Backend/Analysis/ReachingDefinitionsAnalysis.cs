@@ -13,15 +13,101 @@ namespace Backend.Analysis
 	{
 		private DefinitionInstruction[] definitions;
 		private IDictionary<IVariable, Subset<DefinitionInstruction>> variable_definitions;
+		private DataFlowAnalysisResult<Subset<DefinitionInstruction>>[] result;
+		private Map<DefinitionInstruction, Instruction> def_use;
+		private Map<Instruction, DefinitionInstruction> use_def;
 		private Subset<DefinitionInstruction>[] GEN;
 		private Subset<DefinitionInstruction>[] KILL;
 
 		public ReachingDefinitionsAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
+		}
+
+		public Map<DefinitionInstruction, Instruction> DefinitionUse
+		{
+			get { return def_use; }
+		}
+
+		public Map<Instruction, DefinitionInstruction> UseDefinition
+		{
+			get { return use_def; }
+		}
+
+		public void ComputeDefUseAndUseDefChains()
+		{
+			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
+
+			this.def_use = new Map<DefinitionInstruction, Instruction>();
+			this.use_def = new Map<Instruction, DefinitionInstruction>();
+
+			foreach (var node in this.cfg.Nodes)
+			{
+				ISet<DefinitionInstruction> input = new HashSet<DefinitionInstruction>();
+
+				if (this.result[node.Id].Input != null)
+				{
+					this.result[node.Id].Input.ToSet(input);
+				}
+
+				foreach (var instruction in node.Instructions)
+				{
+					foreach (var definition in input)
+					{
+						var variable = definition.Result;
+
+						if (instruction.UsedVariables.Contains(variable))
+						{
+							def_use.Add(definition, instruction);
+							use_def.Add(instruction, definition);
+						}
+					}
+
+					if (instruction is DefinitionInstruction)
+					{
+						var definition = instruction as DefinitionInstruction;
+
+						if (definition.HasResult)
+						{
+							var variable = definition.Result;
+
+							input = this.RemoveVariableDefinitions(input, variable);
+							input.Add(definition);
+						}
+					}
+				}
+			}
+		}
+
+		private ISet<DefinitionInstruction> RemoveVariableDefinitions(ISet<DefinitionInstruction> definitions, IVariable variable)
+		{
+			var result = new HashSet<DefinitionInstruction>();
+
+			foreach (var definition in definitions)
+			{
+				if (definition.Result.Equals(variable)) continue;
+
+				result.Add(definition);
+			}
+
+			return result;
+		}
+
+		public override DataFlowAnalysisResult<Subset<DefinitionInstruction>>[] Analyze()
+		{
 			this.ComputeDefinitions();
 			this.ComputeGen();
 			this.ComputeKill();
+
+			var result = base.Analyze();
+
+			this.result = result;
+			this.definitions = null;
+			this.variable_definitions = null;
+			this.GEN = null;
+			this.KILL = null;
+
+			return result;
 		}
 
 		protected override Subset<DefinitionInstruction> InitialValue(CFGNode node)
@@ -63,7 +149,11 @@ namespace Backend.Analysis
 					if (instruction is DefinitionInstruction)
 					{
 						var definition = instruction as DefinitionInstruction;
-						result.Add(definition);
+						
+						if (definition.HasResult)
+						{
+							result.Add(definition);
+						}
 					}
 				}
 			}
@@ -105,8 +195,11 @@ namespace Backend.Analysis
 					{
 						var definition = instruction as DefinitionInstruction;
 
-						defined[definition.Result] = index;
-						index++;
+						if (definition.HasResult)
+						{
+							defined[definition.Result] = index;
+							index++;
+						}
 					}
 				}
 
@@ -138,8 +231,11 @@ namespace Backend.Analysis
 					{
 						var definition = instruction as DefinitionInstruction;
 
-						var defs = this.variable_definitions[definition.Result];
-						kill.Union(defs);
+						if (definition.HasResult)
+						{
+							var defs = this.variable_definitions[definition.Result];
+							kill.Union(defs);
+						}
 					}
 				}
 

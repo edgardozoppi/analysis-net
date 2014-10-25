@@ -13,14 +13,27 @@ namespace Backend.Analysis
 {
 	public class SymbolicAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IExpression>>
 	{
+		private DataFlowAnalysisResult<IDictionary<IVariable, IExpression>>[] result;
 		private IDictionary<IVariable, IExpression>[] GEN;
 		private ISet<IVariable>[] KILL;
 
 		public SymbolicAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
+		}
+
+		public override DataFlowAnalysisResult<IDictionary<IVariable, IExpression>>[] Analyze()
+		{
 			this.ComputeGen();
 			this.ComputeKill();
+
+			var result = base.Analyze();
+			
+			this.result = result;
+			this.GEN = null;
+			this.KILL = null;
+
+			return result;
 		}
 
 		public DataFlowAnalysisResult<IDictionary<IVariable, IExpression>> this[CFGNode node]

@@ -14,7 +14,6 @@ namespace Backend.Analysis
 	public abstract class DataFlowAnalysis<T>
 	{
 		protected ControlFlowGraph cfg;
-		protected DataFlowAnalysisResult<T>[] result;
 
 		public abstract DataFlowAnalysisResult<T>[] Analyze();
 
@@ -86,7 +85,6 @@ namespace Backend.Analysis
 				}
 			}
 
-			this.result = result;
 			return result;
 		}
 	}
@@ -106,7 +104,11 @@ namespace Backend.Analysis
 
 				node_result.Output = this.InitialValue(node);
 				result[node.Id] = node_result;
-				pending_nodes.Enqueue(node);
+
+				if (node.Successors.Count > 0)
+				{
+					pending_nodes.Enqueue(node);
+				}
 			}
 
 			while (pending_nodes.Count > 0)
@@ -114,7 +116,7 @@ namespace Backend.Analysis
 				var node = pending_nodes.Dequeue();
 				var node_result = result[node.Id];
 
-				if (node.Successors.Count > 0)
+				//if (node.Successors.Count > 0)
 				{
 					var first_succ = node.Successors.First();
 					var other_successors = node.Successors.Skip(1);
@@ -146,7 +148,6 @@ namespace Backend.Analysis
 				}
 			}
 
-			this.result = result;
 			return result;
 		}
 	}

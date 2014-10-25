@@ -12,14 +12,27 @@ namespace Backend.Analysis
 {
 	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IInmediateValue>> 
 	{
+		private DataFlowAnalysisResult<IDictionary<IVariable, IInmediateValue>>[] result;
 		private IDictionary<IVariable, IInmediateValue>[] GEN;
 		private ISet<IVariable>[] KILL;
 
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
+		}
+
+		public override DataFlowAnalysisResult<IDictionary<IVariable, IInmediateValue>>[] Analyze()
+		{
 			this.ComputeGen();
 			this.ComputeKill();
+
+			var result = base.Analyze();
+
+			this.result = result;
+			this.GEN = null;
+			this.KILL = null;
+
+			return result;
 		}
 
 		protected override IDictionary<IVariable, IInmediateValue> InitialValue(CFGNode node)
