@@ -76,6 +76,7 @@
     <Compile Include="Analysis\StaticSingleAssignmentAnalysis.cs" />
     <Compile Include="Analysis\SymbolicAnalysis.cs" />
     <Compile Include="Analysis\TypeInferenceAnalysis.cs" />
+    <Compile Include="Analysis\WebAnalysis.cs" />
     <Compile Include="Disassembler.cs" />
     <Compile Include="ThreeAddressCode\ExceptionHandlers.cs" />
     <Compile Include="ThreeAddressCode\Expressions.cs" />

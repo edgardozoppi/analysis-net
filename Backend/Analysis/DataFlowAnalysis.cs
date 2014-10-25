@@ -42,7 +42,11 @@ namespace Backend.Analysis
 
 				node_result.Output = this.InitialValue(node);
 				result[node.Id] = node_result;
-				pending_nodes.Enqueue(node);
+
+				if (node.Predecessors.Count > 0)
+				{
+					pending_nodes.Enqueue(node);
+				}
 			}
 
 			while (pending_nodes.Count > 0)
@@ -50,7 +54,7 @@ namespace Backend.Analysis
 				var node = pending_nodes.Dequeue();
 				var node_result = result[node.Id];
 
-				if (node.Predecessors.Count > 0)
+				//if (node.Predecessors.Count > 0)
 				{
 					var first_pred = node.Predecessors.First();
 					var other_predecessors = node.Predecessors.Skip(1);

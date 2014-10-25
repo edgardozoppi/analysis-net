@@ -67,7 +67,7 @@ namespace Backend.Analysis
 
 			public override void Visit(StoreInstruction instruction)
 			{
-				// Nothing to do here, only for debugging purposes
+				// Nothing to do here, for debugging purposes only
 			}
 
 			public override void Visit(UnaryInstruction instruction)
