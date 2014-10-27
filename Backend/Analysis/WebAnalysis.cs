@@ -11,14 +11,10 @@ namespace Backend.Analysis
 	public class WebAnalysis
 	{
 		private ControlFlowGraph cfg;
-		private Map<DefinitionInstruction, Instruction> def_uses;
-		private Map<Instruction, DefinitionInstruction> use_defs;
 
 		public WebAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
-			this.def_uses = new Map<DefinitionInstruction, Instruction>();
-			this.use_defs = new Map<Instruction, DefinitionInstruction>();
 		}
 
 		public void Analyze()
@@ -26,6 +22,46 @@ namespace Backend.Analysis
 			var analysis = new ReachingDefinitionsAnalysis(cfg);
 			analysis.Analyze();
 			analysis.ComputeDefUseAndUseDefChains();
+
+			this.ComputeWebs(analysis.DefinitionUses, analysis.UseDefinitions);
+		}
+
+		private void ComputeWebs(MapList<DefinitionInstruction, Instruction> def_use, MapList<Instruction, DefinitionInstruction> use_def)
+		{
+			var result = new MapSet<IVariable, Instruction>();
+
+			foreach (var def in def_use.Keys)
+			{
+				if (result.ContainsKey(def.Result)) continue;
+				var web = new HashSet<Instruction>();
+				var pendings = new HashSet<Instruction>();
+				pendings.Add(def);
+
+				while (pendings.Count > 0)
+				{
+					var instruction = pendings.First();
+					pendings.Remove(instruction);
+
+					var isNewElement = web.Add(instruction);
+
+					if (isNewElement)
+					{
+						if (instruction is DefinitionInstruction)
+						{
+							var uses = def_use[instruction as DefinitionInstruction];
+							pendings.UnionWith(uses);
+						}
+						else
+						{
+							var defs = use_def[instruction];
+							var var_defs = defs.Where(d => d.Result.Equals(def.Result));
+							pendings.UnionWith(var_defs);
+						}
+					}
+				}
+
+				result.Add(def.Result, web);
+			}
 		}
 	}
 }

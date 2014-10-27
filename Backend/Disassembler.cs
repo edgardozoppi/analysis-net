@@ -109,8 +109,8 @@ namespace Backend
 		private IDictionary<IParameterDefinition, LocalVariable> parameters;
 		private IDictionary<ILocalDefinition, LocalVariable> locals;
 		private OperandStack stack;
-		private Map<uint, IExceptionHandlerBlock> exceptionHandlersStart;
-		private Map<uint, IExceptionHandlerBlock> exceptionHandlersEnd;
+		private MapList<uint, IExceptionHandlerBlock> exceptionHandlersStart;
+		private MapList<uint, IExceptionHandlerBlock> exceptionHandlersEnd;
 		private IDictionary<uint, BasicBlockInfo> basicBlocks;
 		private Stack<uint> pendingBasicBlocks;
 
@@ -122,8 +122,8 @@ namespace Backend
 			this.parameters = new Dictionary<IParameterDefinition, LocalVariable>();
 			this.locals = new Dictionary<ILocalDefinition, LocalVariable>();
 			this.stack = new OperandStack(method.Body.MaxStack);
-			this.exceptionHandlersStart = new Map<uint, IExceptionHandlerBlock>();
-			this.exceptionHandlersEnd = new Map<uint, IExceptionHandlerBlock>();
+			this.exceptionHandlersStart = new MapList<uint, IExceptionHandlerBlock>();
+			this.exceptionHandlersEnd = new MapList<uint, IExceptionHandlerBlock>();
 			this.basicBlocks = new SortedDictionary<uint, BasicBlockInfo>();
 			this.pendingBasicBlocks = new Stack<uint>();
 

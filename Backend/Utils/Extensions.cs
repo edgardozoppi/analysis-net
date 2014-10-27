@@ -11,7 +11,7 @@ namespace Backend.Utils
 {
 	public static class Extensions
 	{
-		public static void AddRange<T>(this IList<T> list, IEnumerable<T> elements)
+		public static void AddRange<T>(this ICollection<T> list, IEnumerable<T> elements)
 		{
 			foreach (var element in elements)
 			{

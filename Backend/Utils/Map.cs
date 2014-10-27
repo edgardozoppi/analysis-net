@@ -5,11 +5,12 @@ using System.Text;
 
 namespace Backend.Utils
 {
-	public class Map<TKey, TValue> : Dictionary<TKey, IList<TValue>>
+	public class Map<TKey, TValue, TCollection> : Dictionary<TKey, TCollection>
+		where TCollection : ICollection<TValue>, new()
 	{
 		public void Add(TKey key, TValue value)
 		{
-			IList<TValue> list;
+			TCollection list;
 
 			if (this.ContainsKey(key))
 			{
@@ -17,11 +18,32 @@ namespace Backend.Utils
 			}
 			else
 			{
-				list = new List<TValue>();
+				list = new TCollection();
 				this.Add(key, list);
 			}
 
 			list.Add(value);
 		}
+
+		public void AddRange(TKey key, IEnumerable<TValue> values)
+		{
+			TCollection list;
+
+			if (this.ContainsKey(key))
+			{
+				list = this[key];
+			}
+			else
+			{
+				list = new TCollection();
+				this.Add(key, list);
+			}
+
+			list.AddRange(values);
+		}
 	}
+
+	public class MapSet<TKey, TValue> : Map<TKey, TValue, HashSet<TValue>> { }
+
+	public class MapList<TKey, TValue> : Map<TKey, TValue, List<TValue>> { }
 }

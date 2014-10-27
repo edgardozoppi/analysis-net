@@ -14,8 +14,8 @@ namespace Backend.Analysis
 		private DefinitionInstruction[] definitions;
 		private IDictionary<IVariable, Subset<DefinitionInstruction>> variable_definitions;
 		private DataFlowAnalysisResult<Subset<DefinitionInstruction>>[] result;
-		private Map<DefinitionInstruction, Instruction> def_use;
-		private Map<Instruction, DefinitionInstruction> use_def;
+		private MapList<DefinitionInstruction, Instruction> def_use;
+		private MapList<Instruction, DefinitionInstruction> use_def;
 		private Subset<DefinitionInstruction>[] GEN;
 		private Subset<DefinitionInstruction>[] KILL;
 
@@ -24,12 +24,12 @@ namespace Backend.Analysis
 			this.cfg = cfg;
 		}
 
-		public Map<DefinitionInstruction, Instruction> DefinitionUse
+		public MapList<DefinitionInstruction, Instruction> DefinitionUses
 		{
 			get { return def_use; }
 		}
 
-		public Map<Instruction, DefinitionInstruction> UseDefinition
+		public MapList<Instruction, DefinitionInstruction> UseDefinitions
 		{
 			get { return use_def; }
 		}
@@ -38,8 +38,8 @@ namespace Backend.Analysis
 		{
 			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
 
-			this.def_use = new Map<DefinitionInstruction, Instruction>();
-			this.use_def = new Map<Instruction, DefinitionInstruction>();
+			this.def_use = new MapList<DefinitionInstruction, Instruction>();
+			this.use_def = new MapList<Instruction, DefinitionInstruction>();
 
 			foreach (var node in this.cfg.Nodes)
 			{
