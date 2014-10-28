@@ -322,17 +322,25 @@ namespace Backend.ThreeAddressCode.Values
 
 	public class TemporalVariable : IVariable
 	{
+		private string name;
+
 		public ITypeReference Type { get; set; }
 		public uint Index { get; set; }
 
-		public TemporalVariable(uint index)
+		public TemporalVariable(string name, uint index)
 		{
+			this.name = name;
 			this.Index = index;
+		}
+
+		public TemporalVariable(uint index)
+			: this("$t", index)
+		{
 		}
 
 		public string Name
 		{
-			get { return string.Format("$t{0}", this.Index); }
+			get { return string.Format("{0}{1}", this.name, this.Index); }
 		}
 
 		ISet<IVariable> IVariableContainer.Variables

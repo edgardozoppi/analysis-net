@@ -8,38 +8,38 @@ namespace Backend.Utils
 	public class Map<TKey, TValue, TCollection> : Dictionary<TKey, TCollection>
 		where TCollection : ICollection<TValue>, new()
 	{
+		public void Add(TKey key)
+		{
+			this.AddKeyAndGetValues(key);
+		}
+
 		public void Add(TKey key, TValue value)
 		{
-			TCollection list;
-
-			if (this.ContainsKey(key))
-			{
-				list = this[key];
-			}
-			else
-			{
-				list = new TCollection();
-				this.Add(key, list);
-			}
-
-			list.Add(value);
+			var collection = this.AddKeyAndGetValues(key);
+			collection.Add(value);
 		}
 
 		public void AddRange(TKey key, IEnumerable<TValue> values)
 		{
-			TCollection list;
+			var collection = this.AddKeyAndGetValues(key);
+			collection.AddRange(values);
+		}
+
+		private TCollection AddKeyAndGetValues(TKey key)
+		{
+			TCollection result;
 
 			if (this.ContainsKey(key))
 			{
-				list = this[key];
+				result = this[key];
 			}
 			else
 			{
-				list = new TCollection();
-				this.Add(key, list);
+				result = new TCollection();
+				this.Add(key, result);
 			}
 
-			list.AddRange(values);
+			return result;
 		}
 	}
 

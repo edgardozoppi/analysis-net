@@ -170,6 +170,8 @@ namespace Backend.Analysis
 			var inferer = new TypeInferencer();
 			var sorted_nodes = cfg.ForwardOrder;
 
+			// TODO: Propagate types over the CFG until a fixpoint is reached (i.e. when types do not change)
+
 			for (var i = 0; i < sorted_nodes.Length; ++i)
 			{
 				var node = sorted_nodes[i];

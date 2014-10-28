@@ -44,22 +44,33 @@ namespace Backend.Analysis
 			foreach (var node in this.cfg.Nodes)
 			{
 				ISet<DefinitionInstruction> input = new HashSet<DefinitionInstruction>();
+				var node_result = this.result[node.Id];
 
-				if (this.result[node.Id].Input != null)
+				if (node_result.Input != null)
 				{
-					this.result[node.Id].Input.ToSet(input);
+					node_result.Input.ToSet(input);
 				}
+
+				var definitions = input.ToMapSet(def => def.Result);
 
 				foreach (var instruction in node.Instructions)
 				{
-					foreach (var definition in input)
+					foreach (var variable in instruction.UsedVariables)
 					{
-						var variable = definition.Result;
-
-						if (instruction.UsedVariables.Contains(variable))
+						if (definitions.ContainsKey(variable))
 						{
-							def_use.Add(definition, instruction);
-							use_def.Add(instruction, definition);
+							var var_defs = definitions[variable];
+
+							foreach (var definition in var_defs)
+							{
+								def_use.Add(definition, instruction);
+								use_def.Add(instruction, definition);
+							}
+						}
+						else
+						{
+							// Add all uses, even those with no reaching definitions.
+							use_def.Add(instruction);
 						}
 					}
 
@@ -71,26 +82,15 @@ namespace Backend.Analysis
 						{
 							var variable = definition.Result;
 
-							input = this.RemoveVariableDefinitions(input, variable);
-							input.Add(definition);
+							definitions.Remove(variable);
+							definitions.Add(variable, definition);
+
+							// Add all definitions, even those with no uses.
+							def_use.Add(definition);
 						}
 					}
 				}
 			}
-		}
-
-		private ISet<DefinitionInstruction> RemoveVariableDefinitions(ISet<DefinitionInstruction> definitions, IVariable variable)
-		{
-			var result = new HashSet<DefinitionInstruction>();
-
-			foreach (var definition in definitions)
-			{
-				if (definition.Result.Equals(variable)) continue;
-
-				result.Add(definition);
-			}
-
-			return result;
 		}
 
 		public override DataFlowAnalysisResult<Subset<DefinitionInstruction>>[] Analyze()

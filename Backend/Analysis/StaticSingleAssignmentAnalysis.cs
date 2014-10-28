@@ -27,8 +27,12 @@ namespace Backend.Analysis
 			//ControlFlowGraph.ComputeDominatorTree(cfg);
 			//ControlFlowGraph.ComputeDominanceFrontiers(cfg);
 
+			//this.method.UpdateVariables();
+
 			this.InsertPhiInstructions();
 			this.RenameVariables();
+
+			//this.method.UpdateVariables();
 		}
 
 		private void InsertPhiInstructions()
@@ -89,6 +93,8 @@ namespace Backend.Analysis
 
 						var phi = new PhiInstruction(0, variable);
 
+						// TODO: Also insert phi instructions into method's body instructions collection.
+
 						node.Instructions.Insert(0, phi);
 						node_phi_instructions.Add(variable, phi);
 
@@ -116,7 +122,20 @@ namespace Backend.Analysis
 				indices.Add(variable, 1u);
 			}
 
+			this.RenameParameters(derived_variables);
 			this.RenameVariables(cfg.Entry, derived_variables, indices);
+		}
+
+		private void RenameParameters(Dictionary<IVariable, Stack<DerivedVariable>> derived_variables)
+		{
+			for (var i = 0; i < this.method.Parameters.Count; ++i)
+			{
+				var parameter = this.method.Parameters[i];
+				var stack = derived_variables[parameter];
+				var derived = stack.Peek();
+
+				this.method.Parameters[i] = derived;
+			}
 		}
 
 		private void RenameVariables(CFGNode node, IDictionary<IVariable, Stack<DerivedVariable>> derived_variables, Dictionary<IVariable, uint> indices)

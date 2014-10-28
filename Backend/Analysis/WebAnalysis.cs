@@ -8,60 +8,131 @@ using Backend.Utils;
 
 namespace Backend.Analysis
 {
+	public class Web
+	{
+		public IVariable Variable { get; private set; }
+		public ISet<DefinitionInstruction> Definitions { get; private set; }
+		public ISet<Instruction> Uses { get; private set; }
+
+		public Web(IVariable variable)
+		{
+			this.Variable = variable;
+			this.Definitions = new HashSet<DefinitionInstruction>();
+			this.Uses = new HashSet<Instruction>();
+		}
+
+		public void Rename(IVariable variable)
+		{
+			var oldvar = this.Variable;			
+			var newvar = variable;
+
+			foreach (var definition in this.Definitions)
+			{
+				definition.Result = newvar;
+			}
+
+			foreach (var instruction in this.Uses)
+			{
+				instruction.Replace(oldvar, newvar);
+			}
+
+			this.Variable = variable;
+		}
+
+		public override string ToString()
+		{
+			return this.Variable.ToString();
+		}
+	}
+
 	public class WebAnalysis
 	{
 		private ControlFlowGraph cfg;
+		private IList<Web> result;
 
 		public WebAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
 		}
 
-		public void Analyze()
+		public IList<Web> Result
+		{
+			get { return this.result; }
+		}
+
+		public IList<Web> Analyze()
 		{
 			var analysis = new ReachingDefinitionsAnalysis(cfg);
 			analysis.Analyze();
 			analysis.ComputeDefUseAndUseDefChains();
 
-			this.ComputeWebs(analysis.DefinitionUses, analysis.UseDefinitions);
+			var result = this.ComputeWebs(analysis.DefinitionUses, analysis.UseDefinitions);
+			this.result = result;
+			return result;
 		}
 
-		private void ComputeWebs(MapList<DefinitionInstruction, Instruction> def_use, MapList<Instruction, DefinitionInstruction> use_def)
+		public void Transform()
 		{
-			var result = new MapSet<IVariable, Instruction>();
+			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
+			var index = 0u;
 
-			foreach (var def in def_use.Keys)
+			foreach (var web in this.result)
 			{
-				if (result.ContainsKey(def.Result)) continue;
-				var web = new HashSet<Instruction>();
-				var pendings = new HashSet<Instruction>();
-				pendings.Add(def);
+				// Do not rename local variables, only rename temporal variables.
+				if (web.Variable is LocalVariable) continue;
+				var variable = new TemporalVariable("$r", index);
+				web.Rename(variable);
+				index++;
+			}
+		}
 
-				while (pendings.Count > 0)
+		private IList<Web> ComputeWebs(MapList<DefinitionInstruction, Instruction> def_use, MapList<Instruction, DefinitionInstruction> use_def)
+		{
+			var result = new List<Web>();
+			var definitions = def_use.Keys.ToList();
+
+			while (definitions.Count > 0)
+			{
+				var def = definitions.First();
+				var variable = def.Result;
+				var web = new Web(variable);
+				var pending_defs = new HashSet<DefinitionInstruction>();
+				var pending_uses = new HashSet<Instruction>();
+
+				result.Add(web);
+				pending_defs.Add(def);
+
+				while (pending_defs.Count > 0)
 				{
-					var instruction = pendings.First();
-					pendings.Remove(instruction);
-
-					var isNewElement = web.Add(instruction);
-
-					if (isNewElement)
+					while (pending_defs.Count > 0)
 					{
-						if (instruction is DefinitionInstruction)
-						{
-							var uses = def_use[instruction as DefinitionInstruction];
-							pendings.UnionWith(uses);
-						}
-						else
-						{
-							var defs = use_def[instruction];
-							var var_defs = defs.Where(d => d.Result.Equals(def.Result));
-							pendings.UnionWith(var_defs);
-						}
+						var definition = pending_defs.First();
+						pending_defs.Remove(definition);
+
+						web.Definitions.Add(definition);
+						definitions.Remove(definition);
+
+						var uses = def_use[definition];
+						var new_uses = uses.Except(web.Uses);
+						pending_uses.UnionWith(new_uses);
+					}
+
+					while (pending_uses.Count > 0)
+					{
+						var instruction = pending_uses.First();
+						pending_uses.Remove(instruction);
+
+						web.Uses.Add(instruction);
+
+						var defs = use_def[instruction];
+						var var_defs = defs.Where(d => d.Result.Equals(variable));
+						var new_defs = var_defs.Except(web.Definitions);
+						pending_defs.UnionWith(new_defs);
 					}
 				}
-
-				result.Add(def.Result, web);
 			}
+
+			return result;
 		}
 	}
 }

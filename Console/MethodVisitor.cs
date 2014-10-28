@@ -42,19 +42,22 @@ namespace Console
 			ControlFlowGraph.ComputeDominatorTree(cfg);
 			ControlFlowGraph.ComputeDominanceFrontiers(cfg);
 
-			//var analysis = new ReachingDefinitionsAnalysis(cfg);
-			//analysis.Analyze();
+			var splitter = new WebAnalysis(cfg);
+			splitter.Analyze();
+			splitter.Transform();
+
+			methodBody.UpdateVariables();
+
+			var analysis = new TypeInferenceAnalysis(cfg);
+			analysis.Analyze();
 
 			var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
 			ssa.Transform();
 
-			// TODO: antes de hacer la inferencia de tipos hay que splitear
-			// las variables segun las webs del paper de Jimple.
-			var splitter = new WebAnalysis(cfg);
-			splitter.Analyze();
+			methodBody.UpdateVariables();
 
-			var analysis = new TypeInferenceAnalysis(cfg);
-			analysis.Analyze();
+			//var analysis = new TypeInferenceAnalysis(cfg);
+			//analysis.Analyze();
 
 			var bounds = new LoopBoundAnalysis(cfg);
 			bounds.Analyze();

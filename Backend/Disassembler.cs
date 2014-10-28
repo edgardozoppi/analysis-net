@@ -25,7 +25,7 @@ namespace Backend
 
 				for (var i = 0u; i < capacity; ++i)
 				{
-					stack[i] = new TemporalVariable(i);
+					stack[i] = new TemporalVariable("$s", i);
 				}
 			}
 

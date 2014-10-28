@@ -27,12 +27,39 @@ namespace Backend
 			this.Variables = new HashSet<IVariable>();
 		}
 
+		public void UpdateVariables()
+		{
+			this.Variables.Clear();
+			this.Variables.UnionWith(this.Parameters);
+
+			// TODO: SSA is not inserting phi instructions into method's body instructions collection.
+			foreach (var instruction in this.Instructions)
+			{
+				this.Variables.UnionWith(instruction.Variables);
+			}
+		}
+
 		public override string ToString()
 		{
 			var result = new StringBuilder();
 			var header = MemberHelper.GetMethodSignature(this.MethodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.ParameterName);
 
 			result.AppendLine(header);
+
+			foreach (var variable in this.Variables)
+			{
+				var type = "unknown";
+
+				if (variable.Type != null)
+				{
+					type = TypeHelper.GetTypeName(variable.Type);
+				}
+
+				result.AppendFormat("  {0} {1};", type, variable.Name);
+				result.AppendLine();
+			}
+
+			result.AppendLine();
 
 			foreach (var instruction in this.Instructions)
 			{
