@@ -56,11 +56,13 @@ namespace Backend.ThreeAddressCode.Instructions
 
 	public abstract class Instruction : IVariableContainer
 	{
+		public uint Offset { get; set; }
 		public string Label { get; set; }
 
-		protected Instruction(uint label)
+		protected Instruction(uint offset)
 		{
-			this.Label = string.Format("L_{0:X4}", label);
+			this.Offset = offset;
+			this.Label = string.Format("L_{0:X4}", offset);
 		}
 
 		public ISet<IVariable> Variables
