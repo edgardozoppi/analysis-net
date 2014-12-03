@@ -159,7 +159,7 @@ namespace Backend.ThreeAddressCode.Values
 		new ITypeReference Type { get; set; }
 	}
 
-	public class UnknownValue : IInmediateValue
+	public sealed class UnknownValue : IInmediateValue
 	{
 		private static UnknownValue value;
 		public ITypeReference Type { get; set; }
