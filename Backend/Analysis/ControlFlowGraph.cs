@@ -23,12 +23,18 @@ namespace Backend.Analysis
 		public CFGNode Header { get; set; }
 		public ISet<CFGNode> Body { get; private set; }
 		public LoopInvariant Invariant { get; set; }
+		//public IExpression Condition { get; set; }
 
 		public CFGLoop(CFGNode header)
 		{
 			this.Header = header;
 			this.Body = new HashSet<CFGNode>();
 			this.Body.Add(header);
+		}
+
+		public bool HasInvariant
+		{
+			get { return this.Invariant != null; }
 		}
 
 		public override string ToString()
