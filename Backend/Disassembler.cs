@@ -129,13 +129,13 @@ namespace Backend
 
 			if (!method.IsStatic)
 			{
-				var t = new LocalVariable("this") { Type = this.method.ContainingType };
+				var t = new LocalVariable("this", true) { Type = this.method.ContainingType };
 				this.thisParameter = t;
 			}
 
 			foreach (var parameter in method.Parameters)
 			{
-				var p = new LocalVariable(parameter.Name.Value) { Type = parameter.Type };
+				var p = new LocalVariable(parameter.Name.Value, true) { Type = parameter.Type };
 				this.parameters.Add(parameter, p);
 			}
 

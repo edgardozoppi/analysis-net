@@ -270,12 +270,20 @@ namespace Backend.ThreeAddressCode.Values
 	public interface IVariable : IInmediateValue, IReferenceable
 	{
 		string Name { get; }
+		bool IsParameter { get; }
 	}
 
 	public class LocalVariable : IVariable
 	{
 		public string Name { get; set; }
 		public ITypeReference Type { get; set; }
+		public bool IsParameter { get; set; }
+
+		public LocalVariable(string name, bool isParameter)
+		{
+			this.Name = name;
+			this.IsParameter = IsParameter;
+		}
 
 		public LocalVariable(string name)
 		{
@@ -343,6 +351,11 @@ namespace Backend.ThreeAddressCode.Values
 			get { return string.Format("{0}{1}", this.name, this.Index); }
 		}
 
+		public bool IsParameter
+		{
+			get { return false; }
+		}
+
 		ISet<IVariable> IVariableContainer.Variables
 		{
 			get { return new HashSet<IVariable>() { this }; }
@@ -395,6 +408,11 @@ namespace Backend.ThreeAddressCode.Values
 		public string Name
 		{
 			get { return string.Format("{0}{1}", this.Original, this.Index); }
+		}
+
+		public bool IsParameter
+		{
+			get { return this.Original.IsParameter; }
 		}
 
 		public ITypeReference Type
