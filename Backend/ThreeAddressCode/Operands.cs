@@ -282,7 +282,7 @@ namespace Backend.ThreeAddressCode.Values
 		public LocalVariable(string name, bool isParameter)
 		{
 			this.Name = name;
-			this.IsParameter = IsParameter;
+			this.IsParameter = isParameter;
 		}
 
 		public LocalVariable(string name)
@@ -407,12 +407,22 @@ namespace Backend.ThreeAddressCode.Values
 
 		public string Name
 		{
-			get { return string.Format("{0}{1}", this.Original, this.Index); }
+			get
+			{
+				var result = this.Original.Name;
+
+				if (this.Index > 0)
+				{
+					result = string.Format("{0}{1}", result, this.Index);
+				}
+
+				return result;
+			}
 		}
 
 		public bool IsParameter
 		{
-			get { return this.Original.IsParameter; }
+			get { return this.Original.IsParameter && this.Index == 0; }
 		}
 
 		public ITypeReference Type
