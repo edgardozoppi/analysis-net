@@ -35,7 +35,7 @@ namespace Console
 			//System.Console.WriteLine(methodBody);
 			//System.Console.WriteLine();
 
-			var cfg = ControlFlowGraph.Generate(methodBody);
+			var cfg = ControlFlowGraph.GenerateNormalControlFlow(methodBody);
 			ControlFlowGraph.ComputeDominators(cfg);
 			ControlFlowGraph.IdentifyLoops(cfg);
 

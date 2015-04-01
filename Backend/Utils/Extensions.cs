@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using Backend.ThreeAddressCode.Values;
 using Backend.ThreeAddressCode.Expressions;
+using Backend.ThreeAddressCode.Instructions;
 
 namespace Backend.Utils
 {
@@ -69,6 +70,26 @@ namespace Backend.Utils
 		public static IExpression GetValue(this IDictionary<IVariable, IExpression> equalities, IVariable variable)
 		{
 			var result = equalities.ContainsKey(variable) ? equalities[variable] : variable;
+			return result;
+		}
+
+		public static IEnumerable<IVariable> GetDefinedVariables(this CFGLoop loop)
+		{
+			var result = new List<IVariable>();
+
+			foreach (var node in loop.Body)
+			{
+				foreach (var instruction in node.Instructions)
+				{
+					var definition = instruction as DefinitionInstruction;
+
+					if (definition != null && definition.HasResult)
+					{
+						result.Add(definition.Result);
+					}
+				}
+			}
+
 			return result;
 		}
 
