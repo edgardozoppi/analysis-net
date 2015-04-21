@@ -4,6 +4,7 @@ Backend/Analysis/CopyPropagationAnalysis.cs -text
 Backend/Analysis/DataFlowAnalysis.cs -text
 Backend/Analysis/LoopBoundAnalysis.cs -text
 Backend/Analysis/LoopInvariant.cs -text
+Backend/Analysis/PointsToAnalysis.cs -text
 Backend/Analysis/ReachingDefinitionsAnalysis.cs -text
 Backend/Analysis/StaticSingleAssignmentAnalysis.cs -text
 Backend/Analysis/SymbolicAnalysis.cs -text
