@@ -20,8 +20,8 @@ namespace Backend.Analysis
 		private Subset<DefinitionInstruction>[] KILL;
 
 		public ReachingDefinitionsAnalysis(ControlFlowGraph cfg)
+			: base(cfg)
 		{
-			this.cfg = cfg;
 		}
 
 		public MapList<DefinitionInstruction, Instruction> DefinitionUses
@@ -55,6 +55,7 @@ namespace Backend.Analysis
 
 				foreach (var instruction in node.Instructions)
 				{
+					// use-def
 					foreach (var variable in instruction.UsedVariables)
 					{
 						if (definitions.ContainsKey(variable))
@@ -74,6 +75,7 @@ namespace Backend.Analysis
 						}
 					}
 
+					// def-use
 					if (instruction is DefinitionInstruction)
 					{
 						var definition = instruction as DefinitionInstruction;

@@ -73,6 +73,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as BinaryExpression;
 
 			return other != null &&
@@ -155,6 +156,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as UnaryExpression;
 
 			return other != null &&
@@ -218,6 +220,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as CatchExpression;
 
 			return other != null &&
@@ -283,6 +286,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as ConvertExpression;
 
 			return other != null &&
@@ -339,6 +343,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as SizeofExpression;
 
 			return other != null &&
@@ -393,6 +398,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as TokenExpression;
 
 			return other != null &&
@@ -475,6 +481,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as MethodCallExpression;
 
 			return other != null &&
@@ -571,6 +578,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as IndirectMethodCallExpression;
 
 			return other != null &&
@@ -658,6 +666,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as CreateObjectExpression;
 
 			return other != null &&
@@ -770,6 +779,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as CreateArrayExpression;
 
 			return other != null &&
@@ -869,6 +879,7 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as PhiExpression;
 
 			return other != null &&

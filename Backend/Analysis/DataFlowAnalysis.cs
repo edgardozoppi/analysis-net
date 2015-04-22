@@ -15,6 +15,11 @@ namespace Backend.Analysis
 	{
 		protected ControlFlowGraph cfg;
 
+		public DataFlowAnalysis(ControlFlowGraph cfg)
+		{
+			this.cfg = cfg;
+		}
+
 		public abstract DataFlowAnalysisResult<T>[] Analyze();
 
 		protected abstract T InitialValue(CFGNode node);
@@ -28,6 +33,11 @@ namespace Backend.Analysis
 
 	public abstract class ForwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
+		public ForwardDataFlowAnalysis(ControlFlowGraph cfg)
+			: base(cfg)
+		{
+		}
+
 		public override DataFlowAnalysisResult<T>[] Analyze()
 		{
 			var sorted_nodes = this.cfg.ForwardOrder;
@@ -91,6 +101,11 @@ namespace Backend.Analysis
 
 	public abstract class BackwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
+		public BackwardDataFlowAnalysis(ControlFlowGraph cfg)
+			: base(cfg)
+		{
+		}
+
 		public override DataFlowAnalysisResult<T>[] Analyze()
 		{
 			var sorted_nodes = this.cfg.BackwardOrder;

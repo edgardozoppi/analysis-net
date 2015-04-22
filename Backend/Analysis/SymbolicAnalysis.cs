@@ -18,8 +18,8 @@ namespace Backend.Analysis
 		private ISet<IVariable>[] KILL;
 
 		public SymbolicAnalysis(ControlFlowGraph cfg)
+			: base(cfg)
 		{
-			this.cfg = cfg;
 		}
 
 		public override DataFlowAnalysisResult<IDictionary<IVariable, IExpression>>[] Analyze()

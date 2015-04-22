@@ -68,7 +68,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as StaticMethodReference;
+
 			return other != null &&
 				this.Method.Equals(other.Method);
 		}
@@ -133,7 +135,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as VirtualMethodReference;
+
 			return other != null &&
 				this.Instance.Equals(other.Instance) &&
 				this.Method.Equals(other.Method);
@@ -232,7 +236,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as Constant;
+
 			return other != null &&
 				this.Value.Equals(other.Value);
 		}
@@ -312,7 +318,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as IVariable;
+
 			return other != null &&
 				this.Name.Equals(other.Name);
 		}
@@ -378,7 +386,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as IVariable;
+
 			return other != null &&
 				this.Name.Equals(other.Name);
 		}
@@ -453,7 +463,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as IVariable;
+
 			return other != null &&
 				this.Name.Equals(other.Name);
 		}
@@ -529,7 +541,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as IVariable;
+
 			return other != null &&
 				this.Name.Equals(other.Name);
 		}
@@ -606,7 +620,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as IVariable;
+
 			return other != null &&
 				this.Name.Equals(other.Name);
 		}
@@ -677,7 +693,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as IVariable;
+
 			return other != null &&
 				this.Name.Equals(other.Name);
 		}
@@ -742,7 +760,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as ArrayElementAccess;
+
 			return other != null &&
 				this.Array.Equals(other.Array) &&
 				this.Index.Equals(other.Index);
@@ -805,7 +825,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as Dereference;
+
 			return other != null &&
 				this.Reference.Equals(other.Reference);
 		}
@@ -863,7 +885,9 @@ namespace Backend.ThreeAddressCode.Values
 
 		public override bool Equals(object obj)
 		{
+			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as Reference;
+
 			return other != null &&
 				this.Value.Equals(other.Value);
 		}

@@ -17,8 +17,8 @@ namespace Backend.Analysis
 		private ISet<IVariable>[] KILL;
 
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
+			: base(cfg)
 		{
-			this.cfg = cfg;
 		}
 
 		public override DataFlowAnalysisResult<IDictionary<IVariable, IInmediateValue>>[] Analyze()

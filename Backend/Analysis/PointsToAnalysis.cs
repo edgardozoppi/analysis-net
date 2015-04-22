@@ -29,6 +29,28 @@ namespace Backend.Analysis
             this.Sources = new MapSet<IFieldReference, PTGNode>();
             this.Targets = new MapSet<IFieldReference, PTGNode>();
         }
+
+		public override bool Equals(object obj)
+		{
+			if (object.ReferenceEquals(this, obj)) return true;
+			var other = obj as PTGNode;
+
+			return other != null &&
+				this.Kind.Equals(other.Kind) &&
+				this.Type.Equals(other.Type) &&
+				this.Variables.SetEquals(other.Variables) &&
+				this.Sources.Equals(other.Sources) &&
+				this.Targets.Equals(other.Targets);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Kind.GetHashCode() ^
+				this.Type.GetHashCode() ^
+				this.Variables.GetHashCode() ^
+				this.Sources.GetHashCode() ^
+				this.Targets.GetHashCode();
+		}
     }
 
     public class PointsToGraph
@@ -49,6 +71,29 @@ namespace Backend.Analysis
             get { return this.Roots.Keys; }
         }
 
+		// TODO: quizas es mejor sacar estos metodos que tienen que ver
+		// con el reticulado (Clone, Union, Instersection) a otra clase
+
+		public PointsToGraph Clone()
+		{
+			var clone = new PointsToGraph();
+
+			// Note: hay que ver como clonar los nodos una sola vez
+			// y reutilizarlos al agregar los ejes
+
+			return clone;
+		}
+
+		public void Union(PointsToGraph other)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void Declare(IVariable variable)
+		{
+			this.PointsTo(variable, this.Null);
+		}
+
         public void PointsTo(IVariable variable, PTGNode target)
         {
             target.Variables.Add(variable);
@@ -66,7 +111,9 @@ namespace Backend.Analysis
 
         public override bool Equals(object obj)
         {
+			if (object.ReferenceEquals(this, obj)) return true;
             var other = obj as PointsToGraph;
+
             return other != null &&
                 this.Null.Equals(other.Null) &&
                 this.Roots.Equals(other.Roots) &&
@@ -79,10 +126,15 @@ namespace Backend.Analysis
                 this.Roots.GetHashCode() ^
                 this.Nodes.GetHashCode();
         }
-    }
+	}
 
     public class PointsToAnalysis : ForwardDataFlowAnalysis<PointsToGraph>
     {
+		public PointsToAnalysis(ControlFlowGraph cfg)
+			: base(cfg)
+		{
+		}
+
         protected override PointsToGraph InitialValue(CFGNode node)
         {
             throw new NotImplementedException();
@@ -90,12 +142,14 @@ namespace Backend.Analysis
 
         protected override bool Compare(PointsToGraph left, PointsToGraph right)
         {
-            throw new NotImplementedException();
+            return left.Equals(right);
         }
 
         protected override PointsToGraph Join(PointsToGraph left, PointsToGraph right)
         {
-            throw new NotImplementedException();
+			var result = left.Clone();
+			result.Union(right);
+			return result;
         }
 
         protected override PointsToGraph Flow(CFGNode node, PointsToGraph input)
