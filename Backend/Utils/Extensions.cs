@@ -7,6 +7,7 @@ using System.Text;
 using Backend.ThreeAddressCode.Values;
 using Backend.ThreeAddressCode.Expressions;
 using Backend.ThreeAddressCode.Instructions;
+using Backend.Visitors;
 
 namespace Backend.Utils
 {
@@ -56,9 +57,44 @@ namespace Backend.Utils
 			return new Subset<T>(universe, true);
 		}
 
-		public static ISet<IVariable> ModifiedVariables(this CFGNode node)
+		public static ISet<IVariable> GetVariables(this IInstructionContainer block)
 		{
-			var result = node.Instructions.SelectMany(i => i.ModifiedVariables);
+			var result = block.Instructions.SelectMany(i => i.Variables);
+			return new HashSet<IVariable>(result);
+		}
+
+		public static ISet<IVariable> GetModifiedVariables(this IInstructionContainer block)
+		{
+			var result = block.Instructions.SelectMany(i => i.ModifiedVariables);
+			return new HashSet<IVariable>(result);
+		}
+
+		public static ISet<IVariable> GetUsedVariables(this IInstructionContainer block)
+		{
+			var result = block.Instructions.SelectMany(i => i.UsedVariables);
+			return new HashSet<IVariable>(result);
+		}
+
+		public static ISet<IVariable> GetDefinedVariables(this IInstructionContainer block)
+		{
+			var result = new HashSet<IVariable>();
+
+			foreach (var instruction in block.Instructions)
+			{
+				var definition = instruction as DefinitionInstruction;
+
+				if (definition != null && definition.HasResult)
+				{
+					result.Add(definition.Result);
+				}
+			}
+
+			return result;
+		}
+
+		public static ISet<IVariable> GetDefinedVariables(this CFGLoop loop)
+		{
+			var result = loop.Body.SelectMany(n => n.GetDefinedVariables());
 			return new HashSet<IVariable>(result);
 		}
 
@@ -70,26 +106,6 @@ namespace Backend.Utils
 		public static IExpression GetValue(this IDictionary<IVariable, IExpression> equalities, IVariable variable)
 		{
 			var result = equalities.ContainsKey(variable) ? equalities[variable] : variable;
-			return result;
-		}
-
-		public static IEnumerable<IVariable> GetDefinedVariables(this CFGLoop loop)
-		{
-			var result = new List<IVariable>();
-
-			foreach (var node in loop.Body)
-			{
-				foreach (var instruction in node.Instructions)
-				{
-					var definition = instruction as DefinitionInstruction;
-
-					if (definition != null && definition.HasResult)
-					{
-						result.Add(definition.Result);
-					}
-				}
-			}
-
 			return result;
 		}
 

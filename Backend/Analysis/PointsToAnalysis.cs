@@ -76,15 +76,63 @@ namespace Backend.Analysis
 
 		public PointsToGraph Clone()
 		{
-			var clone = new PointsToGraph();
+			var ptg = new PointsToGraph();
+			var isomorphism = new Dictionary<PTGNode, PTGNode>(ReferenceEqualityComparer.Instance);
+			
+			isomorphism.Add(this.Null, ptg.Null);
 
-			// Note: hay que ver como clonar los nodos una sola vez
-			// y reutilizarlos al agregar los ejes
+			// clone all nodes
+			foreach (var node in this.Nodes)
+			{
+				if (node.Kind == PTGNodeKind.Null) continue;
 
-			return clone;
+				var clone = new PTGNode(node.Kind)
+				{
+					Type = node.Type
+				};
+
+				ptg.Nodes.Add(clone);
+				isomorphism.Add(node, clone);
+			}
+
+			// clone variable <---> node edges
+			foreach (var entry in this.Roots)
+				foreach (var node in entry.Value)
+				{
+					var clone = isomorphism[node];
+
+					clone.Variables.Add(entry.Key);
+					ptg.Roots.Add(entry.Key, clone);
+				}
+
+			// clone node <-field-> node edges
+			foreach (var node in this.Nodes)
+			{
+				var clone = isomorphism[node];
+
+				// clone source -field-> node edges
+				foreach (var entry in node.Sources)
+					foreach (var source in entry.Value)
+					{
+						var source_clone = isomorphism[source];
+
+						clone.Sources.Add(entry.Key, source_clone);
+					}
+
+				// clone node -field-> target edges
+				foreach (var entry in node.Targets)
+					foreach (var target in entry.Value)
+					{
+						var target_clone = isomorphism[target];
+
+						clone.Targets.Add(entry.Key, target_clone);
+					}
+			}
+
+			return ptg;
 		}
 
-		public void Union(PointsToGraph other)
+		public void Union(PointsToGraph ptg)
 		{
 			throw new NotImplementedException();
 		}
@@ -108,6 +156,10 @@ namespace Backend.Analysis
             this.Nodes.Add(source);
             this.Nodes.Add(target);
         }
+
+		// TODO: cuidado con el Equals de los nodos que es recursivo y no termina cuando hay ciclos en el grafo!!
+		// Hay que cambiar el codigo para que los nodos tenga un Id unico y se consideren iguales sii tienen el mismo Id
+		// Esto facilita la comparacion, clonado y union de los grafos y es mas performante.
 
         public override bool Equals(object obj)
         {
@@ -137,7 +189,17 @@ namespace Backend.Analysis
 
         protected override PointsToGraph InitialValue(CFGNode node)
         {
-            throw new NotImplementedException();
+			var ptg = new PointsToGraph();
+			var variables = node.GetVariables();
+
+			foreach (var variable in variables)
+			{
+				if (variable.Type.IsValueType) continue;
+				// TODO: Maybe for parameters we should assume that they points-to some node?
+				ptg.Declare(variable);
+			}
+
+			return ptg;
         }
 
         protected override bool Compare(PointsToGraph left, PointsToGraph right)
