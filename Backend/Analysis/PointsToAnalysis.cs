@@ -16,19 +16,30 @@ namespace Backend.Analysis
 
     public class PTGNode
     {
+		public int Id { get; private set; }
         public PTGNodeKind Kind { get; private set; }
         public ITypeReference Type { get; set; }
         public ISet<IVariable> Variables { get; private set; }
         public MapSet<IFieldReference, PTGNode> Sources { get; private set; }
         public MapSet<IFieldReference, PTGNode> Targets { get; private set; }
 
-        public PTGNode(PTGNodeKind kind = PTGNodeKind.Object)
+		public PTGNode(int id, PTGNodeKind kind = PTGNodeKind.Object)
         {
+			this.Id = id;
             this.Kind = kind;
             this.Variables = new HashSet<IVariable>();
             this.Sources = new MapSet<IFieldReference, PTGNode>();
             this.Targets = new MapSet<IFieldReference, PTGNode>();
         }
+
+		public bool SameEdges(PTGNode node)
+		{
+			if (node == null) throw new ArgumentNullException("node");
+
+			return this.Variables.SetEquals(node.Variables) &&
+				this.Sources.Equals(node.Sources) &&
+				this.Targets.Equals(node.Targets);
+		}
 
 		public override bool Equals(object obj)
 		{
@@ -36,20 +47,14 @@ namespace Backend.Analysis
 			var other = obj as PTGNode;
 
 			return other != null &&
-				this.Kind.Equals(other.Kind) &&
-				this.Type.Equals(other.Type) &&
-				this.Variables.SetEquals(other.Variables) &&
-				this.Sources.Equals(other.Sources) &&
-				this.Targets.Equals(other.Targets);
+				this.Id == other.Id &&
+				this.Kind == other.Kind &&
+				this.Type.Equals(other.Type);
 		}
 
 		public override int GetHashCode()
 		{
-			return this.Kind.GetHashCode() ^
-				this.Type.GetHashCode() ^
-				this.Variables.GetHashCode() ^
-				this.Sources.GetHashCode() ^
-				this.Targets.GetHashCode();
+			return this.Id.GetHashCode();
 		}
     }
 
@@ -61,7 +66,7 @@ namespace Backend.Analysis
 
         public PointsToGraph()
         {
-            this.Null = new PTGNode(PTGNodeKind.Null);
+            this.Null = new PTGNode(0, PTGNodeKind.Null);
             this.Roots = new MapSet<IVariable, PTGNode>();
             this.Nodes = new HashSet<PTGNode>() { this.Null };
         }
@@ -77,44 +82,41 @@ namespace Backend.Analysis
 		public PointsToGraph Clone()
 		{
 			var ptg = new PointsToGraph();
-			var isomorphism = new Dictionary<PTGNode, PTGNode>(ReferenceEqualityComparer.Instance);
+			var isomorphism = new Dictionary<int, PTGNode>();
 			
-			isomorphism.Add(this.Null, ptg.Null);
+			isomorphism.Add(this.Null.Id, ptg.Null);
 
 			// clone all nodes
 			foreach (var node in this.Nodes)
 			{
 				if (node.Kind == PTGNodeKind.Null) continue;
 
-				var clone = new PTGNode(node.Kind)
+				var clone = new PTGNode(node.Id, node.Kind)
 				{
 					Type = node.Type
 				};
 
 				ptg.Nodes.Add(clone);
-				isomorphism.Add(node, clone);
+				isomorphism.Add(node.Id, clone);
 			}
 
-			// clone variable <---> node edges
-			foreach (var entry in this.Roots)
-				foreach (var node in entry.Value)
-				{
-					var clone = isomorphism[node];
-
-					clone.Variables.Add(entry.Key);
-					ptg.Roots.Add(entry.Key, clone);
-				}
-
-			// clone node <-field-> node edges
+			// clone all edges
 			foreach (var node in this.Nodes)
 			{
-				var clone = isomorphism[node];
+				var clone = isomorphism[node.Id];
+
+				// clone variable <---> node edges
+				foreach (var variable in node.Variables)
+				{
+					clone.Variables.Add(variable);
+					ptg.Roots.Add(variable, clone);
+				}
 
 				// clone source -field-> node edges
 				foreach (var entry in node.Sources)
 					foreach (var source in entry.Value)
 					{
-						var source_clone = isomorphism[source];
+						var source_clone = isomorphism[source.Id];
 
 						clone.Sources.Add(entry.Key, source_clone);
 					}
@@ -123,7 +125,7 @@ namespace Backend.Analysis
 				foreach (var entry in node.Targets)
 					foreach (var target in entry.Value)
 					{
-						var target_clone = isomorphism[target];
+						var target_clone = isomorphism[target.Id];
 
 						clone.Targets.Add(entry.Key, target_clone);
 					}
@@ -134,7 +136,63 @@ namespace Backend.Analysis
 
 		public void Union(PointsToGraph ptg)
 		{
-			throw new NotImplementedException();
+			var nodes = this.Nodes.ToDictionary(n => n.Id);
+			var isomorphism = new Dictionary<int, PTGNode>();
+
+			isomorphism.Add(ptg.Null.Id, this.Null);
+
+			// add all new nodes
+			foreach (var node in ptg.Nodes)
+			{
+				PTGNode clone = null;
+
+				if (nodes.ContainsKey(node.Id))
+				{
+					clone = nodes[node.Id];
+				}
+				else
+				{
+					clone = new PTGNode(node.Id, node.Kind)
+					{
+						Type = node.Type
+					};
+
+					this.Nodes.Add(clone);
+				}
+
+				isomorphism.Add(node.Id, clone);
+			}
+
+			// add all new edges
+			foreach (var node in ptg.Nodes)
+			{
+				var clone = isomorphism[node.Id];
+
+				// add new variable <---> node edges
+				foreach (var variable in node.Variables)
+				{
+					clone.Variables.Add(variable);
+					this.Roots.Add(variable, clone);
+				}
+
+				// add new source -field-> node edges
+				foreach (var entry in node.Sources)
+					foreach (var source in entry.Value)
+					{
+						var source_clone = isomorphism[source.Id];
+
+						clone.Sources.Add(entry.Key, source_clone);
+					}
+
+				// add new node -field-> target edges
+				foreach (var entry in node.Targets)
+					foreach (var target in entry.Value)
+					{
+						var target_clone = isomorphism[target.Id];
+
+						clone.Targets.Add(entry.Key, target_clone);
+					}
+			}
 		}
 
 		public void Declare(IVariable variable)
@@ -157,27 +215,37 @@ namespace Backend.Analysis
             this.Nodes.Add(target);
         }
 
-		// TODO: cuidado con el Equals de los nodos que es recursivo y no termina cuando hay ciclos en el grafo!!
-		// Hay que cambiar el codigo para que los nodos tenga un Id unico y se consideren iguales sii tienen el mismo Id
-		// Esto facilita la comparacion, clonado y union de los grafos y es mas performante.
-
         public override bool Equals(object obj)
         {
 			if (object.ReferenceEquals(this, obj)) return true;
             var other = obj as PointsToGraph;
 
             return other != null &&
-                this.Null.Equals(other.Null) &&
                 this.Roots.Equals(other.Roots) &&
-                this.Nodes.SetEquals(other.Nodes);
+                this.Nodes.SetEquals(other.Nodes) &&
+				this.SameEdges(other);
         }
 
         public override int GetHashCode()
         {
-            return this.Null.GetHashCode() ^
-                this.Roots.GetHashCode() ^
+            return this.Roots.GetHashCode() ^
                 this.Nodes.GetHashCode();
         }
+
+		// We are assuming that ptg has the same nodes
+		private bool SameEdges(PointsToGraph ptg)
+		{
+			var nodes = ptg.Nodes.ToDictionary(n => n.Id);
+
+			foreach (var node in this.Nodes)
+			{
+				var other = nodes[node.Id];
+				var sameEdges = node.SameEdges(other);
+				if (!sameEdges) return false;
+			}
+
+			return true;
+		}
 	}
 
     public class PointsToAnalysis : ForwardDataFlowAnalysis<PointsToGraph>
