@@ -1,4 +1,5 @@
-﻿using Backend.ThreeAddressCode.Values;
+﻿using Backend.ThreeAddressCode.Instructions;
+using Backend.ThreeAddressCode.Values;
 using Backend.Utils;
 using Microsoft.Cci;
 using System;
@@ -82,55 +83,7 @@ namespace Backend.Analysis
 		public PointsToGraph Clone()
 		{
 			var ptg = new PointsToGraph();
-			var isomorphism = new Dictionary<int, PTGNode>();
-			
-			isomorphism.Add(this.Null.Id, ptg.Null);
-
-			// clone all nodes
-			foreach (var node in this.Nodes)
-			{
-				if (node.Kind == PTGNodeKind.Null) continue;
-
-				var clone = new PTGNode(node.Id, node.Kind)
-				{
-					Type = node.Type
-				};
-
-				ptg.Nodes.Add(clone);
-				isomorphism.Add(node.Id, clone);
-			}
-
-			// clone all edges
-			foreach (var node in this.Nodes)
-			{
-				var clone = isomorphism[node.Id];
-
-				// clone variable <---> node edges
-				foreach (var variable in node.Variables)
-				{
-					clone.Variables.Add(variable);
-					ptg.Roots.Add(variable, clone);
-				}
-
-				// clone source -field-> node edges
-				foreach (var entry in node.Sources)
-					foreach (var source in entry.Value)
-					{
-						var source_clone = isomorphism[source.Id];
-
-						clone.Sources.Add(entry.Key, source_clone);
-					}
-
-				// clone node -field-> target edges
-				foreach (var entry in node.Targets)
-					foreach (var target in entry.Value)
-					{
-						var target_clone = isomorphism[target.Id];
-
-						clone.Targets.Add(entry.Key, target_clone);
-					}
-			}
-
+            ptg.Union(this);
 			return ptg;
 		}
 
@@ -138,8 +91,6 @@ namespace Backend.Analysis
 		{
 			var nodes = this.Nodes.ToDictionary(n => n.Id);
 			var isomorphism = new Dictionary<int, PTGNode>();
-
-			isomorphism.Add(ptg.Null.Id, this.Null);
 
 			// add all new nodes
 			foreach (var node in ptg.Nodes)
@@ -163,36 +114,36 @@ namespace Backend.Analysis
 				isomorphism.Add(node.Id, clone);
 			}
 
-			// add all new edges
-			foreach (var node in ptg.Nodes)
-			{
-				var clone = isomorphism[node.Id];
+            // add all edges
+            foreach (var node in ptg.Nodes)
+            {
+                var clone = isomorphism[node.Id];
 
-				// add new variable <---> node edges
-				foreach (var variable in node.Variables)
-				{
-					clone.Variables.Add(variable);
-					this.Roots.Add(variable, clone);
-				}
+                // add variable <---> node edges
+                foreach (var variable in node.Variables)
+                {
+                    clone.Variables.Add(variable);
+                    this.Roots.Add(variable, clone);
+                }
 
-				// add new source -field-> node edges
-				foreach (var entry in node.Sources)
-					foreach (var source in entry.Value)
-					{
-						var source_clone = isomorphism[source.Id];
+                // add source -field-> node edges
+                foreach (var entry in node.Sources)
+                    foreach (var source in entry.Value)
+                    {
+                        var source_clone = isomorphism[source.Id];
 
-						clone.Sources.Add(entry.Key, source_clone);
-					}
+                        clone.Sources.Add(entry.Key, source_clone);
+                    }
 
-				// add new node -field-> target edges
-				foreach (var entry in node.Targets)
-					foreach (var target in entry.Value)
-					{
-						var target_clone = isomorphism[target.Id];
+                // add node -field-> target edges
+                foreach (var entry in node.Targets)
+                    foreach (var target in entry.Value)
+                    {
+                        var target_clone = isomorphism[target.Id];
 
-						clone.Targets.Add(entry.Key, target_clone);
-					}
-			}
+                        clone.Targets.Add(entry.Key, target_clone);
+                    }
+            }
 		}
 
 		public void Declare(IVariable variable)
@@ -213,6 +164,11 @@ namespace Backend.Analysis
             target.Sources.Add(field, source);
             this.Nodes.Add(source);
             this.Nodes.Add(target);
+        }
+
+        public void RemoveTargets(IVariable variable)
+        {
+            
         }
 
         public override bool Equals(object obj)
@@ -246,13 +202,16 @@ namespace Backend.Analysis
 
 			return true;
 		}
-	}
+    }
 
     public class PointsToAnalysis : ForwardDataFlowAnalysis<PointsToGraph>
     {
+        private int nextPTGNodeId;
+
 		public PointsToAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
+            this.nextPTGNodeId = 1;
 		}
 
         protected override PointsToGraph InitialValue(CFGNode node)
@@ -284,7 +243,133 @@ namespace Backend.Analysis
 
         protected override PointsToGraph Flow(CFGNode node, PointsToGraph input)
         {
-            throw new NotImplementedException();
+            var ptg = input.Clone();
+
+            foreach (var instruction in node.Instructions)
+            {
+                if (instruction is CreateObjectInstruction)
+                {
+                    var allocation = instruction as CreateObjectInstruction;
+                    this.ProcessObjectAllocation(ptg, allocation.Result);
+                }
+                else if (instruction is CreateArrayInstruction)
+                {
+                    var allocation = instruction as CreateArrayInstruction;
+                    this.ProcessArrayAllocation(ptg, allocation.Result);
+                }
+                else if (instruction is LoadInstruction)
+                {
+                    var load = instruction as LoadInstruction;
+
+					if (load.Operand is Constant)
+					{
+						var constant = load.Operand as Constant;
+
+						if (constant.Value == null)
+						{
+							this.ProcessNull(ptg, load.Result);
+						}
+					}
+                    if (load.Operand is IVariable)
+                    {
+                        var variable = load.Operand as IVariable;
+                        this.ProcessCopy(ptg, load.Result, variable);
+                    }
+                    else if (load.Operand is InstanceFieldAccess)
+                    {
+                        var access = load.Operand as InstanceFieldAccess;
+                        this.ProcessLoad(ptg, load.Result, access);
+                    }
+                }
+                else if (instruction is StoreInstruction)
+                {
+                    var store = instruction as StoreInstruction;
+
+                    if (store.Result is InstanceFieldAccess)
+                    {
+                        var access = store.Result as InstanceFieldAccess;
+                        this.ProcessStore(ptg, access, store.Operand);
+                    }
+                }
+            }
+
+            return ptg;
+        }
+
+		private void ProcessNull(PointsToGraph ptg, IVariable dst)
+		{
+			if (dst.Type.IsValueType) return;
+
+			ptg.RemoveTargets(dst);
+			ptg.PointsTo(dst, ptg.Null);
+		}
+
+        private void ProcessObjectAllocation(PointsToGraph ptg, IVariable dst)
+		{
+			if (dst.Type.IsValueType) return;
+
+            var node = new PTGNode(nextPTGNodeId++);
+
+            ptg.RemoveTargets(dst);
+            ptg.PointsTo(dst, node);
+        }
+
+        private void ProcessArrayAllocation(PointsToGraph ptg, IVariable dst)
+        {
+			if (dst.Type.IsValueType) return;
+
+            var node = new PTGNode(nextPTGNodeId++);
+
+            ptg.RemoveTargets(dst);
+            ptg.PointsTo(dst, node);
+        }
+
+        private void ProcessCopy(PointsToGraph ptg, IVariable dst, IVariable src)
+        {
+			if (dst.Type.IsValueType || src.Type.IsValueType) return;
+
+            ptg.RemoveTargets(dst);
+            var targets = ptg.Roots[src];
+
+            foreach (var target in targets)
+            {
+                ptg.PointsTo(dst, target);
+            }
+        }
+
+        private void ProcessLoad(PointsToGraph ptg, IVariable dst, InstanceFieldAccess access)
+        {
+			if (dst.Type.IsValueType || access.Type.IsValueType) return;
+
+            ptg.RemoveTargets(dst);
+            var nodes = ptg.Roots[access.Instance];
+
+            foreach (var node in nodes)
+            {
+                var hasField = node.Targets.ContainsKey(access.Field);
+                if (!hasField) continue;
+
+                var targets = node.Targets[access.Field];
+
+                foreach (var target in targets)
+                {
+                    ptg.PointsTo(dst, target);
+                }
+            }
+        }
+
+        private void ProcessStore(PointsToGraph ptg, InstanceFieldAccess access, IVariable src)
+        {
+			if (access.Type.IsValueType || src.Type.IsValueType) return;
+
+			var nodes = ptg.Roots[access.Instance];
+			var targets = ptg.Roots[src];
+
+			foreach (var node in nodes)
+				foreach (var target in targets)
+				{
+					ptg.PointsTo(node, access.Field, target);
+				}
         }
     }
 }
