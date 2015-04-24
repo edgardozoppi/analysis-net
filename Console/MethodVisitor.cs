@@ -51,22 +51,22 @@ namespace Console
 			var analysis = new TypeInferenceAnalysis(cfg);
 			analysis.Analyze();
 
-			var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
-			ssa.Transform();
+			var pointsTo = new PointsToAnalysis(cfg);
+			var result = pointsTo.Analyze();
 
-			methodBody.UpdateVariables();
+			//var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
+			//ssa.Transform();
 
-			//var analysis = new TypeInferenceAnalysis(cfg);
-			//analysis.Analyze();
+			//methodBody.UpdateVariables();
 
-			var bounds = new LoopBoundAnalysis(cfg);
-			bounds.Analyze();
+			//var bounds = new LoopBoundAnalysis(cfg);
+			//bounds.Analyze();
 
-			this.TotalLoops += bounds.TotalLoops;
-			this.RecognizedLoops += bounds.RecognizedLoops;
+			//this.TotalLoops += bounds.TotalLoops;
+			//this.RecognizedLoops += bounds.RecognizedLoops;
 
-			//var dot = DOTSerializer.Serialize(cfg);
-			//var dgml = DGMLSerializer.Serialize(cfg);
+			////var dot = DOTSerializer.Serialize(cfg);
+			////var dgml = DGMLSerializer.Serialize(cfg);
 			
 			return base.Rewrite(methodDefinition);
 		}

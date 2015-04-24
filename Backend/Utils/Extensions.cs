@@ -98,6 +98,12 @@ namespace Backend.Utils
 			return new HashSet<IVariable>(result);
 		}
 
+		public static ISet<IVariable> GetVariables(this ControlFlowGraph cfg)
+		{
+			var result = cfg.Nodes.SelectMany(n => n.GetVariables());
+			return new HashSet<IVariable>(result);
+		}
+
 		public static IExpression ToExpression(this IValue value)
 		{
 			return value as IExpression;

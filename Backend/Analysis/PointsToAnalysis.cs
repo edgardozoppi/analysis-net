@@ -18,13 +18,14 @@ namespace Backend.Analysis
     public class PTGNode
     {
 		public int Id { get; private set; }
-        public PTGNodeKind Kind { get; private set; }
+		public PTGNodeKind Kind { get; private set; }
+		public uint Offset { get; set; }
         public ITypeReference Type { get; set; }
         public ISet<IVariable> Variables { get; private set; }
         public MapSet<IFieldReference, PTGNode> Sources { get; private set; }
         public MapSet<IFieldReference, PTGNode> Targets { get; private set; }
 
-		public PTGNode(int id, PTGNodeKind kind = PTGNodeKind.Object)
+		public PTGNode(int id, PTGNodeKind kind = PTGNodeKind.Null)
         {
 			this.Id = id;
             this.Kind = kind;
@@ -32,6 +33,13 @@ namespace Backend.Analysis
             this.Sources = new MapSet<IFieldReference, PTGNode>();
             this.Targets = new MapSet<IFieldReference, PTGNode>();
         }
+
+		public PTGNode(int id, ITypeReference type, uint offset = 0, PTGNodeKind kind = PTGNodeKind.Object)
+			: this(id, kind)
+		{
+			this.Offset = offset;
+			this.Type = type;
+		}
 
 		public bool SameEdges(PTGNode node)
 		{
@@ -50,12 +58,32 @@ namespace Backend.Analysis
 			return other != null &&
 				this.Id == other.Id &&
 				this.Kind == other.Kind &&
-				this.Type.Equals(other.Type);
+				this.Offset == other.Offset &&
+				object.Equals(this.Type, other.Type);
 		}
 
 		public override int GetHashCode()
 		{
 			return this.Id.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			string result;
+
+			switch (this.Kind)
+			{
+				case PTGNodeKind.Null:
+					result = "null";
+					break;
+
+				default:
+					var type = TypeHelper.GetTypeName(this.Type);
+					result = string.Format("{0:X4}: {1}", this.Offset, type);
+					break;
+			}
+
+			return result;
 		}
     }
 
@@ -103,18 +131,20 @@ namespace Backend.Analysis
 				}
 				else
 				{
-					clone = new PTGNode(node.Id, node.Kind)
-					{
-						Type = node.Type
-					};
-
+					clone = new PTGNode(node.Id, node.Type, node.Offset, node.Kind);
 					this.Nodes.Add(clone);
 				}
 
 				isomorphism.Add(node.Id, clone);
 			}
 
-            // add all edges
+            // add all variables
+			foreach (var variable in ptg.Variables)
+			{
+				this.Roots.Add(variable);
+			}
+
+			// add all edges
             foreach (var node in ptg.Nodes)
             {
                 var clone = isomorphism[node.Id];
@@ -168,7 +198,24 @@ namespace Backend.Analysis
 
         public void RemoveTargets(IVariable variable)
         {
-            
+			var hasVariable = this.Roots.ContainsKey(variable);
+			if (!hasVariable) return;
+
+			var targets = this.Roots[variable];
+
+			foreach (var target in targets)
+			{
+				target.Variables.Remove(variable);
+			}
+
+			// If we uncomment the next line
+			// the variable will be removed from
+			// the graph, not only its edges
+			//this.Roots.Remove(variable);
+
+			// Remove only the edges of the variable,
+			// but not the variable itself
+			targets.Clear();
         }
 
         public override bool Equals(object obj)
@@ -207,26 +254,20 @@ namespace Backend.Analysis
     public class PointsToAnalysis : ForwardDataFlowAnalysis<PointsToGraph>
     {
         private int nextPTGNodeId;
+		private PointsToGraph initialGraph;
+		private IDictionary<uint, int> nodeIdAtOffset;
 
 		public PointsToAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
             this.nextPTGNodeId = 1;
+			this.nodeIdAtOffset = new Dictionary<uint, int>();
+			this.CreateInitialGraph();
 		}
 
         protected override PointsToGraph InitialValue(CFGNode node)
         {
-			var ptg = new PointsToGraph();
-			var variables = node.GetVariables();
-
-			foreach (var variable in variables)
-			{
-				if (variable.Type.IsValueType) continue;
-				// TODO: Maybe for parameters we should assume that they points-to some node?
-				ptg.Declare(variable);
-			}
-
-			return ptg;
+			return this.initialGraph;
         }
 
         protected override bool Compare(PointsToGraph left, PointsToGraph right)
@@ -247,15 +288,17 @@ namespace Backend.Analysis
 
             foreach (var instruction in node.Instructions)
             {
+				var offset = instruction.Offset;
+
                 if (instruction is CreateObjectInstruction)
                 {
                     var allocation = instruction as CreateObjectInstruction;
-                    this.ProcessObjectAllocation(ptg, allocation.Result);
+                    this.ProcessObjectAllocation(ptg, offset, allocation.Result);
                 }
                 else if (instruction is CreateArrayInstruction)
                 {
                     var allocation = instruction as CreateArrayInstruction;
-                    this.ProcessArrayAllocation(ptg, allocation.Result);
+					this.ProcessArrayAllocation(ptg, offset, allocation.Result);
                 }
                 else if (instruction is LoadInstruction)
                 {
@@ -273,12 +316,12 @@ namespace Backend.Analysis
                     if (load.Operand is IVariable)
                     {
                         var variable = load.Operand as IVariable;
-                        this.ProcessCopy(ptg, load.Result, variable);
+						this.ProcessCopy(ptg, load.Result, variable);
                     }
                     else if (load.Operand is InstanceFieldAccess)
                     {
                         var access = load.Operand as InstanceFieldAccess;
-                        this.ProcessLoad(ptg, load.Result, access);
+						this.ProcessLoad(ptg, load.Result, access);
                     }
                 }
                 else if (instruction is StoreInstruction)
@@ -288,13 +331,38 @@ namespace Backend.Analysis
                     if (store.Result is InstanceFieldAccess)
                     {
                         var access = store.Result as InstanceFieldAccess;
-                        this.ProcessStore(ptg, access, store.Operand);
+						this.ProcessStore(ptg, access, store.Operand);
                     }
                 }
             }
 
             return ptg;
         }
+
+		private void CreateInitialGraph()
+		{
+			var ptg = new PointsToGraph();
+			var variables = cfg.GetVariables();
+
+			foreach (var variable in variables)
+			{
+				if (variable.Type.IsValueType) continue;
+				// TODO: Maybe for parameters we should assume that they already points-to some node?
+
+				if (variable.IsParameter && variable.Name == "this")
+				{
+					var node = new PTGNode(nextPTGNodeId++, variable.Type);
+					ptg.PointsTo(variable, node);
+				}
+				else
+				{
+					//ptg.Declare(variable);
+					ptg.Roots.Add(variable);
+				}
+			}
+
+			this.initialGraph = ptg;
+		}
 
 		private void ProcessNull(PointsToGraph ptg, IVariable dst)
 		{
@@ -304,21 +372,23 @@ namespace Backend.Analysis
 			ptg.PointsTo(dst, ptg.Null);
 		}
 
-        private void ProcessObjectAllocation(PointsToGraph ptg, IVariable dst)
+        private void ProcessObjectAllocation(PointsToGraph ptg, uint offset, IVariable dst)
 		{
 			if (dst.Type.IsValueType) return;
 
-            var node = new PTGNode(nextPTGNodeId++);
+			var nodeId = this.GetNodeId(offset);
+			var node = new PTGNode(nodeId, dst.Type, offset);
 
             ptg.RemoveTargets(dst);
             ptg.PointsTo(dst, node);
         }
 
-        private void ProcessArrayAllocation(PointsToGraph ptg, IVariable dst)
+		private void ProcessArrayAllocation(PointsToGraph ptg, uint offset, IVariable dst)
         {
 			if (dst.Type.IsValueType) return;
 
-            var node = new PTGNode(nextPTGNodeId++);
+			var nodeId = this.GetNodeId(offset);
+			var node = new PTGNode(nodeId, dst.Type, offset);
 
             ptg.RemoveTargets(dst);
             ptg.PointsTo(dst, node);
@@ -371,5 +441,22 @@ namespace Backend.Analysis
 					ptg.PointsTo(node, access.Field, target);
 				}
         }
+
+		private int GetNodeId(uint offset)
+		{
+			int nodeId;
+
+			if (nodeIdAtOffset.ContainsKey(offset))
+			{
+				nodeId = nodeIdAtOffset[offset];
+			}
+			else
+			{
+				nodeId = nextPTGNodeId++;
+				nodeIdAtOffset.Add(offset, nodeId);
+			}
+
+			return nodeId;
+		}
     }
 }
