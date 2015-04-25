@@ -13,20 +13,6 @@ namespace Backend.Serialization
 	{
 		#region Control-Flow Graph
 
-		public static string Serialize(CFGNode node)
-		{
-			string result;
-
-			switch (node.Kind)
-			{
-				case CFGNodeKind.Entry: result = "entry"; break;
-				case CFGNodeKind.Exit: result = "exit"; break;
-				default: result = string.Join(Environment.NewLine, node.Instructions); break;
-			}
-
-			return result;
-		}
-
 		public static string Serialize(ControlFlowGraph cfg)
 		{
 			using (var stringWriter = new StringWriter())
@@ -83,6 +69,16 @@ namespace Backend.Serialization
 				xmlWriter.WriteAttributeString("Value", "Consolas");
 				xmlWriter.WriteEndElement();
 
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "NodeRadius");
+				xmlWriter.WriteAttributeString("Value", "5");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "MinWidth");
+				xmlWriter.WriteAttributeString("Value", "0");
+				xmlWriter.WriteEndElement();
+
 				xmlWriter.WriteEndElement();
 				xmlWriter.WriteEndElement();
 				xmlWriter.WriteEndElement();
@@ -91,22 +87,23 @@ namespace Backend.Serialization
 			}
 		}
 
-		#endregion
-
-		#region Points-To Graph
-
-		public static string Serialize(PTGNode node)
+		private static string Serialize(CFGNode node)
 		{
 			string result;
 
 			switch (node.Kind)
 			{
-				case PTGNodeKind.Null: result = "null"; break;
-				default: result = TypeHelper.GetTypeName(node.Type); break;
+				case CFGNodeKind.Entry: result = "entry"; break;
+				case CFGNodeKind.Exit: result = "exit"; break;
+				default: result = string.Join(Environment.NewLine, node.Instructions); break;
 			}
 
 			return result;
 		}
+
+		#endregion
+
+		#region Points-To Graph
 
 		public static string Serialize(PointsToGraph ptg)
 		{
@@ -125,7 +122,7 @@ namespace Backend.Serialization
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", label);
 					xmlWriter.WriteAttributeString("Label", label);
-					xmlWriter.WriteAttributeString("Background", "Yellow");
+					xmlWriter.WriteAttributeString("Shape", "None");
 					xmlWriter.WriteEndElement();
 				}
 
@@ -140,7 +137,7 @@ namespace Backend.Serialization
 
 					if (node.Kind == PTGNodeKind.Null)
 					{
-						xmlWriter.WriteAttributeString("Background", "Red");
+						xmlWriter.WriteAttributeString("Background", "Yellow");
 					}
 
 					xmlWriter.WriteEndElement();
@@ -190,12 +187,35 @@ namespace Backend.Serialization
 				xmlWriter.WriteAttributeString("Value", "Consolas");
 				xmlWriter.WriteEndElement();
 
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "NodeRadius");
+				xmlWriter.WriteAttributeString("Value", "5");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "MinWidth");
+				xmlWriter.WriteAttributeString("Value", "0");
+				xmlWriter.WriteEndElement();
+
 				xmlWriter.WriteEndElement();
 				xmlWriter.WriteEndElement();
 				xmlWriter.WriteEndElement();
 				xmlWriter.Flush();
 				return stringWriter.ToString();
 			}
+		}
+
+		private static string Serialize(PTGNode node)
+		{
+			string result;
+
+			switch (node.Kind)
+			{
+				case PTGNodeKind.Null: result = "null"; break;
+				default: result = TypeHelper.GetTypeName(node.Type); break;
+			}
+
+			return result;
 		}
 
 		#endregion

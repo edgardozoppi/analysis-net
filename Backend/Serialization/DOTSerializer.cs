@@ -8,20 +8,6 @@ namespace Backend.Serialization
 {
 	public static class DOTSerializer
 	{
-		public static string Serialize(CFGNode node)
-		{
-			string result;
-
-			switch (node.Kind)
-			{
-				case CFGNodeKind.Entry: result = "entry"; break;
-				case CFGNodeKind.Exit: result = "exit"; break;
-				default: result = string.Join("\\l", node.Instructions) + "\\l"; break;
-			}
-
-			return result;
-		}
-
 		public static string Serialize(ControlFlowGraph cfg)
 		{
 			var sb = new StringBuilder();
@@ -41,6 +27,20 @@ namespace Backend.Serialization
 
 			sb.AppendLine("}");
 			return sb.ToString();
+		}
+
+		private static string Serialize(CFGNode node)
+		{
+			string result;
+
+			switch (node.Kind)
+			{
+				case CFGNodeKind.Entry: result = "entry"; break;
+				case CFGNodeKind.Exit: result = "exit"; break;
+				default: result = string.Join("\\l", node.Instructions) + "\\l"; break;
+			}
+
+			return result;
 		}
 	}
 }
