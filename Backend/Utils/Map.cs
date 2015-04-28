@@ -41,65 +41,23 @@ namespace Backend.Utils
 
 			return result;
 		}
-
-		public override bool Equals(object obj)
-		{
-			if (object.ReferenceEquals(this, obj)) return true;
-			var other = obj as Map<TKey, TValue, TCollection>;
-			return this.Equals(other);
-		}
-
-		public override int GetHashCode()
-		{
-			var hashcode = 0;
-
-			foreach (var key in this.Keys)
-			{
-				hashcode ^= key.GetHashCode();
-			}
-
-			return hashcode;
-		}
-
-		protected virtual bool Equals(Map<TKey, TValue, TCollection> other)
-		{
-			return IDictionaryEqualityComparer<TKey, TCollection>.Instance.Equals(this, other);
-		}
 	}
 
 	public class MapSet<TKey, TValue> : Map<TKey, TValue, HashSet<TValue>>
 	{
-		protected override bool Equals(Map<TKey, TValue, HashSet<TValue>> other)
+		public bool MapEquals(MapSet<TKey, TValue> other)
 		{
-			return IDictionaryEqualityComparer<TKey, HashSet<TValue>>.Instance.Equals(this, other, this.EqualsCollection);
-		}
-
-		private bool EqualsCollection(HashSet<TValue> self, HashSet<TValue> other)
-		{
-			return self.SetEquals(other);
+			Func<ISet<TValue>, ISet<TValue>, bool> setEquals = (a, b) => a.SetEquals(b);
+			return this.DictionaryEquals(other, setEquals);
 		}
 	}
 
 	public class MapList<TKey, TValue> : Map<TKey, TValue, List<TValue>>
 	{
-		protected override bool Equals(Map<TKey, TValue, List<TValue>> other)
+		public bool MapEquals(MapList<TKey, TValue> other)
 		{
-			return IDictionaryEqualityComparer<TKey, List<TValue>>.Instance.Equals(this, other, this.EqualsCollection);
-		}
-
-		private bool EqualsCollection(List<TValue> self, List<TValue> other)
-		{
-			if (self.Count != other.Count) return false;
-
-			for (var i = 0; i < self.Count; ++i)
-			{
-				var a = self[i];
-				var b = other[i];
-
-				if (!a.Equals(b)) return false;
-			}
-
-			return true;
+			Func<IList<TValue>, IList<TValue>, bool> listEquals = (a, b) => a.SequenceEqual(b);
+			return this.DictionaryEquals(other, listEquals);
 		}
 	}
 }

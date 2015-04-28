@@ -26,10 +26,8 @@ Backend/Types.cs -text
 Backend/TypesExtractor.cs -text
 Backend/Utils/Exceptions.cs -text
 Backend/Utils/Extensions.cs -text
-Backend/Utils/IDictionaryEqualityComparer.cs -text
 Backend/Utils/Map.cs -text
 Backend/Utils/OperationHelper.cs -text
-Backend/Utils/ReferenceEqualityComparer.cs -text
 Backend/Utils/Subset.cs -text
 Backend/Visitors/IInstructionVisitor.cs -text
 Backend/Visitors/InstructionVisitor.cs -text

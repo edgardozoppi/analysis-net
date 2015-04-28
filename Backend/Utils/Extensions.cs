@@ -13,6 +13,33 @@ namespace Backend.Utils
 {
 	public static class Extensions
 	{
+		public static bool DictionaryEquals<K,V>(this IDictionary<K,V> self, IDictionary<K,V> other, Func<V, V, bool> valueEquals = null)
+		{
+			if (object.ReferenceEquals(self, other)) return true;
+			if (self.Count != other.Count) return false;
+
+			if (valueEquals == null)
+			{
+				valueEquals = (a, b) => object.Equals(a, b);
+			}
+
+			foreach (var key in self.Keys)
+			{
+				var otherContainsKey = other.ContainsKey(key);
+				if (!otherContainsKey) return false;
+			}
+
+			foreach (var entry in self)
+			{
+				var value = other[entry.Key];
+				var valuesAreEquals = valueEquals(entry.Value, value);
+
+				if (!valuesAreEquals) return false;
+			}
+
+			return true;
+		}
+
 		public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> elements)
 		{
 			foreach (var element in elements)

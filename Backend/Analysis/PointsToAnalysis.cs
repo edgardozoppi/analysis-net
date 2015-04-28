@@ -46,8 +46,8 @@ namespace Backend.Analysis
 			if (node == null) throw new ArgumentNullException("node");
 
 			return this.Variables.SetEquals(node.Variables) &&
-				this.Sources.Equals(node.Sources) &&
-				this.Targets.Equals(node.Targets);
+				this.Sources.MapEquals(node.Sources) &&
+				this.Targets.MapEquals(node.Targets);
 		}
 
 		public override bool Equals(object obj)
@@ -257,40 +257,17 @@ namespace Backend.Analysis
 			targets.Clear();
         }
 
-        public override bool Equals(object obj)
+        public bool GraphEquals(object obj)
         {
 			if (object.ReferenceEquals(this, obj)) return true;
             var other = obj as PointsToGraph;
 
-            return other != null &&
-                this.variables.Equals(other.variables) &&
-                this.SameNodes(other) &&
-				this.SameEdges(other);
+			Func<PTGNode, PTGNode, bool> nodeEquals = (a, b) => a.Equals(b) && a.SameEdges(b);
+
+			return other != null &&
+				this.variables.MapEquals(other.variables) &&
+				this.nodes.DictionaryEquals(other.nodes, nodeEquals);
         }
-
-        public override int GetHashCode()
-        {
-            return this.variables.GetHashCode() ^
-                this.nodes.GetHashCode();
-        }
-
-		private bool SameNodes(PointsToGraph ptg)
-		{
-			return IDictionaryEqualityComparer<int, PTGNode>.Instance.Equals(this.nodes, ptg.nodes);
-		}
-
-		// We are assuming that ptg has the same nodes
-		private bool SameEdges(PointsToGraph ptg)
-		{
-			foreach (var node in this.Nodes)
-			{
-				var other = ptg.nodes[node.Id];
-				var sameEdges = node.SameEdges(other);
-				if (!sameEdges) return false;
-			}
-
-			return true;
-		}
     }
 
     public class PointsToAnalysis : ForwardDataFlowAnalysis<PointsToGraph>
@@ -314,7 +291,7 @@ namespace Backend.Analysis
 
         protected override bool Compare(PointsToGraph left, PointsToGraph right)
         {
-            return left.Equals(right);
+            return left.GraphEquals(right);
         }
 
         protected override PointsToGraph Join(PointsToGraph left, PointsToGraph right)
