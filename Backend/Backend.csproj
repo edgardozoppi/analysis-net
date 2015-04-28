@@ -89,6 +89,7 @@
     <Compile Include="ThreeAddressCode\Types.cs" />
     <Compile Include="Types.cs" />
     <Compile Include="TypesExtractor.cs" />
+    <Compile Include="Utils\IDictionaryEqualityComparer.cs" />
     <Compile Include="Utils\OperationHelper.cs" />
     <Compile Include="Utils\Exceptions.cs" />
     <Compile Include="Serialization\DGMLSerializer.cs" />

@@ -46,24 +46,7 @@ namespace Backend.Utils
 		{
 			if (object.ReferenceEquals(this, obj)) return true;
 			var other = obj as Map<TKey, TValue, TCollection>;
-
-			if (other == null || this.Count != other.Count) return false;
-
-			foreach (var key in this.Keys)
-			{
-				var otherContainsKey = other.ContainsKey(key);
-				if (!otherContainsKey) return false;
-			}
-
-			foreach (var entry in this)
-			{
-				var value = other[entry.Key];
-				var equalsCollection = this.EqualsCollection(entry.Value, value);
-
-				if (!equalsCollection) return false;
-			}
-
-			return true;
+			return this.Equals(other);
 		}
 
 		public override int GetHashCode()
@@ -78,26 +61,34 @@ namespace Backend.Utils
 			return hashcode;
 		}
 
-		protected virtual bool EqualsCollection(TCollection self, TCollection other)
+		protected virtual bool Equals(Map<TKey, TValue, TCollection> other)
 		{
-			return self.Equals(other);
+			return IDictionaryEqualityComparer<TKey, TCollection>.Instance.Equals(this, other);
 		}
 	}
 
 	public class MapSet<TKey, TValue> : Map<TKey, TValue, HashSet<TValue>>
 	{
-		protected override bool EqualsCollection(HashSet<TValue> self, HashSet<TValue> other)
+		protected override bool Equals(Map<TKey, TValue, HashSet<TValue>> other)
 		{
-			if (object.ReferenceEquals(self, other)) return true;
+			return IDictionaryEqualityComparer<TKey, HashSet<TValue>>.Instance.Equals(this, other, this.EqualsCollection);
+		}
+
+		private bool EqualsCollection(HashSet<TValue> self, HashSet<TValue> other)
+		{
 			return self.SetEquals(other);
 		}
 	}
 
 	public class MapList<TKey, TValue> : Map<TKey, TValue, List<TValue>>
 	{
-		protected override bool EqualsCollection(List<TValue> self, List<TValue> other)
+		protected override bool Equals(Map<TKey, TValue, List<TValue>> other)
 		{
-			if (object.ReferenceEquals(self, other)) return true;
+			return IDictionaryEqualityComparer<TKey, List<TValue>>.Instance.Equals(this, other, this.EqualsCollection);
+		}
+
+		private bool EqualsCollection(List<TValue> self, List<TValue> other)
+		{
 			if (self.Count != other.Count) return false;
 
 			for (var i = 0; i < self.Count; ++i)

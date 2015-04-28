@@ -89,24 +89,29 @@ namespace Backend.Analysis
 
     public class PointsToGraph
     {
+		private MapSet<IVariable, PTGNode> variables;
+		private IDictionary<int, PTGNode> nodes;
+
         public PTGNode Null { get; private set; }
-        public MapSet<IVariable, PTGNode> Roots { get; private set; }
-        public ISet<PTGNode> Nodes { get; private set; }
 
         public PointsToGraph()
         {
             this.Null = new PTGNode(0, PTGNodeKind.Null);
-            this.Roots = new MapSet<IVariable, PTGNode>();
-            this.Nodes = new HashSet<PTGNode>() { this.Null };
+            this.variables = new MapSet<IVariable, PTGNode>();            
+			this.nodes = new Dictionary<int, PTGNode>();
+
+			this.Add(this.Null);
         }
 
         public IEnumerable<IVariable> Variables
         {
-            get { return this.Roots.Keys; }
+            get { return this.variables.Keys; }
         }
 
-		// TODO: quizas es mejor sacar estos metodos que tienen que ver
-		// con el reticulado (Clone, Union, Instersection) a otra clase
+		public IEnumerable<PTGNode> Nodes
+		{
+			get { return nodes.Values; }
+		}
 
 		public PointsToGraph Clone()
 		{
@@ -117,50 +122,38 @@ namespace Backend.Analysis
 
 		public void Union(PointsToGraph ptg)
 		{
-			var nodes = this.Nodes.ToDictionary(n => n.Id);
-			var isomorphism = new Dictionary<int, PTGNode>();
-
 			// add all new nodes
 			foreach (var node in ptg.Nodes)
 			{
-				PTGNode clone = null;
+				if (this.Contains(node)) continue;
+				var clone = new PTGNode(node.Id, node.Type, node.Offset, node.Kind);
 
-				if (nodes.ContainsKey(node.Id))
-				{
-					clone = nodes[node.Id];
-				}
-				else
-				{
-					clone = new PTGNode(node.Id, node.Type, node.Offset, node.Kind);
-					this.Nodes.Add(clone);
-				}
-
-				isomorphism.Add(node.Id, clone);
+				nodes.Add(clone.Id, clone);
 			}
 
             // add all variables
 			foreach (var variable in ptg.Variables)
 			{
-				this.Roots.Add(variable);
+				this.variables.Add(variable);
 			}
 
 			// add all edges
             foreach (var node in ptg.Nodes)
             {
-                var clone = isomorphism[node.Id];
+                var clone = nodes[node.Id];
 
                 // add variable <---> node edges
                 foreach (var variable in node.Variables)
                 {
                     clone.Variables.Add(variable);
-                    this.Roots.Add(variable, clone);
+                    this.variables.Add(variable, clone);
                 }
 
                 // add source -field-> node edges
                 foreach (var entry in node.Sources)
                     foreach (var source in entry.Value)
                     {
-                        var source_clone = isomorphism[source.Id];
+                        var source_clone = nodes[source.Id];
 
                         clone.Sources.Add(entry.Key, source_clone);
                     }
@@ -169,39 +162,85 @@ namespace Backend.Analysis
                 foreach (var entry in node.Targets)
                     foreach (var target in entry.Value)
                     {
-                        var target_clone = isomorphism[target.Id];
+                        var target_clone = nodes[target.Id];
 
                         clone.Targets.Add(entry.Key, target_clone);
                     }
             }
 		}
 
-		public void Declare(IVariable variable)
+		public bool Contains(IVariable variable)
 		{
-			this.PointsTo(variable, this.Null);
+			return this.variables.ContainsKey(variable);
+		}
+
+		public bool Contains(PTGNode node)
+		{
+			return this.ContainsNode(node.Id);
+		}
+
+		public bool ContainsNode(int id)
+		{
+			return nodes.ContainsKey(id);
+		}
+
+		public void Add(IVariable variable)
+		{
+			variables.Add(variable);
+		}
+
+		public void Add(PTGNode node)
+		{
+			nodes.Add(node.Id, node);
+		}
+
+		public PTGNode GetNode(int id)
+		{
+			return nodes[id];
+		}
+
+		public ISet<PTGNode> GetTargets(IVariable variable)
+		{
+			return variables[variable];
+		}
+
+		public void Remove(IVariable variable)
+		{
+			this.RemoveEdges(variable);
+			variables.Remove(variable);
 		}
 
         public void PointsTo(IVariable variable, PTGNode target)
         {
+#if DEBUG
+			if (!this.Contains(target))
+				throw new ArgumentException("Target node does not belong to this Points-to graph.", "target");
+#endif
+
             target.Variables.Add(variable);
-            this.Roots.Add(variable, target);
-            this.Nodes.Add(target);
+            this.variables.Add(variable, target);
         }
 
         public void PointsTo(PTGNode source, IFieldReference field, PTGNode target)
         {
+#if DEBUG
+			if (!this.Contains(source))
+				throw new ArgumentException("Source node does not belong to this Points-to graph.", "source");
+
+			if (!this.Contains(target))
+				throw new ArgumentException("Target node does not belong to this Points-to graph.", "target");
+#endif
+
             source.Targets.Add(field, target);
             target.Sources.Add(field, source);
-            this.Nodes.Add(source);
-            this.Nodes.Add(target);
         }
 
-        public void RemoveTargets(IVariable variable)
+        public void RemoveEdges(IVariable variable)
         {
-			var hasVariable = this.Roots.ContainsKey(variable);
+			var hasVariable = this.Contains(variable);
 			if (!hasVariable) return;
 
-			var targets = this.Roots[variable];
+			var targets = this.variables[variable];
 
 			foreach (var target in targets)
 			{
@@ -224,25 +263,28 @@ namespace Backend.Analysis
             var other = obj as PointsToGraph;
 
             return other != null &&
-                this.Roots.Equals(other.Roots) &&
-                this.Nodes.SetEquals(other.Nodes) &&
+                this.variables.Equals(other.variables) &&
+                this.SameNodes(other) &&
 				this.SameEdges(other);
         }
 
         public override int GetHashCode()
         {
-            return this.Roots.GetHashCode() ^
-                this.Nodes.GetHashCode();
+            return this.variables.GetHashCode() ^
+                this.nodes.GetHashCode();
         }
+
+		private bool SameNodes(PointsToGraph ptg)
+		{
+			return IDictionaryEqualityComparer<int, PTGNode>.Instance.Equals(this.nodes, ptg.nodes);
+		}
 
 		// We are assuming that ptg has the same nodes
 		private bool SameEdges(PointsToGraph ptg)
 		{
-			var nodes = ptg.Nodes.ToDictionary(n => n.Id);
-
 			foreach (var node in this.Nodes)
 			{
-				var other = nodes[node.Id];
+				var other = ptg.nodes[node.Id];
 				var sameEdges = node.SameEdges(other);
 				if (!sameEdges) return false;
 			}
@@ -352,12 +394,12 @@ namespace Backend.Analysis
 				if (variable.IsParameter && variable.Name == "this")
 				{
 					var node = new PTGNode(nextPTGNodeId++, variable.Type);
+					ptg.Add(node);
 					ptg.PointsTo(variable, node);
 				}
 				else
 				{
-					//ptg.Declare(variable);
-					ptg.Roots.Add(variable);
+					ptg.Add(variable);
 				}
 			}
 
@@ -368,7 +410,7 @@ namespace Backend.Analysis
 		{
 			if (dst.Type.IsValueType) return;
 
-			ptg.RemoveTargets(dst);
+			ptg.RemoveEdges(dst);
 			ptg.PointsTo(dst, ptg.Null);
 		}
 
@@ -376,10 +418,9 @@ namespace Backend.Analysis
 		{
 			if (dst.Type.IsValueType) return;
 
-			var nodeId = this.GetNodeId(offset);
-			var node = new PTGNode(nodeId, dst.Type, offset);
+			var node = this.GetNode(ptg, offset, dst.Type);
 
-            ptg.RemoveTargets(dst);
+            ptg.RemoveEdges(dst);
             ptg.PointsTo(dst, node);
         }
 
@@ -387,10 +428,9 @@ namespace Backend.Analysis
         {
 			if (dst.Type.IsValueType) return;
 
-			var nodeId = this.GetNodeId(offset);
-			var node = new PTGNode(nodeId, dst.Type, offset);
+			var node = this.GetNode(ptg, offset, dst.Type);
 
-            ptg.RemoveTargets(dst);
+            ptg.RemoveEdges(dst);
             ptg.PointsTo(dst, node);
         }
 
@@ -398,8 +438,8 @@ namespace Backend.Analysis
         {
 			if (dst.Type.IsValueType || src.Type.IsValueType) return;
 
-            ptg.RemoveTargets(dst);
-            var targets = ptg.Roots[src];
+            ptg.RemoveEdges(dst);
+            var targets = ptg.GetTargets(src);
 
             foreach (var target in targets)
             {
@@ -411,8 +451,8 @@ namespace Backend.Analysis
         {
 			if (dst.Type.IsValueType || access.Type.IsValueType) return;
 
-            ptg.RemoveTargets(dst);
-            var nodes = ptg.Roots[access.Instance];
+            ptg.RemoveEdges(dst);
+			var nodes = ptg.GetTargets(access.Instance);
 
             foreach (var node in nodes)
             {
@@ -432,8 +472,8 @@ namespace Backend.Analysis
         {
 			if (access.Type.IsValueType || src.Type.IsValueType) return;
 
-			var nodes = ptg.Roots[access.Instance];
-			var targets = ptg.Roots[src];
+			var nodes = ptg.GetTargets(access.Instance);
+			var targets = ptg.GetTargets(src);
 
 			foreach (var node in nodes)
 				foreach (var target in targets)
@@ -442,21 +482,25 @@ namespace Backend.Analysis
 				}
         }
 
-		private int GetNodeId(uint offset)
+		private PTGNode GetNode(PointsToGraph ptg, uint offset, ITypeReference type)
 		{
-			int nodeId;
+			PTGNode node;
 
 			if (nodeIdAtOffset.ContainsKey(offset))
 			{
-				nodeId = nodeIdAtOffset[offset];
+				var nodeId = nodeIdAtOffset[offset];
+				node = ptg.GetNode(nodeId);
 			}
 			else
 			{
-				nodeId = nextPTGNodeId++;
+				var nodeId = nextPTGNodeId++;
+				node = new PTGNode(nodeId, type, offset);
+
+				ptg.Add(node);
 				nodeIdAtOffset.Add(offset, nodeId);
 			}
 
-			return nodeId;
+			return node;
 		}
     }
 }

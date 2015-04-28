@@ -145,5 +145,15 @@ namespace Backend.Utils
 
 			return expr;
 		}
+
+		public static void RemoveTemporalVariables(this PointsToGraph ptg)
+		{
+			var temporals = ptg.Variables.OfType<TemporalVariable>().ToArray();
+
+			foreach (var temporal in temporals)
+			{
+				ptg.Remove(temporal);
+			}
+		}
 	}
 }
