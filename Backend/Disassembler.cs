@@ -1456,7 +1456,11 @@ namespace Backend
 
 			var type = op.Value as ITypeReference;
 
-			if (operation == ConvertOperation.Conv)
+			if (operation == ConvertOperation.Box && type.IsValueType)
+			{
+				type = Types.Instance.PlatformType.SystemObject;
+			}
+			else if (operation == ConvertOperation.Conv)
 			{
 				type = OperationHelper.GetOperationType(op.OperationCode);
 			}

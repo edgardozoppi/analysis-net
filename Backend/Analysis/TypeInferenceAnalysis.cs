@@ -77,30 +77,20 @@ namespace Backend.Analysis
 
 			public override void Visit(ConvertInstruction instruction)
 			{
-				var type = instruction.ConversionType;
+				var type = instruction.Operand.Type;
 
 				switch (instruction.Operation)
 				{
 					case ConvertOperation.Cast:
-						if (type.ResolvedType.IsValueType || type is IGenericParameterReference)
-						{
-							type = Types.Instance.PlatformType.SystemObject;
-						}
-						break;
-
 					case ConvertOperation.Box:
-						if (type.ResolvedType.IsReferenceType)
-						{
-							type = type.ResolvedType;
-						}
-						else
-						{
-							type = Types.Instance.PlatformType.SystemObject;
-						}
+					case ConvertOperation.Unbox:
+						// ConversionType is the data type of the result
+						type = instruction.ConversionType;
 						break;
 
 					case ConvertOperation.UnboxPtr:
-						type = Types.Instance.PointerType(type);
+						// Pointer to ConversionType is the data type of the result
+						type = Types.Instance.PointerType(instruction.ConversionType);
 						break;
 				}
 
