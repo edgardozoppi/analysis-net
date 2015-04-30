@@ -92,7 +92,7 @@ namespace Backend.ThreeAddressCode.Instructions
 
 		public virtual void Accept(IInstructionVisitor visitor)
 		{
-			visitor.Visit(this as Instruction);
+			visitor.Visit(this);
 		}
 	}
 
@@ -129,7 +129,7 @@ namespace Backend.ThreeAddressCode.Instructions
 		public override void Accept(IInstructionVisitor visitor)
 		{
 			base.Accept(visitor);
-			visitor.Visit(this as DefinitionInstruction);
+			visitor.Visit(this);
 		}
 
 		public abstract IExpression ToExpression();
@@ -620,7 +620,7 @@ namespace Backend.ThreeAddressCode.Instructions
 		public override void Accept(IInstructionVisitor visitor)
 		{
 			base.Accept(visitor);
-			visitor.Visit(this as BranchInstruction);
+			visitor.Visit(this);
 		}
 	}
 
