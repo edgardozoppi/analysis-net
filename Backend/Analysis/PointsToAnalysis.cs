@@ -12,7 +12,8 @@ namespace Backend.Analysis
     public enum PTGNodeKind
     {
         Null,
-        Object
+        Object,
+		Unknown
     }
 
     public class PTGNode
@@ -366,11 +367,13 @@ namespace Backend.Analysis
 			foreach (var variable in variables)
 			{
 				if (variable.Type.IsValueType) continue;
-				// TODO: Maybe for parameters we should assume that they already points-to some node?
 
-				if (variable.IsParameter && variable.Name == "this")
+				if (variable.IsParameter)
 				{
-					var node = new PTGNode(nextPTGNodeId++, variable.Type);
+					var isThisParameter = variable.Name == "this";
+					var kind = isThisParameter ? PTGNodeKind.Object : PTGNodeKind.Unknown;
+					var node = new PTGNode(nextPTGNodeId++, variable.Type, 0, kind);
+
 					ptg.Add(node);
 					ptg.PointsTo(variable, node);
 				}

@@ -139,6 +139,11 @@ namespace Backend.Serialization
 					{
 						xmlWriter.WriteAttributeString("Background", "Yellow");
 					}
+					else if (node.Kind == PTGNodeKind.Unknown)
+					{
+						xmlWriter.WriteAttributeString("Background", "#FFB445");
+						xmlWriter.WriteAttributeString("StrokeDashArray", "6,6");
+					}
 
 					xmlWriter.WriteEndElement();
 				}
