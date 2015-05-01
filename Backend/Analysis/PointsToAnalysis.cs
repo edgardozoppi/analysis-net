@@ -9,6 +9,10 @@ using System.Text;
 
 namespace Backend.Analysis
 {
+	// Unknown PTG nodes represent placeholders
+	// (external objects that can be null or
+	// stand for multiple objects).
+	// Useful to model parameter values.
     public enum PTGNodeKind
     {
         Null,
