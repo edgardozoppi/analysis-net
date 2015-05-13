@@ -18,24 +18,25 @@ namespace Test
 
 	class Examples
 	{
-		//public void Example1()
-		//{
-		//    var node = new Node(1);
-		//    node.Next = new Node(2);
+		public void Example1()
+		{
+			var node = new Node(1);
+			node.Next = new Node(2);
 
-		//    var first = node;
-		//    var second = first.Next;
-		//    //var third = second.Next;
-		//}
+			var first = node;
+			var second = first.Next;
+			var third = second.Next;
+			third.Next = null;
+		}
 
-		//public void Example2(bool a, bool b)
-		//{
-		//    var node = new Node(1);
+		public void Example2(bool a, bool b)
+		{
+			var node = new Node(1);
 
-		//    if (a) node.Next = new Node(2);
-		//    else if (b) node.Next = new Node(3);
-		//    else node.Next = node;
-		//}
+			if (a) node.Next = new Node(2);
+			else if (b) node.Next = new Node(3);
+			else node.Next = node;
+		}
 
 		public void Example3()
 		{
