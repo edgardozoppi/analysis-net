@@ -2,6 +2,9 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console", "Console\Console.csproj", "{C836D6AD-2A48-4FFF-A958-023C48A65478}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A7EFFB71-0EE7-413C-85C8-5C74C8D4CDB0} = {A7EFFB71-0EE7-413C-85C8-5C74C8D4CDB0}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "Backend\Backend.csproj", "{45C7B613-E32D-43E8-8030-932D509602EB}"
 EndProject

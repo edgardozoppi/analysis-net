@@ -86,49 +86,86 @@ namespace Backend.Utils
 
 		public static ISet<IVariable> GetVariables(this IInstructionContainer block)
 		{
-			var result = block.Instructions.SelectMany(i => i.Variables);
+			var result = from i in block.Instructions
+						 from v in i.Variables
+						 select v;
+
+			//var result = block.Instructions.SelectMany(i => i.Variables);
 			return new HashSet<IVariable>(result);
 		}
 
 		public static ISet<IVariable> GetModifiedVariables(this IInstructionContainer block)
 		{
-			var result = block.Instructions.SelectMany(i => i.ModifiedVariables);
+			var result = from i in block.Instructions
+						 from v in i.ModifiedVariables
+						 select v;
+
+			//var result = block.Instructions.SelectMany(i => i.ModifiedVariables);
 			return new HashSet<IVariable>(result);
 		}
 
 		public static ISet<IVariable> GetUsedVariables(this IInstructionContainer block)
 		{
-			var result = block.Instructions.SelectMany(i => i.UsedVariables);
+			var result = from i in block.Instructions
+						 from v in i.UsedVariables
+						 select v;
+
+			//var result = block.Instructions.SelectMany(i => i.UsedVariables);
 			return new HashSet<IVariable>(result);
 		}
 
 		public static ISet<IVariable> GetDefinedVariables(this IInstructionContainer block)
 		{
-			var result = new HashSet<IVariable>();
+			var result = from i in block.Instructions
+						 let d = i as DefinitionInstruction
+						 where d != null && d.HasResult
+						 select d.Result;
 
-			foreach (var instruction in block.Instructions)
-			{
-				var definition = instruction as DefinitionInstruction;
+			return new HashSet<IVariable>(result);
+			//var result = new HashSet<IVariable>();
 
-				if (definition != null && definition.HasResult)
-				{
-					result.Add(definition.Result);
-				}
-			}
+			//foreach (var instruction in block.Instructions)
+			//{
+			//    var definition = instruction as DefinitionInstruction;
 
-			return result;
+			//    if (definition != null && definition.HasResult)
+			//    {
+			//        result.Add(definition.Result);
+			//    }
+			//}
+
+			//return result;
 		}
 
-		public static ISet<IVariable> GetDefinedVariables(this CFGLoop loop)
+		public static ISet<IVariable> GetModifiedVariables(this CFGLoop loop)
 		{
-			var result = loop.Body.SelectMany(n => n.GetDefinedVariables());
+			var result = from n in loop.Body
+						 from v in n.GetModifiedVariables()
+						 select v;
+
+			//var result = loop.Body.SelectMany(n => n.GetModifiedVariables());
 			return new HashSet<IVariable>(result);
 		}
 
 		public static ISet<IVariable> GetVariables(this ControlFlowGraph cfg)
 		{
-			var result = cfg.Nodes.SelectMany(n => n.GetVariables());
+			var result = from n in cfg.Nodes
+						 from v in n.GetVariables()
+						 select v;
+
+			//var result = cfg.Nodes.SelectMany(n => n.GetVariables());
 			return new HashSet<IVariable>(result);
+		}
+
+		public static ISet<CFGNode> GetExitNodes(this CFGLoop loop)
+		{
+			var result = from n in loop.Body
+						 from m in n.Successors
+						 where !loop.Body.Contains(m)
+						 select n;
+
+			//var result = loop.Body.Where(n => n.Successors.Any(m => !loop.Body.Contains(m)));
+			return new HashSet<CFGNode>(result);
 		}
 
 		public static IExpression ToExpression(this IValue value)
@@ -136,9 +173,22 @@ namespace Backend.Utils
 			return value as IExpression;
 		}
 
+		//public static IExpression GetValueOriginal(this IDictionary<IVariable, IExpression> equalities, IVariable variable)
+		//{
+		//    var result = equalities.ContainsKey(variable) ? equalities[variable] : variable;
+		//    return result;
+		//}
+		
 		public static IExpression GetValue(this IDictionary<IVariable, IExpression> equalities, IVariable variable)
 		{
-			var result = equalities.ContainsKey(variable) ? equalities[variable] : variable;
+			IExpression result = variable;
+
+			while (variable != null && equalities.ContainsKey(variable))
+			{
+				result = equalities[variable];
+				variable = result as IVariable;
+			}
+
 			return result;
 		}
 
@@ -156,13 +206,16 @@ namespace Backend.Utils
 
 				if (isTemporal)
 				{
-					if (equalities.ContainsKey(variable))
+					var hasValue = equalities.ContainsKey(variable);
+
+					if (hasValue)
 					{
 						var value = equalities[variable];
-						var isUnknownValue = value is UnknownValue;
-						var isPhiExpression = value is PhiExpression;
+						var isUnknown = value is UnknownValue;
+						var isPhi = value is PhiExpression;
+						var isMethodCall = value is MethodCallExpression;
 
-						if (isUnknownValue || isPhiExpression)
+						if (isUnknown || isPhi || isMethodCall)
 							continue;
 
 						expr = expr.Replace(variable, value);

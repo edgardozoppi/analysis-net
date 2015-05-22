@@ -27,7 +27,7 @@ namespace Console
 		public override IMethodDefinition Rewrite(IMethodDefinition methodDefinition)
 		{
 			var signature = MemberHelper.GetMethodSignature(methodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.ParameterName); 
-			//System.Console.WriteLine(signature);
+			System.Console.WriteLine(signature);
 
 			var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
 			var methodBody = disassembler.Execute();
@@ -51,22 +51,22 @@ namespace Console
 			var analysis = new TypeInferenceAnalysis(cfg);
 			analysis.Analyze();
 
-			var pointsTo = new PointsToAnalysis(cfg);
-			var result = pointsTo.Analyze();
+			//var pointsTo = new PointsToAnalysis(cfg);
+			//var result = pointsTo.Analyze();
 
-			//var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
-			//ssa.Transform();
+			var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
+			ssa.Transform();
 
-			//methodBody.UpdateVariables();
-
-			//var bounds = new LoopBoundAnalysis(cfg);
-			//bounds.Analyze();
-
-			//this.TotalLoops += bounds.TotalLoops;
-			//this.RecognizedLoops += bounds.RecognizedLoops;
+			methodBody.UpdateVariables();
 
 			////var dot = DOTSerializer.Serialize(cfg);
-			////var dgml = DGMLSerializer.Serialize(cfg);
+			var dgml = DGMLSerializer.Serialize(cfg);
+
+			var bounds = new LoopBoundAnalysis(cfg);
+			bounds.Analyze();
+
+			this.TotalLoops += bounds.TotalLoops;
+			this.RecognizedLoops += bounds.RecognizedLoops;
 			
 			return base.Rewrite(methodDefinition);
 		}
