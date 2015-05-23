@@ -43,7 +43,8 @@
     <None Include="Examples.cs" />
     <None Include="LinkedList.cs" />
     <None Include="ExamplesPointsTo.cs" />
-    <Compile Include="ExamplesLoops.cs" />
+    <Compile Include="ExamplesLazyInit.cs" />
+    <None Include="ExamplesLoops.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

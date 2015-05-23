@@ -267,6 +267,11 @@ namespace Backend.ThreeAddressCode.Values
 			else
 			{
 				result = Convert.ToString(this.Value);
+
+				if (this.Value is bool)
+				{
+					result = result.ToLower();
+				}
 			}
 
 			return result;
