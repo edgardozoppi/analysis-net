@@ -264,6 +264,20 @@ namespace Backend.ThreeAddressCode.Instructions
 			this.Operand = operand;
 		}
 
+		public override ISet<IVariable> ModifiedVariables
+		{
+			get
+			{
+				// An optimization that would improve precision
+				// is to detect copies like x = x where
+				// variable x is assigned to itself.
+
+				var result = new HashSet<IVariable>();
+				if (this.HasResult && !this.Result.Equals(this.Operand)) result.Add(this.Result);
+				return result;
+			}
+		}
+
 		public override ISet<IVariable> UsedVariables
 		{
 			get { return new HashSet<IVariable>(this.Operand.Variables); }
@@ -823,8 +837,22 @@ namespace Backend.ThreeAddressCode.Instructions
 		{
 			get
 			{
-				//TODO: arguments could be modified only for reference types
-				var result = new HashSet<IVariable>(this.Arguments);
+				var result = new HashSet<IVariable>();
+				var parameterOffset = this.Method.IsStatic ? 0 : 1;
+
+				// Optimization to improve precision:
+				// Argument variables could be modified only if they are passed by ref
+				// We don't care about argument referenced objects that could be modified here.
+				foreach (var parameterInfo in this.Method.Parameters)
+				{
+					if (parameterInfo.IsByReference)
+					{
+						var index = parameterInfo.Index + parameterOffset;
+						var argument = this.Arguments[index];
+						result.Add(argument);
+					}
+				}
+
 				if (this.HasResult) result.Add(this.Result);
 				return result;
 			}

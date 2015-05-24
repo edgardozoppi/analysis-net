@@ -71,6 +71,7 @@ namespace Console
 				perUnknownLoops = unknownLoops * 100 / totalLoops;
 			}
 
+			System.Console.WriteLine();
 			System.Console.WriteLine("Total loops:\t\t{0}", totalLoops);
 			System.Console.WriteLine("Recognized loops:\t{0} ({1}%)", recognizedLoops, perRecognizedLoops);
 			System.Console.WriteLine("Unknown loops:\t\t{0} ({1}%)", unknownLoops, perUnknownLoops);
