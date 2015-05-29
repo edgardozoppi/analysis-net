@@ -838,11 +838,13 @@ namespace Backend.ThreeAddressCode.Instructions
 			get
 			{
 				var result = new HashSet<IVariable>();
+				// The first argument could actually be the implicit this parameter,
+				// so if the method is not static we need to offset by 1 all other parameters.
 				var parameterOffset = this.Method.IsStatic ? 0 : 1;
 
 				// Optimization to improve precision:
 				// Argument variables could be modified only if they are passed by ref
-				// We don't care about argument referenced objects that could be modified here.
+				// We don't care here if the objects referenced by arguments could be modified.
 				foreach (var parameterInfo in this.Method.Parameters)
 				{
 					if (parameterInfo.IsByReference)
@@ -919,8 +921,24 @@ namespace Backend.ThreeAddressCode.Instructions
 		{
 			get
 			{
-				//TODO: arguments could be modified only for reference types
-				var result = new HashSet<IVariable>(this.Arguments);
+				var result = new HashSet<IVariable>();
+				// The first argument could actually be the implicit this parameter,
+				// so if the method is not static we need to offset by 1 all other parameters.
+				var parameterOffset = this.Function.IsStatic ? 0 : 1;
+
+				// Optimization to improve precision:
+				// Argument variables could be modified only if they are passed by ref
+				// We don't care here if the objects referenced by arguments could be modified.
+				foreach (var parameterInfo in this.Function.Parameters)
+				{
+					if (parameterInfo.IsByReference)
+					{
+						var index = parameterInfo.Index + parameterOffset;
+						var argument = this.Arguments[index];
+						result.Add(argument);
+					}
+				}
+
 				if (this.HasResult) result.Add(this.Result);
 				return result;
 			}
@@ -984,8 +1002,27 @@ namespace Backend.ThreeAddressCode.Instructions
 		{
 			get
 			{
-				//TODO: arguments could be modified only for reference types
-				return new HashSet<IVariable>(this.Arguments) { this.Result };
+				var result = new HashSet<IVariable>();
+
+				// Optimization to improve precision:
+				// Argument variables could be modified only if they are passed by ref
+				// We don't care here if the objects referenced by arguments could be modified.
+				foreach (var parameterInfo in this.Constructor.Parameters)
+				{
+					if (parameterInfo.IsByReference)
+					{
+						// The first argument is actually always the implicit this parameter
+						// so we need to offset all other parameters by 1.
+						// Since we are creating an object, the constructor cannot be static.
+						// Static constructors cannot be called directly.
+						var index = parameterInfo.Index + 1;
+						var argument = this.Arguments[index];
+						result.Add(argument);
+					}
+				}
+
+				if (this.HasResult) result.Add(this.Result);
+				return result;
 			}
 		}
 

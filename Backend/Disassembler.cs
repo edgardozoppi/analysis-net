@@ -949,6 +949,7 @@ namespace Backend
 			}
 
 			var result = stack.Push();
+			// Adding implicit this parameter
 			arguments.Add(result);
 			arguments.Reverse();
 
