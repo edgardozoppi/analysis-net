@@ -165,20 +165,21 @@ namespace Backend.Serialization
 						xmlWriter.WriteEndElement();
 					}
 
-					foreach (var entry in node.Sources)
+					var fieldsBySource = from e in node.Sources
+										 from s in e.Value
+										 group e.Key by s into g
+										 select g;
+
+					foreach (var g in fieldsBySource)
 					{
-						var label = MemberHelper.GetMemberSignature(entry.Key, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+						var sourceId = Convert.ToString(g.Key);
+						var label = DGMLSerializer.GetLabel(g);
 
-						foreach (var source in entry.Value)
-						{
-							var sourceId = Convert.ToString(source.Id);
-
-							xmlWriter.WriteStartElement("Link");
-							xmlWriter.WriteAttributeString("Source", sourceId);
-							xmlWriter.WriteAttributeString("Target", targetId);
-							xmlWriter.WriteAttributeString("Label", label);
-							xmlWriter.WriteEndElement();
-						}
+						xmlWriter.WriteStartElement("Link");
+						xmlWriter.WriteAttributeString("Source", sourceId);
+						xmlWriter.WriteAttributeString("Target", targetId);
+						xmlWriter.WriteAttributeString("Label", label);
+						xmlWriter.WriteEndElement();
 					}
 				}
 
@@ -221,6 +222,156 @@ namespace Backend.Serialization
 			}
 
 			return result;
+		}
+
+		#endregion
+
+		#region Type Graph
+
+		public static string Serialize(INamedTypeReference type)
+		{
+			var types = new INamedTypeReference[] { type };
+			return DGMLSerializer.Serialize(type);
+		}
+
+		public static string Serialize(IModule module)
+		{
+			var types = module.GetAllTypes();
+			return DGMLSerializer.Serialize(types);
+		}
+
+		private static string Serialize(IEnumerable<INamedTypeReference> types)
+		{
+			using (var stringWriter = new StringWriter())
+			using (var xmlWriter = new XmlTextWriter(stringWriter))
+			{
+				var allTypes = new Dictionary<INamedTypeReference, int>();
+				var visitedTypes = new HashSet<INamedTypeDefinition>();
+				var newTypes = new HashSet<INamedTypeDefinition>();
+
+				xmlWriter.Formatting = Formatting.Indented;
+				xmlWriter.WriteStartElement("DirectedGraph");
+				xmlWriter.WriteAttributeString("xmlns", "http://schemas.microsoft.com/vs/2009/dgml");
+				xmlWriter.WriteStartElement("Links");
+
+				foreach (var type in types)
+				{
+					allTypes.Add(type, allTypes.Count);
+
+					if (type is INamedTypeDefinition)
+					{
+						var namedType = type as INamedTypeDefinition;
+						newTypes.Add(namedType);
+					}
+				}
+
+				while (newTypes.Count > 0)
+				{
+					var type = newTypes.First();
+					newTypes.Remove(type);
+					visitedTypes.Add(type);
+
+					var typeId = allTypes[type];
+					var sourceId = Convert.ToString(typeId);
+
+					var fieldsByType = from f in type.Fields
+									   group f by f.Type into g
+									   select g;
+
+					foreach (var g in fieldsByType)
+					{
+						if (g.Key is INamedTypeReference)
+						{
+							var fieldType = g.Key as INamedTypeReference;
+
+							if (!allTypes.ContainsKey(fieldType))
+							{
+								allTypes.Add(fieldType, allTypes.Count);
+							}
+
+							if (fieldType is INamedTypeDefinition)
+							{
+								var namedFieldType = fieldType as INamedTypeDefinition;
+
+								if (!visitedTypes.Contains(namedFieldType))
+								{
+									newTypes.Add(namedFieldType);
+								}
+							}
+
+							typeId = allTypes[fieldType];
+							var targetId = Convert.ToString(typeId);
+							var label = DGMLSerializer.GetLabel(g);
+
+							xmlWriter.WriteStartElement("Link");
+							xmlWriter.WriteAttributeString("Source", sourceId);
+							xmlWriter.WriteAttributeString("Target", targetId);
+							xmlWriter.WriteAttributeString("Label", label);
+							xmlWriter.WriteEndElement();
+						}
+					}
+				}
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteStartElement("Nodes");
+
+				foreach (var entry in allTypes)
+				{
+					var typeId = Convert.ToString(entry.Value);
+					var label = TypeHelper.GetTypeName(entry.Key);
+
+					xmlWriter.WriteStartElement("Node");
+					xmlWriter.WriteAttributeString("Id", typeId);
+					xmlWriter.WriteAttributeString("Label", label);
+					xmlWriter.WriteEndElement();
+				}
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteStartElement("Styles");
+				xmlWriter.WriteStartElement("Style");
+				xmlWriter.WriteAttributeString("TargetType", "Node");
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "FontFamily");
+				xmlWriter.WriteAttributeString("Value", "Consolas");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "NodeRadius");
+				xmlWriter.WriteAttributeString("Value", "5");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "MinWidth");
+				xmlWriter.WriteAttributeString("Value", "0");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteEndElement();
+				xmlWriter.Flush();
+				return stringWriter.ToString();
+			}
+		}
+
+		#endregion
+
+		#region Private Methods
+
+		private static string GetLabel(IEnumerable<IFieldReference> fields)
+		{
+			var result = new StringBuilder();
+
+			foreach (var field in fields)
+			{
+				var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
+
+				result.Append(fieldName);
+				result.AppendLine();
+			}
+
+			result.Remove(result.Length - 2, 2);
+			return result.ToString();
 		}
 
 		#endregion
