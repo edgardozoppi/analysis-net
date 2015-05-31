@@ -870,7 +870,7 @@ namespace Backend.ThreeAddressCode.Values
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Value.Equals(oldvar)) this.Value = newvar;
-			else this.Value.Replace(oldvar, newvar);
+			else (this.Value as IVariableContainer).Replace(oldvar, newvar);
 		}
 
 		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)

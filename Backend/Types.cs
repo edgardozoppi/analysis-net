@@ -57,8 +57,20 @@ namespace Backend
 
 		public ITypeReference PointerTargetType(ITypeReference pointerType)
 		{
-			var type = pointerType as IPointerTypeReference;
-			return type.TargetType;
+			ITypeReference result = null;
+
+			if (pointerType is IPointerTypeReference)
+			{
+				var type = pointerType as IPointerTypeReference;
+				result = type.TargetType;
+			}
+			else if (pointerType is IManagedPointerTypeReference)
+			{
+				var type = pointerType as IManagedPointerTypeReference;
+				result = type.TargetType;
+			}
+
+			return result;
 		}
 
 		public ITypeReference PointerType(ITypeReference targetType)

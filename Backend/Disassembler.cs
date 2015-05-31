@@ -420,6 +420,7 @@ namespace Backend
 						break;
 
 					case OperationCode.Beq:
+					case OperationCode.Beq_S:
 					case OperationCode.Bne_Un:
 					case OperationCode.Bne_Un_S:
 					case OperationCode.Bge:
