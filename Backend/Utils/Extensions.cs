@@ -8,6 +8,7 @@ using Backend.ThreeAddressCode.Values;
 using Backend.ThreeAddressCode.Expressions;
 using Backend.ThreeAddressCode.Instructions;
 using Backend.Visitors;
+using Microsoft.Cci;
 
 namespace Backend.Utils
 {
@@ -234,6 +235,18 @@ namespace Backend.Utils
 			{
 				ptg.Remove(temporal);
 			}
+		}
+
+		public static bool IsPure(this IMethodReference method)
+		{
+			var result = method.Attributes.Any(a => a.Type == Types.Instance.PureAttributeType);
+
+			if (!result)
+			{
+				result = method.Name.Value == "get_Count" && Types.Instance.IsContainer(method.ContainingType);
+			}
+
+			return result;
 		}
 	}
 }
