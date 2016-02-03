@@ -8,3 +8,5 @@ Console/obj
 Test/bin
 Test/obj
 .vs
+/Model/bin
+/Model/obj

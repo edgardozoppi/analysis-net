@@ -79,14 +79,8 @@
     <Compile Include="Analysis\TypeInferenceAnalysis.cs" />
     <Compile Include="Analysis\WebAnalysis.cs" />
     <Compile Include="Disassembler.cs" />
-    <Compile Include="ThreeAddressCode\ExceptionHandlers.cs" />
-    <Compile Include="ThreeAddressCode\Expressions.cs" />
-    <Compile Include="ThreeAddressCode\Instructions.cs" />
     <Compile Include="MethodBody.cs" />
-    <Compile Include="ThreeAddressCode\Operands.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ThreeAddressCode\TypeDefinitions.cs" />
-    <Compile Include="ThreeAddressCode\Types.cs" />
     <Compile Include="Types.cs" />
     <Compile Include="TypesExtractor.cs" />
     <Compile Include="Utils\OperationHelper.cs" />
@@ -96,8 +90,12 @@
     <Compile Include="Utils\Extensions.cs" />
     <Compile Include="Utils\Map.cs" />
     <Compile Include="Utils\Subset.cs" />
-    <Compile Include="Visitors\IInstructionVisitor.cs" />
-    <Compile Include="Visitors\InstructionVisitor.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Model\Model.csproj">
+      <Project>{f08216ad-e55c-44b1-a253-ab8b024b7597}</Project>
+      <Name>Model</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
