@@ -791,9 +791,9 @@ namespace Model.ThreeAddressCode.Instructions
 
 	public class LoadTokenInstruction : DefinitionInstruction
 	{
-		public IReference Token { get; set; }
+		public IMetadataReference Token { get; set; }
 
-		public LoadTokenInstruction(uint label, IVariable result, IReference token)
+		public LoadTokenInstruction(uint label, IVariable result, IMetadataReference token)
 			: base(label, result)
 		{
 			this.Token = token;
@@ -835,18 +835,17 @@ namespace Model.ThreeAddressCode.Instructions
 			{
 				var result = new HashSet<IVariable>();
 				// The first argument could actually be the implicit this parameter,
-				// so if the method is not static we need to offset by 1 all other parameters.
-				var parameterOffset = this.Method.IsStatic ? 0 : 1;
+				// so if the method is not static we need to offset by 1 the remaining arguments.
+				var argumentIndex = this.Method.IsStatic ? 0 : 1;
 
 				// Optimization to improve precision:
 				// Argument variables could be modified only if they are passed by ref
 				// We don't care here if the objects referenced by arguments could be modified.
 				foreach (var parameterInfo in this.Method.Parameters)
 				{
-					if (parameterInfo.IsByReference)
+					if (parameterInfo.Kind == MethodParameterKind.Ref)
 					{
-						var index = parameterInfo.Index + parameterOffset;
-						var argument = this.Arguments[index];
+						var argument = this.Arguments[argumentIndex++];
 						result.Add(argument);
 					}
 				}
@@ -886,8 +885,6 @@ namespace Model.ThreeAddressCode.Instructions
 		public override string ToString()
 		{
 			var result = string.Empty;
-			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
-			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
 			var arguments = string.Join(", ", this.Arguments);
 
 			if (this.HasResult)
@@ -895,17 +892,17 @@ namespace Model.ThreeAddressCode.Instructions
 				result = string.Format("{0} = ", this.Result);
 			}
 
-			return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, type, method, arguments);
+			return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, this.Method.ContainingType, this.Method, arguments);
 		}
 	}
 
 	public class IndirectMethodCallInstruction : DefinitionInstruction
 	{
-		public IFunctionPointerTypeReference Function { get; set; }
+		public FunctionPointerType Function { get; set; }
 		public IVariable Pointer { get; set; }
 		public IList<IVariable> Arguments { get; private set; }
 
-		public IndirectMethodCallInstruction(uint label, IVariable result, IVariable pointer, IFunctionPointerTypeReference function, IEnumerable<IVariable> arguments)
+		public IndirectMethodCallInstruction(uint label, IVariable result, IVariable pointer, FunctionPointerType function, IEnumerable<IVariable> arguments)
 			: base(label, result)
 		{
 			this.Arguments = new List<IVariable>(arguments);
@@ -919,18 +916,17 @@ namespace Model.ThreeAddressCode.Instructions
 			{
 				var result = new HashSet<IVariable>();
 				// The first argument could actually be the implicit this parameter,
-				// so if the method is not static we need to offset by 1 all other parameters.
-				var parameterOffset = this.Function.IsStatic ? 0 : 1;
+				// so if the method is not static we need to offset by 1 the remaining arguments.
+				var argumentIndex = this.Function.IsStatic ? 0 : 1;
 
 				// Optimization to improve precision:
 				// Argument variables could be modified only if they are passed by ref
 				// We don't care here if the objects referenced by arguments could be modified.
 				foreach (var parameterInfo in this.Function.Parameters)
 				{
-					if (parameterInfo.IsByReference)
+					if (parameterInfo.Kind == MethodParameterKind.Ref)
 					{
-						var index = parameterInfo.Index + parameterOffset;
-						var argument = this.Arguments[index];
+						var argument = this.Arguments[argumentIndex++];
 						result.Add(argument);
 					}
 				}
@@ -999,20 +995,20 @@ namespace Model.ThreeAddressCode.Instructions
 			get
 			{
 				var result = new HashSet<IVariable>();
+				// The first argument is actually always the implicit this parameter
+				// so we need to offset the remaining arguments by 1.
+				// Since we are creating an object, the constructor cannot be static.
+				// Static constructors cannot be called directly.
+				var argumentIndex = 1;
 
 				// Optimization to improve precision:
 				// Argument variables could be modified only if they are passed by ref
 				// We don't care here if the objects referenced by arguments could be modified.
 				foreach (var parameterInfo in this.Constructor.Parameters)
 				{
-					if (parameterInfo.IsByReference)
+					if (parameterInfo.Kind == MethodParameterKind.Ref)
 					{
-						// The first argument is actually always the implicit this parameter
-						// so we need to offset all other parameters by 1.
-						// Since we are creating an object, the constructor cannot be static.
-						// Static constructors cannot be called directly.
-						var index = parameterInfo.Index + 1;
-						var argument = this.Arguments[index];
+						var argument = this.Arguments[argumentIndex++];
 						result.Add(argument);
 					}
 				}
@@ -1051,10 +1047,9 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Constructor.ContainingType);
 			var arguments = string.Join(", ", this.Arguments.Skip(1));
 
-			return string.Format("{0}:  {1} = new {2}({3});", this.Label, this.Result, type, arguments);
+			return string.Format("{0}:  {1} = new {2}({3});", this.Label, this.Result, this.Constructor.ContainingType, arguments);
 		}
 	}
 

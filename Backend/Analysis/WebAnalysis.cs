@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Backend.ThreeAddressCode.Instructions;
-using Backend.ThreeAddressCode.Values;
+using Model.ThreeAddressCode.Instructions;
+using Model.ThreeAddressCode.Values;
 using Backend.Utils;
 
 namespace Backend.Analysis

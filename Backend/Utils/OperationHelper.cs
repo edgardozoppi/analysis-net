@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Backend.ThreeAddressCode.Instructions;
+using Model.ThreeAddressCode.Instructions;
 using Microsoft.Cci;
 
 namespace Backend.Utils

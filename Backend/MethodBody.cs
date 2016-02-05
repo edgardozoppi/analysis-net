@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Cci;
-using Backend.ThreeAddressCode;
-using Backend.ThreeAddressCode.Instructions;
-using Backend.ThreeAddressCode.Values;
-using Backend.Visitors;
+using Model.ThreeAddressCode;
+using Model.ThreeAddressCode.Instructions;
+using Model.ThreeAddressCode.Values;
+using Model.Visitors;
 
 namespace Backend
 {
@@ -52,7 +52,7 @@ namespace Backend
 
 				if (variable.Type != null)
 				{
-					type = TypeHelper.GetTypeName(variable.Type);
+					type = variable.Type.ToString();
 				}
 
 				result.AppendFormat("  {0} {1};", type, variable.Name);

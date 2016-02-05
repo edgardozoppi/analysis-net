@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 
-using Backend.ThreeAddressCode;
-using Backend.Utils;
-using Backend.ThreeAddressCode.Instructions;
-using Backend.Visitors;
+using Model.ThreeAddressCode;
+using Model.ThreeAddressCode.Instructions;
+using Model.Visitors;
 
 namespace Backend.Analysis
 {

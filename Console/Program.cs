@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Microsoft.Cci;
-using Backend;
+using CCILoader;
+using Model;
+using Model.Types;
 
 namespace Console
 {
@@ -39,43 +40,57 @@ namespace Console
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\TList\TList\bin\Debug\TList.exe"; // total 10 | ok 1 | unk 9
 			//const string input = root + @"\Jackalope\DevMark\Data\Tests\Simple\Tree\Tree\bin\Debug\Tree.exe"; // total 0 | ok 0 | unk 0
 
-			using (var host = new PeReader.DefaultHost())
-			using (var assembly = new Assembly(host))
+			//using (var host = new PeReader.DefaultHost())
+			//using (var assembly = new Assembly(host))
+			//{
+			//	assembly.Load(input);
+
+			//	Types.Initialize(host);
+
+			//	//var extractor = new TypesExtractor(host);
+			//	//extractor.Extract(assembly.Module);
+
+			//	var visitor = new MethodVisitor(host, assembly.PdbReader);
+			//	visitor.Rewrite(assembly.Module);
+
+			//	DisplayLoopsInfo(visitor.TotalLoops, visitor.RecognizedLoops);
+			//}
+
+			var loader = new Loader();
+			var assembly = loader.LoadAssembly(input);
+
+			var host = new Host();
+			host.Assemblies.Add(assembly);
+
+			var type = new BasicType("Examples")
 			{
-				assembly.Load(input);
+				Assembly = "Test",
+				Namespace = "Test"
+			};
 
-				Types.Initialize(host);
-
-				//var extractor = new TypesExtractor(host);
-				//extractor.Extract(assembly.Module);
-
-				var visitor = new MethodVisitor(host, assembly.PdbReader);
-				visitor.Rewrite(assembly.Module);
-
-				DisplayLoopsInfo(visitor.TotalLoops, visitor.RecognizedLoops);
-			}
+			var typeDefinition = host.ResolveType(type);
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();
 		}
 
-		private static void DisplayLoopsInfo(int totalLoops, int recognizedLoops)
-		{
-			var unknownLoops = totalLoops - recognizedLoops;
-			var perRecognizedLoops = 0;
-			var perUnknownLoops = 0;
+		//private static void DisplayLoopsInfo(int totalLoops, int recognizedLoops)
+		//{
+		//	var unknownLoops = totalLoops - recognizedLoops;
+		//	var perRecognizedLoops = 0;
+		//	var perUnknownLoops = 0;
 
-			if (totalLoops > 0)
-			{
-				perRecognizedLoops = recognizedLoops * 100 / totalLoops;
-				perUnknownLoops = unknownLoops * 100 / totalLoops;
-			}
+		//	if (totalLoops > 0)
+		//	{
+		//		perRecognizedLoops = recognizedLoops * 100 / totalLoops;
+		//		perUnknownLoops = unknownLoops * 100 / totalLoops;
+		//	}
 
-			System.Console.WriteLine();
-			System.Console.WriteLine("Total loops:\t\t{0}", totalLoops);
-			System.Console.WriteLine("Recognized loops:\t{0} ({1}%)", recognizedLoops, perRecognizedLoops);
-			System.Console.WriteLine("Unknown loops:\t\t{0} ({1}%)", unknownLoops, perUnknownLoops);
-			System.Console.WriteLine();
-		}
+		//	System.Console.WriteLine();
+		//	System.Console.WriteLine("Total loops:\t\t{0}", totalLoops);
+		//	System.Console.WriteLine("Recognized loops:\t{0} ({1}%)", recognizedLoops, perRecognizedLoops);
+		//	System.Console.WriteLine("Unknown loops:\t\t{0} ({1}%)", unknownLoops, perUnknownLoops);
+		//	System.Console.WriteLine();
+		//}
 	}
 }

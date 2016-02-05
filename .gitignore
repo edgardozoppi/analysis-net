@@ -10,3 +10,6 @@ Test/obj
 .vs
 /Model/bin
 /Model/obj
+/CCILoader/bin
+/CCILoader/obj
+/packages

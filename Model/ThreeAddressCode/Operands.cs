@@ -43,7 +43,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public IType Type
 		{
-			get { return Backend.Types.Instance.FunctionPointerType(this.Method); }
+			get { return new FunctionPointerType(this.Method); }
 		}
 
 		ISet<IVariable> IVariableContainer.Variables
@@ -81,10 +81,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
-			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-
-			return string.Format("&{0}::{1}", type, method);
+			return string.Format("&{0}::{1}", this.Method.ContainingType, this.Method);
 		}
 	}
 
@@ -101,7 +98,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public IType Type
 		{
-			get { return Backend.Types.Instance.FunctionPointerType(this.Method); }
+			get { return new FunctionPointerType(this.Method); }
 		}
 
 		public ISet<IVariable> Variables
@@ -150,10 +147,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
-			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-
-			return string.Format("&{0}::{1}({2})", type, method, this.Instance);
+			return string.Format("&{0}::{1}({2})", this.Method.ContainingType, this.Method, this.Instance);
 		}
 	}
 
@@ -502,20 +496,12 @@ namespace Model.ThreeAddressCode.Values
 
 		public string FieldName
 		{
-			get
-			{
-				var fieldName = MemberHelper.GetMemberSignature(this.Field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-				return fieldName;
-			}
+			get { return this.Field.Name; }
 		}
 
 		public string Name
 		{
-			get
-			{
-				var type = TypeHelper.GetTypeName(this.Field.ContainingType);
-				return string.Format("{0}::{1}", type, this.FieldName);
-			}
+			get { return string.Format("{0}::{1}", this.Field.ContainingType, this.FieldName); }
 		}
 
 		public IType Type
@@ -576,11 +562,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public string FieldName
 		{
-			get
-			{
-				var fieldName = MemberHelper.GetMemberSignature(this.Field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-				return fieldName;
-			}
+			get { return this.Field.Name; }
 		}
 
 		public string Name
@@ -663,7 +645,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public IType Type
 		{
-			get { return Backend.Types.Instance.ArrayLengthType; }
+			get { return PlatformTypes.ArrayLengthType; }
 		}
 
 		public ISet<IVariable> Variables
@@ -728,7 +710,11 @@ namespace Model.ThreeAddressCode.Values
 
 		public IType Type
 		{
-			get { return Backend.Types.Instance.ArrayElementType(this.Array.Type); }
+			get
+			{
+				var arrayType = this.Array.Type as ArrayType;
+				return arrayType.ElementsType;
+			}
 		}
 
 		public ISet<IVariable> Variables
@@ -795,7 +781,11 @@ namespace Model.ThreeAddressCode.Values
 
 		public IType Type
 		{
-			get { return Backend.Types.Instance.PointerTargetType(this.Reference.Type); }
+			get
+			{
+				var pointerType = this.Reference.Type as PointerType;
+				return pointerType.TargetType;
+			}
 		}
 
 		public ISet<IVariable> Variables
@@ -858,7 +848,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public IType Type
 		{
-			get { return Backend.Types.Instance.PointerType(this.Value.Type); }
+			get { return new PointerType(this.Value.Type); }
 		}
 
 		public ISet<IVariable> Variables

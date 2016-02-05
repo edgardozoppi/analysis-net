@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Model.Types;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,15 +12,26 @@ namespace Model
 		string Name { get; }
 	}
 
-	public class Assembly : IAssemblyReference
-    {
+	public class AssemblyReference : IAssemblyReference
+	{
 		public string Name { get; private set; }
-		public IEnumerable<IAssemblyReference> References { get; private set; }
+
+		public AssemblyReference(string name)
+		{
+			this.Name = name;
+		}
+	}
+
+	public class Assembly : IAssemblyReference
+	{
+		public string Name { get; private set; }
+		public IList<IAssemblyReference> References { get; private set; }
+		public Namespace RootNamespace { get; set; }
 
 		public Assembly(string name)
 		{
 			this.Name = name;
 			this.References = new List<IAssemblyReference>();
 		}
-    }
+	}
 }

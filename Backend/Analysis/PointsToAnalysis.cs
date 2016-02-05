@@ -1,11 +1,11 @@
-﻿using Backend.ThreeAddressCode.Instructions;
-using Backend.ThreeAddressCode.Values;
+﻿using Model.ThreeAddressCode.Instructions;
+using Model.ThreeAddressCode.Values;
 using Backend.Utils;
-using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Model.Types;
 
 namespace Backend.Analysis
 {
@@ -25,7 +25,7 @@ namespace Backend.Analysis
 		public int Id { get; private set; }
 		public PTGNodeKind Kind { get; private set; }
 		public uint Offset { get; set; }
-        public ITypeReference Type { get; set; }
+        public IType Type { get; set; }
         public ISet<IVariable> Variables { get; private set; }
         public MapSet<IFieldReference, PTGNode> Sources { get; private set; }
         public MapSet<IFieldReference, PTGNode> Targets { get; private set; }
@@ -39,7 +39,7 @@ namespace Backend.Analysis
             this.Targets = new MapSet<IFieldReference, PTGNode>();
         }
 
-		public PTGNode(int id, ITypeReference type, uint offset = 0, PTGNodeKind kind = PTGNodeKind.Object)
+		public PTGNode(int id, IType type, uint offset = 0, PTGNodeKind kind = PTGNodeKind.Object)
 			: this(id, kind)
 		{
 			this.Offset = offset;
@@ -83,8 +83,7 @@ namespace Backend.Analysis
 					break;
 
 				default:
-					var type = TypeHelper.GetTypeName(this.Type);
-					result = string.Format("{0:X4}: {1}", this.Offset, type);
+					result = string.Format("{0:X4}: {1}", this.Offset, this.Type);
 					break;
 			}
 
@@ -376,7 +375,7 @@ namespace Backend.Analysis
 
 			foreach (var variable in variables)
 			{
-				if (variable.Type.IsValueType) continue;
+				if (variable.Type.TypeKind == TypeKind.ValueType) continue;
 
 				if (variable.IsParameter)
 				{
@@ -398,7 +397,7 @@ namespace Backend.Analysis
 
 		private void ProcessNull(PointsToGraph ptg, IVariable dst)
 		{
-			if (dst.Type.IsValueType) return;
+			if (dst.Type.TypeKind == TypeKind.ValueType) return;
 
 			ptg.RemoveEdges(dst);
 			ptg.PointsTo(dst, ptg.Null);
@@ -406,7 +405,7 @@ namespace Backend.Analysis
 
         private void ProcessObjectAllocation(PointsToGraph ptg, uint offset, IVariable dst)
 		{
-			if (dst.Type.IsValueType) return;
+			if (dst.Type.TypeKind == TypeKind.ValueType) return;
 
 			var node = this.GetNode(ptg, offset, dst.Type);
 
@@ -416,7 +415,7 @@ namespace Backend.Analysis
 
 		private void ProcessArrayAllocation(PointsToGraph ptg, uint offset, IVariable dst)
         {
-			if (dst.Type.IsValueType) return;
+			if (dst.Type.TypeKind == TypeKind.ValueType) return;
 
 			var node = this.GetNode(ptg, offset, dst.Type);
 
@@ -426,7 +425,7 @@ namespace Backend.Analysis
 
         private void ProcessCopy(PointsToGraph ptg, IVariable dst, IVariable src)
         {
-			if (dst.Type.IsValueType || src.Type.IsValueType) return;
+			if (dst.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
 
             ptg.RemoveEdges(dst);
             var targets = ptg.GetTargets(src);
@@ -439,7 +438,7 @@ namespace Backend.Analysis
 
 		private void ProcessLoad(PointsToGraph ptg, uint offset, IVariable dst, InstanceFieldAccess access)
         {
-			if (dst.Type.IsValueType || access.Type.IsValueType) return;
+			if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
 
             ptg.RemoveEdges(dst);
 			var nodes = ptg.GetTargets(access.Instance);
@@ -466,7 +465,7 @@ namespace Backend.Analysis
 
         private void ProcessStore(PointsToGraph ptg, InstanceFieldAccess access, IVariable src)
         {
-			if (access.Type.IsValueType || src.Type.IsValueType) return;
+			if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
 
 			var nodes = ptg.GetTargets(access.Instance);
 			var targets = ptg.GetTargets(src);
@@ -478,7 +477,7 @@ namespace Backend.Analysis
 				}
         }
 
-		private PTGNode GetNode(PointsToGraph ptg, uint offset, ITypeReference type, PTGNodeKind kind = PTGNodeKind.Object)
+		private PTGNode GetNode(PointsToGraph ptg, uint offset, IType type, PTGNodeKind kind = PTGNodeKind.Object)
 		{
 			PTGNode node;
 

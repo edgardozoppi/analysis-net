@@ -360,9 +360,9 @@ namespace Model.ThreeAddressCode.Expressions
 
 	public class TokenExpression : IExpression
 	{
-		public IReference Token { get; set; }
+		public IMetadataReference Token { get; set; }
 
-		public TokenExpression(IReference token)
+		public TokenExpression(IMetadataReference token)
 		{
 			this.Token = token;
 		}
@@ -431,7 +431,7 @@ namespace Model.ThreeAddressCode.Expressions
 
 		public IType Type
 		{
-			get { return this.Method.Type; }
+			get { return this.Method.ReturnType; }
 		}
 
 		public ISet<IVariable> Variables
@@ -493,28 +493,26 @@ namespace Model.ThreeAddressCode.Expressions
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Method.ContainingType);
-			var method = MemberHelper.GetMethodSignature(this.Method, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
 			var arguments = string.Join(", ", this.Arguments);
 
-			return string.Format("{0}::{1}({2})", type, method, arguments);
+			return string.Format("{0}::{1}({2})", this.Method.ContainingType, this.Method, arguments);
 		}
 	}
 
 	public class IndirectMethodCallExpression : IExpression
 	{
-		public IFunctionPointerTypeReference Function { get; set; }
+		public FunctionPointerType Function { get; set; }
 		public IVariable Pointer { get; set; }
 		public IList<IVariable> Arguments { get; private set; }
 
-		public IndirectMethodCallExpression(IVariable pointer, IFunctionPointerTypeReference function)
+		public IndirectMethodCallExpression(IVariable pointer, FunctionPointerType function)
 		{
 			this.Arguments = new List<IVariable>();
 			this.Pointer = pointer;
 			this.Function = function;
 		}
 
-		public IndirectMethodCallExpression(IVariable pointer, IFunctionPointerTypeReference function, IEnumerable<IVariable> arguments)
+		public IndirectMethodCallExpression(IVariable pointer, FunctionPointerType function, IEnumerable<IVariable> arguments)
 		{
 			this.Arguments = new List<IVariable>(arguments);
 			this.Pointer = pointer;
@@ -523,7 +521,7 @@ namespace Model.ThreeAddressCode.Expressions
 
 		public IType Type
 		{
-			get { return this.Function.Type; }
+			get { return this.Function.ReturnType; }
 		}
 
 		public ISet<IVariable> Variables
@@ -678,10 +676,9 @@ namespace Model.ThreeAddressCode.Expressions
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Constructor.ContainingType);
 			var arguments = string.Join(", ", this.Arguments.Skip(1));
 
-			return string.Format("new {0}({1});", type, arguments);
+			return string.Format("new {0}({1});", this.Constructor.ContainingType, arguments);
 		}
 	}
 
@@ -689,14 +686,14 @@ namespace Model.ThreeAddressCode.Expressions
 	{
 		public IType ElementType { get; set; }
 		public uint Rank { get; set; }
-		public IList<IVariable> LowerBounds { get; private set; }
+		//public IList<IVariable> LowerBounds { get; private set; }
 		public IList<IVariable> Sizes { get; private set; }
 
 		public CreateArrayExpression(IType elementType, uint rank)
 		{
 			this.ElementType = elementType;
 			this.Rank = rank;
-			this.LowerBounds = new List<IVariable>();
+			//this.LowerBounds = new List<IVariable>();
 			this.Sizes = new List<IVariable>();
 		}
 
@@ -704,13 +701,13 @@ namespace Model.ThreeAddressCode.Expressions
 		{
 			this.ElementType = elementType;
 			this.Rank = rank;
-			this.LowerBounds = new List<IVariable>(lowerBounds);
+			//this.LowerBounds = new List<IVariable>(lowerBounds);
 			this.Sizes = new List<IVariable>(sizes);
 		}
 
 		public IType Type
 		{
-			get { return Matrix.GetMatrix(this.ElementType, this.Rank, null); }
+			get { return new ArrayType(this.ElementType); }
 		}
 
 		public ISet<IVariable> Variables
@@ -718,7 +715,7 @@ namespace Model.ThreeAddressCode.Expressions
 			get
 			{
 				var result = new HashSet<IVariable>();
-				result.UnionWith(this.LowerBounds);
+				//result.UnionWith(this.LowerBounds);
 				result.UnionWith(this.Sizes);
 				return result;
 			}
@@ -726,11 +723,11 @@ namespace Model.ThreeAddressCode.Expressions
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
-			for (var i = 0; i < this.LowerBounds.Count; ++i)
-			{
-				var bound = this.LowerBounds[i];
-				if (bound.Equals(oldvar)) this.LowerBounds[i] = newvar;
-			}
+			//for (var i = 0; i < this.LowerBounds.Count; ++i)
+			//{
+			//	var bound = this.LowerBounds[i];
+			//	if (bound.Equals(oldvar)) this.LowerBounds[i] = newvar;
+			//}
 
 			for (var i = 0; i < this.Sizes.Count; ++i)
 			{
@@ -750,12 +747,12 @@ namespace Model.ThreeAddressCode.Expressions
 				var newvar = newexpr as IVariable;
 				result = new CreateArrayExpression(this.ElementType, this.Rank);
 
-				foreach (var bound in this.LowerBounds)
-				{
-					var variable = bound;
-					if (bound.Equals(oldvar)) variable = newvar;
-					result.LowerBounds.Add(variable);
-				}
+				//foreach (var bound in this.LowerBounds)
+				//{
+				//	var variable = bound;
+				//	if (bound.Equals(oldvar)) variable = newvar;
+				//	result.LowerBounds.Add(variable);
+				//}
 
 				foreach (var size in this.Sizes)
 				{
@@ -781,7 +778,7 @@ namespace Model.ThreeAddressCode.Expressions
 			return other != null &&
 				this.ElementType.Equals(other.ElementType) &&
 				this.Rank.Equals(other.Rank) &&
-				this.LowerBounds.SequenceEqual(other.LowerBounds) &&
+				//this.LowerBounds.SequenceEqual(other.LowerBounds) &&
 				this.Sizes.SequenceEqual(other.Sizes);
 		}
 
@@ -789,7 +786,7 @@ namespace Model.ThreeAddressCode.Expressions
 		{
 			return this.ElementType.GetHashCode() ^
 				this.Rank.GetHashCode() ^
-				this.LowerBounds.GetHashCode() ^
+				//this.LowerBounds.GetHashCode() ^
 				this.Sizes.GetHashCode();
 		}
 

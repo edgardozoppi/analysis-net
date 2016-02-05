@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Backend.ThreeAddressCode.Instructions;
-using Backend.Visitors;
-using Microsoft.Cci;
+using Model.ThreeAddressCode.Instructions;
+using Model.Visitors;
+using Model.Types;
 
 namespace Backend.Analysis
 {
@@ -16,17 +16,17 @@ namespace Backend.Analysis
 		{
 			public override void Visit(LocalAllocationInstruction instruction)
 			{
-				instruction.TargetAddress.Type = Types.Instance.NativePointerType;
+				instruction.TargetAddress.Type = PlatformTypes.NativePointer;
 			}
 
 			public override void Visit(SizeofInstruction instruction)
 			{
-				instruction.Result.Type = Types.Instance.SizeofType;
+				instruction.Result.Type = PlatformTypes.SizeofType;
 			}
 
 			public override void Visit(CreateArrayInstruction instruction)
 			{
-				instruction.Result.Type = Types.Instance.ArrayType(instruction.ElementType, instruction.Rank);
+				instruction.Result.Type = new ArrayType(instruction.ElementType);
 			}
 
 			public override void Visit(CatchInstruction instruction)
@@ -43,7 +43,7 @@ namespace Backend.Analysis
 			{
 				if (instruction.HasResult)
 				{
-					instruction.Result.Type = instruction.Method.Type;
+					instruction.Result.Type = instruction.Method.ReturnType;
 				}
 			}
 
@@ -51,7 +51,7 @@ namespace Backend.Analysis
 			{
 				if (instruction.HasResult)
 				{
-					instruction.Result.Type = instruction.Function.Type;
+					instruction.Result.Type = instruction.Function.ReturnType;
 				}
 			}
 
@@ -62,7 +62,7 @@ namespace Backend.Analysis
 
 			public override void Visit(LoadTokenInstruction instruction)
 			{
-				instruction.Result.Type = Types.Instance.TokenType(instruction.Token);
+				instruction.Result.Type = TypeHelper.TokenType(instruction.Token);
 			}
 
 			public override void Visit(StoreInstruction instruction)
@@ -90,7 +90,7 @@ namespace Backend.Analysis
 
 					case ConvertOperation.UnboxPtr:
 						// Pointer to ConversionType is the data type of the result
-						type = Types.Instance.PointerType(instruction.ConversionType);
+						type = new PointerType(instruction.ConversionType);
 						break;
 				}
 
@@ -123,13 +123,13 @@ namespace Backend.Analysis
 					case BinaryOperation.Mul:
 					case BinaryOperation.Rem:
 					case BinaryOperation.Sub:
-						instruction.Result.Type = Types.Instance.BinaryNumericOperationType(left, right, unsigned);
+						instruction.Result.Type = TypeHelper.BinaryNumericOperationType(left, right, unsigned);
 						break;
 
 					case BinaryOperation.And:
 					case BinaryOperation.Or:
 					case BinaryOperation.Xor:
-						instruction.Result.Type = Types.Instance.BinaryLogicalOperationType(left, right);
+						instruction.Result.Type = TypeHelper.BinaryLogicalOperationType(left, right);
 						break;
 
 					case BinaryOperation.Shl:
@@ -140,7 +140,7 @@ namespace Backend.Analysis
 					case BinaryOperation.Eq:
 					case BinaryOperation.Gt:
 					case BinaryOperation.Lt:
-						instruction.Result.Type = Types.Instance.PlatformType.SystemBoolean;
+						instruction.Result.Type = PlatformTypes.Boolean;
 						break;
 				}
 			}

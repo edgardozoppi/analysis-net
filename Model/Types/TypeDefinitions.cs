@@ -6,6 +6,11 @@ using Model.ThreeAddressCode.Values;
 
 namespace Model.Types
 {
+	public interface ITypeDefinitionContainer
+	{
+		IList<ITypeDefinition> Types { get; }
+	}
+
 	public interface ITypeDefinition
 	{
 		string Name { get; set; }
@@ -19,19 +24,21 @@ namespace Model.Types
 	{
 	}
 
-	public class StructDefinition : IValueTypeDefinition
+	public class StructDefinition : IValueTypeDefinition, ITypeDefinitionContainer
 	{
 		public string Name { get; set; }
 		public IList<TypeVariable> GenericParameters { get; private set; }
-		public IDictionary<string, FieldDefinition> Fields { get; private set; }
-		public IDictionary<string, MethodDefinition> Methods { get; private set; }
+		public IList<FieldDefinition> Fields { get; private set; }
+		public IList<MethodDefinition> Methods { get; private set; }
+		public IList<ITypeDefinition> Types { get; private set; }
 
 		public StructDefinition(string name)
 		{
 			this.Name = name;
 			this.GenericParameters = new List<TypeVariable>();
-			this.Fields = new Dictionary<string, FieldDefinition>();
-			this.Methods = new Dictionary<string, MethodDefinition>();
+			this.Fields = new List<FieldDefinition>();
+			this.Methods = new List<MethodDefinition>();
+			this.Types = new List<ITypeDefinition>();
 		}
 
 		public override string ToString()
@@ -48,12 +55,12 @@ namespace Model.Types
 			result.AppendLine();
 			result.AppendLine("{");
 
-			foreach (var field in this.Fields.Values)
+			foreach (var field in this.Fields)
 			{
 				result.AppendFormat("  {0};\n", field);
 			}
 
-			foreach (var method in this.Methods.Values)
+			foreach (var method in this.Methods)
 			{
 				result.AppendFormat("  {0};\n", method);
 			}
@@ -63,8 +70,17 @@ namespace Model.Types
 		}
 	}
 
-	public class FieldDefinition
+	public interface IFieldReference : IMetadataReference
 	{
+		IType ContainingType { get; }
+		IType Type { get; }
+		string Name { get; }
+		bool IsStatic { get; } 
+	}
+
+	public class FieldDefinition : IFieldReference
+	{
+		public IType ContainingType { get; set; }
 		public IType Type { get; set; }
 		public string Name { get; set; }
 		public bool IsStatic { get; set; }
@@ -82,12 +98,60 @@ namespace Model.Types
 		}
 	}
 
-	public class MethodDefinition
+	public enum MethodParameterKind
 	{
+		In,
+		Out,
+		Ref
+	}
+
+	public class MethodParameter
+	{
+		public string Name { get; set; }
+		public IType Type { get; set; }
+		public MethodParameterKind Kind {get; set; }
+
+		public MethodParameter(string name, IType type)
+		{
+			this.Name = name;
+			this.Type = type;
+			this.Kind = MethodParameterKind.In;
+		}
+
+		public override string ToString()
+		{
+			string kind;
+
+			switch (this.Kind)
+			{
+				case MethodParameterKind.In: kind = string.Empty; break;
+				case MethodParameterKind.Out: kind = "out "; break;
+				case MethodParameterKind.Ref: kind = "ref "; break;
+				default: throw new Exception("Unknown MethodParameterKind.");
+			}
+
+			return string.Format("{0}{1} {2}", kind, this.Type, this.Name);
+		}
+	}
+
+	public interface IMethodReference : IMetadataReference
+	{
+		IType ContainingType { get; }
+		IType ReturnType { get; }
+		string Name { get; }
+		IList<TypeVariable> GenericParameters { get; }
+		IList<MethodParameter> Parameters { get; }
+		bool IsStatic { get; }
+		//bool IsConstructor { get; }
+	}
+
+	public class MethodDefinition : IMethodReference
+	{
+		public IType ContainingType { get; set; }
 		public IType ReturnType { get; set; }
 		public string Name { get; set; }
 		public IList<TypeVariable> GenericParameters { get; private set; }
-		public IList<IVariable> Parameters { get; private set; }
+		public IList<MethodParameter> Parameters { get; private set; }
 		public bool IsStatic { get; set; }
 		public bool IsConstructor { get; set; }
 
@@ -96,7 +160,7 @@ namespace Model.Types
 			this.Name = name;
 			this.ReturnType = returnType;
 			this.GenericParameters = new List<TypeVariable>();
-			this.Parameters = new List<IVariable>();
+			this.Parameters = new List<MethodParameter>();
 		}
 
 		public override string ToString()
@@ -126,12 +190,12 @@ namespace Model.Types
 	{
 		public string Name { get; set; }
 		public BasicType UnderlayingType { get; set; }
-		public IDictionary<string, Constant> Constants { get; private set; }
+		public IList<ConstantDefinition> Constants { get; private set; }
 
 		public EnumDefinition(string name)
 		{
 			this.Name = name;
-			this.Constants = new Dictionary<string, Constant>();
+			this.Constants = new List<ConstantDefinition>();
 		}
 
 		public override string ToString()
@@ -142,11 +206,29 @@ namespace Model.Types
 
 			foreach (var constant in this.Constants)
 			{
-				result.AppendFormat("  {0} = {1};\n", constant.Key, constant.Value);
+				result.AppendFormat("  {0};\n", constant);
 			}
 
 			result.AppendLine("}");
 			return result.ToString();
+		}
+	}
+
+	public class ConstantDefinition
+	{
+		public IType ContainingType { get; set; }
+		public string Name { get; set; }
+		public object Value { get; set; }
+
+		public ConstantDefinition(string name, object value)
+		{
+			this.Name = name;
+			this.Value = value;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0} = {1}", this.Name, this.Value);
 		}
 	}
 
@@ -155,14 +237,14 @@ namespace Model.Types
 		public string Name { get; set; }
 		public IList<BasicType> Interfaces { get; private set; }
 		public IList<TypeVariable> GenericParameters { get; private set; }
-		public IDictionary<string, MethodDefinition> Methods { get; private set; }
+		public IList<MethodDefinition> Methods { get; private set; }
 
 		public InterfaceDefinition(string name)
 		{
 			this.Name = name;
 			this.Interfaces = new List<BasicType>();
 			this.GenericParameters = new List<TypeVariable>();
-			this.Methods = new Dictionary<string, MethodDefinition>();
+			this.Methods = new List<MethodDefinition>();
 		}
 
 		public override string ToString()
@@ -185,7 +267,7 @@ namespace Model.Types
 			result.AppendLine();
 			result.AppendLine("{");
 
-			foreach (var method in this.Methods.Values)
+			foreach (var method in this.Methods)
 			{
 				result.AppendFormat("  {0};\n", method);
 			}
@@ -195,22 +277,24 @@ namespace Model.Types
 		}
 	}
 	
-	public class ClassDefinition : IReferenceTypeDefinition
+	public class ClassDefinition : IReferenceTypeDefinition, ITypeDefinitionContainer
 	{
 		public string Name { get; set; }
 		public BasicType Base { get; set; }
 		public IList<BasicType> Interfaces { get; private set; }
 		public IList<TypeVariable> GenericParameters { get; private set; }
-		public IDictionary<string, FieldDefinition> Fields { get; private set; }
-		public IDictionary<string, MethodDefinition> Methods { get; private set; }
+		public IList<FieldDefinition> Fields { get; private set; }
+		public IList<MethodDefinition> Methods { get; private set; }
+		public IList<ITypeDefinition> Types { get; private set; }
 
 		public ClassDefinition(string name)
 		{
 			this.Name = name;
 			this.Interfaces = new List<BasicType>();
 			this.GenericParameters = new List<TypeVariable>();
-			this.Fields = new Dictionary<string, FieldDefinition>();
-			this.Methods = new Dictionary<string, MethodDefinition>();
+			this.Fields = new List<FieldDefinition>();
+			this.Methods = new List<MethodDefinition>();
+			this.Types = new List<ITypeDefinition>();
 		}
 
 		public override string ToString()
@@ -235,17 +319,17 @@ namespace Model.Types
 			result.AppendLine();
 			result.AppendLine("{");
 
-			foreach (var field in this.Fields.Values)
+			foreach (var field in this.Fields)
 			{
 				result.AppendFormat("  {0};\n", field);
 			}
 
-			foreach (var field in this.Fields.Values)
+			foreach (var field in this.Fields)
 			{
 				result.AppendFormat("  {0};\n", field);
 			}
 
-			foreach (var method in this.Methods.Values)
+			foreach (var method in this.Methods)
 			{
 				result.AppendFormat("  {0};\n", method);
 			}

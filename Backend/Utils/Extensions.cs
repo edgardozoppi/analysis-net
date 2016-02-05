@@ -1,13 +1,12 @@
-﻿using Backend.Analysis;
-using Backend.ThreeAddressCode;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Backend.ThreeAddressCode.Values;
-using Backend.ThreeAddressCode.Expressions;
-using Backend.ThreeAddressCode.Instructions;
-using Backend.Visitors;
+using Model.ThreeAddressCode.Values;
+using Model.ThreeAddressCode.Expressions;
+using Model.ThreeAddressCode.Instructions;
+using Model.Visitors;
+using Backend.Analysis;
 using Microsoft.Cci;
 
 namespace Backend.Utils

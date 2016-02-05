@@ -34,33 +34,6 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Cci.ILGenerator">
-      <HintPath>..\Dependencies\Microsoft.Cci.ILGenerator.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.MetadataHelper">
-      <HintPath>..\Dependencies\Microsoft.Cci.MetadataHelper.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.MetadataModel">
-      <HintPath>..\Dependencies\Microsoft.Cci.MetadataModel.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.MutableMetadataModel">
-      <HintPath>..\Dependencies\Microsoft.Cci.MutableMetadataModel.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.PdbReader">
-      <HintPath>..\Dependencies\Microsoft.Cci.PdbReader.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.PdbWriter">
-      <HintPath>..\Dependencies\Microsoft.Cci.PdbWriter.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.PeReader">
-      <HintPath>..\Dependencies\Microsoft.Cci.PeReader.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.PeWriter">
-      <HintPath>..\Dependencies\Microsoft.Cci.PeWriter.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.SourceModel">
-      <HintPath>..\Dependencies\Microsoft.Cci.SourceModel.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -70,15 +43,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assembly.cs" />
-    <Compile Include="MethodVisitor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Backend\Backend.csproj">
-      <Project>{45C7B613-E32D-43E8-8030-932D509602EB}</Project>
-      <Name>Backend</Name>
+    <ProjectReference Include="..\CCILoader\CCILoader.csproj">
+      <Project>{d19d0c62-fb8c-427d-b6a4-8433ef3db6a5}</Project>
+      <Name>CCILoader</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Model\Model.csproj">
+      <Project>{f08216ad-e55c-44b1-a253-ab8b024b7597}</Project>
+      <Name>Model</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Model</RootNamespace>
     <AssemblyName>Model</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -40,12 +41,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assembly.cs" />
+    <Compile Include="Extensions.cs" />
+    <Compile Include="Host.cs" />
+    <Compile Include="Namespace.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ThreeAddressCode\ExceptionHandlers.cs" />
     <Compile Include="ThreeAddressCode\Expressions.cs" />
     <Compile Include="ThreeAddressCode\Instructions.cs" />
     <Compile Include="ThreeAddressCode\Operands.cs" />
     <Compile Include="Types\TypeDefinitions.cs" />
+    <Compile Include="Types\TypeHelper.cs" />
     <Compile Include="Types\Types.cs" />
     <Compile Include="Visitors\IInstructionVisitor.cs" />
     <Compile Include="Visitors\InstructionVisitor.cs" />

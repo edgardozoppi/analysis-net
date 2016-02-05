@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using Backend.Analysis;
-using Microsoft.Cci;
+using Model.Types;
 
 namespace Backend.Serialization
 {
@@ -218,7 +218,7 @@ namespace Backend.Serialization
 			switch (node.Kind)
 			{
 				case PTGNodeKind.Null: result = "null"; break;
-				default: result = TypeHelper.GetTypeName(node.Type); break;
+				default: result = node.Type.ToString(); break;
 			}
 
 			return result;
@@ -226,135 +226,136 @@ namespace Backend.Serialization
 
 		#endregion
 
-		#region Type Graph
+		//TODO: Fix this code
+		//#region Type Graph
 
-		public static string Serialize(INamedTypeReference type)
-		{
-			var types = new INamedTypeReference[] { type };
-			return DGMLSerializer.Serialize(type);
-		}
+		//public static string Serialize(IType type)
+		//{
+		//	var types = new IType[] { type };
+		//	return DGMLSerializer.Serialize(types);
+		//}
 
-		public static string Serialize(IModule module)
-		{
-			var types = module.GetAllTypes();
-			return DGMLSerializer.Serialize(types);
-		}
+		//public static string Serialize(IModule module)
+		//{
+		//	var types = module.GetAllTypes();
+		//	return DGMLSerializer.Serialize(types);
+		//}
 
-		private static string Serialize(IEnumerable<INamedTypeReference> types)
-		{
-			using (var stringWriter = new StringWriter())
-			using (var xmlWriter = new XmlTextWriter(stringWriter))
-			{
-				var allTypes = new Dictionary<INamedTypeReference, int>();
-				var visitedTypes = new HashSet<INamedTypeDefinition>();
-				var newTypes = new HashSet<INamedTypeDefinition>();
+		//private static string Serialize(IEnumerable<IType> types)
+		//{
+		//	using (var stringWriter = new StringWriter())
+		//	using (var xmlWriter = new XmlTextWriter(stringWriter))
+		//	{
+		//		var allTypes = new Dictionary<IType, int>();
+		//		var visitedTypes = new HashSet<IType>();
+		//		var newTypes = new HashSet<IType>();
 
-				xmlWriter.Formatting = Formatting.Indented;
-				xmlWriter.WriteStartElement("DirectedGraph");
-				xmlWriter.WriteAttributeString("xmlns", "http://schemas.microsoft.com/vs/2009/dgml");
-				xmlWriter.WriteStartElement("Links");
+		//		xmlWriter.Formatting = Formatting.Indented;
+		//		xmlWriter.WriteStartElement("DirectedGraph");
+		//		xmlWriter.WriteAttributeString("xmlns", "http://schemas.microsoft.com/vs/2009/dgml");
+		//		xmlWriter.WriteStartElement("Links");
 
-				foreach (var type in types)
-				{
-					allTypes.Add(type, allTypes.Count);
+		//		foreach (var type in types)
+		//		{
+		//			allTypes.Add(type, allTypes.Count);
 
-					if (type is INamedTypeDefinition)
-					{
-						var namedType = type as INamedTypeDefinition;
-						newTypes.Add(namedType);
-					}
-				}
+		//			if (type is INamedTypeDefinition)
+		//			{
+		//				var namedType = type as INamedTypeDefinition;
+		//				newTypes.Add(namedType);
+		//			}
+		//		}
 
-				while (newTypes.Count > 0)
-				{
-					var type = newTypes.First();
-					newTypes.Remove(type);
-					visitedTypes.Add(type);
+		//		while (newTypes.Count > 0)
+		//		{
+		//			var type = newTypes.First();
+		//			newTypes.Remove(type);
+		//			visitedTypes.Add(type);
 
-					var typeId = allTypes[type];
-					var sourceId = Convert.ToString(typeId);
+		//			var typeId = allTypes[type];
+		//			var sourceId = Convert.ToString(typeId);
 
-					var fieldsByType = from f in type.Fields
-									   group f by f.Type into g
-									   select g;
+		//			var fieldsByType = from f in type.Fields
+		//							   group f by f.Type into g
+		//							   select g;
 
-					foreach (var g in fieldsByType)
-					{
-						if (g.Key is INamedTypeReference)
-						{
-							var fieldType = g.Key as INamedTypeReference;
+		//			foreach (var g in fieldsByType)
+		//			{
+		//				if (g.Key is INamedTypeReference)
+		//				{
+		//					var fieldType = g.Key as INamedTypeReference;
 
-							if (!allTypes.ContainsKey(fieldType))
-							{
-								allTypes.Add(fieldType, allTypes.Count);
-							}
+		//					if (!allTypes.ContainsKey(fieldType))
+		//					{
+		//						allTypes.Add(fieldType, allTypes.Count);
+		//					}
 
-							if (fieldType is INamedTypeDefinition)
-							{
-								var namedFieldType = fieldType as INamedTypeDefinition;
+		//					if (fieldType is INamedTypeDefinition)
+		//					{
+		//						var namedFieldType = fieldType as INamedTypeDefinition;
 
-								if (!visitedTypes.Contains(namedFieldType))
-								{
-									newTypes.Add(namedFieldType);
-								}
-							}
+		//						if (!visitedTypes.Contains(namedFieldType))
+		//						{
+		//							newTypes.Add(namedFieldType);
+		//						}
+		//					}
 
-							typeId = allTypes[fieldType];
-							var targetId = Convert.ToString(typeId);
-							var label = DGMLSerializer.GetLabel(g);
+		//					typeId = allTypes[fieldType];
+		//					var targetId = Convert.ToString(typeId);
+		//					var label = DGMLSerializer.GetLabel(g);
 
-							xmlWriter.WriteStartElement("Link");
-							xmlWriter.WriteAttributeString("Source", sourceId);
-							xmlWriter.WriteAttributeString("Target", targetId);
-							xmlWriter.WriteAttributeString("Label", label);
-							xmlWriter.WriteEndElement();
-						}
-					}
-				}
+		//					xmlWriter.WriteStartElement("Link");
+		//					xmlWriter.WriteAttributeString("Source", sourceId);
+		//					xmlWriter.WriteAttributeString("Target", targetId);
+		//					xmlWriter.WriteAttributeString("Label", label);
+		//					xmlWriter.WriteEndElement();
+		//				}
+		//			}
+		//		}
 
-				xmlWriter.WriteEndElement();
-				xmlWriter.WriteStartElement("Nodes");
+		//		xmlWriter.WriteEndElement();
+		//		xmlWriter.WriteStartElement("Nodes");
 
-				foreach (var entry in allTypes)
-				{
-					var typeId = Convert.ToString(entry.Value);
-					var label = TypeHelper.GetTypeName(entry.Key);
+		//		foreach (var entry in allTypes)
+		//		{
+		//			var typeId = Convert.ToString(entry.Value);
+		//			var label = TypeHelper.GetTypeName(entry.Key);
 
-					xmlWriter.WriteStartElement("Node");
-					xmlWriter.WriteAttributeString("Id", typeId);
-					xmlWriter.WriteAttributeString("Label", label);
-					xmlWriter.WriteEndElement();
-				}
+		//			xmlWriter.WriteStartElement("Node");
+		//			xmlWriter.WriteAttributeString("Id", typeId);
+		//			xmlWriter.WriteAttributeString("Label", label);
+		//			xmlWriter.WriteEndElement();
+		//		}
 
-				xmlWriter.WriteEndElement();
-				xmlWriter.WriteStartElement("Styles");
-				xmlWriter.WriteStartElement("Style");
-				xmlWriter.WriteAttributeString("TargetType", "Node");
+		//		xmlWriter.WriteEndElement();
+		//		xmlWriter.WriteStartElement("Styles");
+		//		xmlWriter.WriteStartElement("Style");
+		//		xmlWriter.WriteAttributeString("TargetType", "Node");
 
-				xmlWriter.WriteStartElement("Setter");
-				xmlWriter.WriteAttributeString("Property", "FontFamily");
-				xmlWriter.WriteAttributeString("Value", "Consolas");
-				xmlWriter.WriteEndElement();
+		//		xmlWriter.WriteStartElement("Setter");
+		//		xmlWriter.WriteAttributeString("Property", "FontFamily");
+		//		xmlWriter.WriteAttributeString("Value", "Consolas");
+		//		xmlWriter.WriteEndElement();
 
-				xmlWriter.WriteStartElement("Setter");
-				xmlWriter.WriteAttributeString("Property", "NodeRadius");
-				xmlWriter.WriteAttributeString("Value", "5");
-				xmlWriter.WriteEndElement();
+		//		xmlWriter.WriteStartElement("Setter");
+		//		xmlWriter.WriteAttributeString("Property", "NodeRadius");
+		//		xmlWriter.WriteAttributeString("Value", "5");
+		//		xmlWriter.WriteEndElement();
 
-				xmlWriter.WriteStartElement("Setter");
-				xmlWriter.WriteAttributeString("Property", "MinWidth");
-				xmlWriter.WriteAttributeString("Value", "0");
-				xmlWriter.WriteEndElement();
+		//		xmlWriter.WriteStartElement("Setter");
+		//		xmlWriter.WriteAttributeString("Property", "MinWidth");
+		//		xmlWriter.WriteAttributeString("Value", "0");
+		//		xmlWriter.WriteEndElement();
 
-				xmlWriter.WriteEndElement();
-				xmlWriter.WriteEndElement();
-				xmlWriter.WriteEndElement();
-				xmlWriter.Flush();
-				return stringWriter.ToString();
-			}
-		}
+		//		xmlWriter.WriteEndElement();
+		//		xmlWriter.WriteEndElement();
+		//		xmlWriter.WriteEndElement();
+		//		xmlWriter.Flush();
+		//		return stringWriter.ToString();
+		//	}
+		//}
 
-		#endregion
+		//#endregion
 
 		#region Private Methods
 
@@ -364,9 +365,7 @@ namespace Backend.Serialization
 
 			foreach (var field in fields)
 			{
-				var fieldName = MemberHelper.GetMemberSignature(field, NameFormattingOptions.OmitContainingType | NameFormattingOptions.PreserveSpecialNames);
-
-				result.Append(fieldName);
+				result.Append(field.Name);
 				result.AppendLine();
 			}
 

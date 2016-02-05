@@ -3,9 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Backend.ThreeAddressCode;
-using Backend.ThreeAddressCode.Types;
-using Backend.ThreeAddressCode.Values;
+using Model.Types;
+using Model.ThreeAddressCode;
+using Model.ThreeAddressCode.Values;
 
 namespace Backend
 {
@@ -32,38 +32,45 @@ namespace Backend
 
 			public override void TraverseChildren(Cci.INamedTypeDefinition typedef)
 			{
+				ITypeDefinition result = null;
+
 				if (typedef.IsClass)
 				{
-					this.ExtractClass(typedef);
+					result = ExtractClass(typedef);
 				}
 				else if (typedef.IsInterface)
 				{
-					this.ExtractInterface(typedef);
+					result = ExtractInterface(typedef);
 				}
 				else if (typedef.IsStruct)
 				{
-					this.ExtractStruct(typedef);
+					result = ExtractStruct(typedef);
 				}
 				else if (typedef.IsEnum)
 				{
-					this.ExtractEnum(typedef);
+					result = ExtractEnum(typedef);
+				}
+
+				if (result != null)
+				{
+					types.Add(result.Name, result);
 				}
 
 				base.TraverseChildren(typedef);
 			}
 
-			private void ExtractEnum(Cci.INamedTypeDefinition typedef)
+			private static ITypeDefinition ExtractEnum(Cci.INamedTypeDefinition typedef)
 			{
 				var name = typedef.Name.Value;
 				var type = new EnumDefinition(name);
 
 				type.UnderlayingType = TypesExtractor.ExtractType(typedef.UnderlyingType) as BasicType;
-				this.ExtractConstants(type.Constants, typedef.Fields);
+				ExtractConstants(type.Constants, typedef.Fields);
 
-				types.Add(name, type);
+				return type;
 			}
 
-			private void ExtractConstants(IDictionary<string, Constant> dest, IEnumerable<Cci.IFieldDefinition> source)
+			private static void ExtractConstants(IList<ConstantDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
 			{
 				source = source.Skip(1);
 
@@ -71,25 +78,25 @@ namespace Backend
 				{
 					var name = constdef.Name.Value;
 					var value = constdef.CompileTimeValue.Value;
-					var constant = new Constant(value);
+					var constant = new ConstantDefinition(name, value);
 
-					dest.Add(name, constant);
+					dest.Add(constant);
 				}
 			}
 
-			private void ExtractInterface(Cci.INamedTypeDefinition typedef)
+			private static ITypeDefinition ExtractInterface(Cci.INamedTypeDefinition typedef)
 			{
 				var name = typedef.Name.Value;
 				var type = new InterfaceDefinition(name);
 
-				this.ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
-				this.ExtractInterfaces(type.Interfaces, typedef.Interfaces);
-				this.ExtractMethods(type.Methods, typedef.Methods);
+				ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
+				ExtractInterfaces(type.Interfaces, typedef.Interfaces);
+				ExtractMethods(type.Methods, typedef.Methods);
 
-				types.Add(name, type);
+				return type;
 			}
 
-			private void ExtractClass(Cci.INamedTypeDefinition typedef)
+			private static ITypeDefinition ExtractClass(Cci.INamedTypeDefinition typedef)
 			{
 				var name = typedef.Name.Value;
 				var type = new ClassDefinition(name);
@@ -97,32 +104,32 @@ namespace Backend
 
 				if (basedef == null)
 				{
-					basedef = host.PlatformType.SystemObject;
+					basedef = typedef.PlatformType.SystemObject;
 				}
 
 				type.Base = TypesExtractor.ExtractType(basedef) as BasicType;
 
-				this.ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
-				this.ExtractInterfaces(type.Interfaces, typedef.Interfaces);
-				this.ExtractFields(type.Fields, typedef.Fields);
-				this.ExtractMethods(type.Methods, typedef.Methods);
+				ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
+				ExtractInterfaces(type.Interfaces, typedef.Interfaces);
+				ExtractFields(type.Fields, typedef.Fields);
+				ExtractMethods(type.Methods, typedef.Methods);
 
-				types.Add(name, type);
+				return type;
 			}
 
-			private void ExtractStruct(Cci.INamedTypeDefinition typedef)
+			private static ITypeDefinition ExtractStruct(Cci.INamedTypeDefinition typedef)
 			{
 				var name = typedef.Name.Value;
 				var type = new StructDefinition(name);
 
-				this.ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
-				this.ExtractFields(type.Fields, typedef.Fields);
-				this.ExtractMethods(type.Methods, typedef.Methods);
+				ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
+				ExtractFields(type.Fields, typedef.Fields);
+				ExtractMethods(type.Methods, typedef.Methods);
 
-				types.Add(name, type);
+				return type;
 			}
 
-			private void ExtractMethods(IDictionary<string, MethodDefinition> dest, IEnumerable<Cci.IMethodDefinition> source)
+			private static void ExtractMethods(IList<MethodDefinition> dest, IEnumerable<Cci.IMethodDefinition> source)
 			{
 				foreach (var methoddef in source)
 				{
@@ -130,27 +137,39 @@ namespace Backend
 					var type = TypesExtractor.ExtractType(methoddef.Type);
 					var method = new MethodDefinition(name, type);
 
-					this.ExtractGenericParameters(method.GenericParameters, methoddef.GenericParameters);
-					this.ExtractParameters(method.Parameters, methoddef.Parameters);
+					ExtractGenericParameters(method.GenericParameters, methoddef.GenericParameters);
+					ExtractParameters(method.Parameters, methoddef.Parameters);
 
 					method.IsStatic = methoddef.IsStatic;
 					method.IsConstructor = methoddef.IsConstructor;
-					dest.Add(name, method);
+					dest.Add(method);
 				}
 			}
 
-			private void ExtractGenericParameters(IList<TypeVariable> dest, IEnumerable<Cci.IGenericParameter> source)
+			private static void ExtractGenericParameters(IList<TypeVariable> dest, IEnumerable<Cci.IGenericParameter> source)
 			{
 				foreach (var parameterdef in source)
 				{
 					var name = parameterdef.Name.Value;
 					var parameter = new TypeVariable(name);
 
+					parameter.TypeKind = GetTypeParameterKind(parameterdef);
+
 					dest.Add(parameter);
 				}
 			}
 
-			private void ExtractInterfaces(IList<BasicType> dest, IEnumerable<Cci.ITypeReference> source)
+			private static TypeKind GetTypeParameterKind(Cci.IGenericParameter parameterdef)
+			{
+				var result = TypeKind.Unknown;
+
+				if (parameterdef.MustBeValueType) result = TypeKind.ValueType;
+				if (parameterdef.MustBeReferenceType) result = TypeKind.ReferenceType;
+
+				return result;
+			}
+
+			private static void ExtractInterfaces(IList<BasicType> dest, IEnumerable<Cci.ITypeReference> source)
 			{
 				foreach (var interfaceref in source)
 				{
@@ -160,19 +179,31 @@ namespace Backend
 				}
 			}
 
-			private void ExtractParameters(IList<IVariable> dest, IEnumerable<Cci.IParameterDefinition> source)
+			private static void ExtractParameters(IList<MethodParameter> dest, IEnumerable<Cci.IParameterDefinition> source)
 			{
 				foreach (var parameterdef in source)
 				{
 					var name = parameterdef.Name.Value;
 					var type = TypesExtractor.ExtractType(parameterdef.Type);
-					var parameter = new LocalVariable(name, true);
+					var parameter = new MethodParameter(name, type);
+
+					parameter.Kind = GetMethodParameterKind(parameterdef);
 
 					dest.Add(parameter);
 				}
 			}
 
-			private void ExtractFields(IDictionary<string, FieldDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
+			private static MethodParameterKind GetMethodParameterKind(Cci.IParameterDefinition parameterdef)
+			{
+				var result = MethodParameterKind.In;
+
+				if (parameterdef.IsOut) result = MethodParameterKind.Out;
+				if (parameterdef.IsByReference) result = MethodParameterKind.Ref;
+
+				return result;
+			}
+
+			private static void ExtractFields(IList<FieldDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
 			{
 				foreach (var fielddef in source)
 				{
@@ -181,7 +212,7 @@ namespace Backend
 					var field = new FieldDefinition(name, type);
 
 					field.IsStatic = fielddef.IsStatic;
-					dest.Add(name, field);
+					dest.Add(field);
 				}
 			}
 		}

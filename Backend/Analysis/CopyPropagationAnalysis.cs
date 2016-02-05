@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using Backend.ThreeAddressCode;
-using Backend.Utils;
-using Backend.ThreeAddressCode.Values;
-using Backend.ThreeAddressCode.Instructions;
+using Model.ThreeAddressCode.Values;
+using Model.ThreeAddressCode.Instructions;
 
 namespace Backend.Analysis
 {

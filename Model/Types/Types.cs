@@ -1,12 +1,25 @@
-﻿using System;
+﻿using Model.ThreeAddressCode.Values;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace Model.Types
 {
-	public interface IType
+	public interface IMetadataReference
 	{
+	}
+
+	public enum TypeKind
+	{
+		Unknown,
+		ValueType,
+		ReferenceType
+	}
+
+	public interface IType : IMetadataReference
+	{
+		TypeKind TypeKind { get; }
 	}
 
 	public interface IValueType : IType
@@ -19,81 +32,30 @@ namespace Model.Types
 
 	}
 
-	public enum PrimitiveTypeKind
+	public static class PlatformTypes
 	{
-		Bool,
-		Byte,
-		SByte,
-		Char,
-		Decimal,
-		Double,
-		Float,
-		Short,
-		Int,
-		Long,
-		UShort,
-		UInt,
-		ULong
-	}
-
-	public class PrimitiveType : IValueType
-	{
-		public PrimitiveTypeKind Kind { get; set; }
-
-		public PrimitiveType(PrimitiveTypeKind kind)
-		{
-			this.Kind = kind;
-		}
-
-		public string Name
-		{
-			get
-			{
-				var result = string.Empty;
-
-				switch (this.Kind)
-				{
-					case PrimitiveTypeKind.Bool: result = "bool"; break;
-					case PrimitiveTypeKind.Byte: result = "byte"; break;
-					case PrimitiveTypeKind.SByte: result = "sbyte"; break;
-					case PrimitiveTypeKind.Char: result = "char"; break;
-					case PrimitiveTypeKind.Decimal: result = "decimal"; break;
-					case PrimitiveTypeKind.Double: result = "double"; break;
-					case PrimitiveTypeKind.Float: result = "float"; break;
-					case PrimitiveTypeKind.Short: result = "short"; break;
-					case PrimitiveTypeKind.Int: result = "int"; break;
-					case PrimitiveTypeKind.Long: result = "long"; break;
-					case PrimitiveTypeKind.UShort: result = "ushort"; break;
-					case PrimitiveTypeKind.UInt: result = "uint"; break;
-					case PrimitiveTypeKind.ULong: result = "ulong"; break;
-				}
-
-				return result;
-			}
-		}
-
-		public override string ToString()
-		{
-			return this.Name;
-		}
-	}
-	
-	public static class PrimitiveTypes
-	{
-		public static UnknownType UnknownType
-		{
-			get { return UnknownType.Value; }
-		}
-
-		public static UnknownType Int32
-		{
-			get { return null; }
-		}
-
-		public static UnknownType IntPtr
-		{
-			get { return null; }
-		}
+		public static readonly UnknownType Unknown = UnknownType.Value;
+		public static readonly BasicType Boolean = new BasicType("Boolean", TypeKind.ValueType);
+		public static readonly BasicType Char = new BasicType("Char", TypeKind.ValueType);
+		public static readonly BasicType String = new BasicType("String", TypeKind.ReferenceType);
+		public static readonly BasicType Byte = new BasicType("Byte", TypeKind.ValueType);
+		public static readonly BasicType SByte = new BasicType("SByte", TypeKind.ValueType);
+		public static readonly BasicType Int16 = new BasicType("Int16", TypeKind.ValueType);
+		public static readonly BasicType Int32 = new BasicType("Int32", TypeKind.ValueType);
+		public static readonly BasicType Int64 = new BasicType("Int64", TypeKind.ValueType);
+		public static readonly BasicType UInt16 = new BasicType("UInt16", TypeKind.ValueType);
+		public static readonly BasicType UInt32 = new BasicType("UInt32", TypeKind.ValueType);
+		public static readonly BasicType UInt64 = new BasicType("UInt64", TypeKind.ValueType);
+		public static readonly BasicType Decimal = new BasicType("Decimal", TypeKind.ValueType);
+		public static readonly BasicType Single = new BasicType("Single", TypeKind.ValueType);
+		public static readonly BasicType Double = new BasicType("Double", TypeKind.ValueType);
+		public static readonly BasicType Object = new BasicType("Object", TypeKind.ReferenceType);
+		public static readonly BasicType NativePointer = new BasicType("IntPtr", TypeKind.ValueType);
+		public static readonly BasicType RuntimeMethodHandle = new BasicType("RuntimeMethodHandle", TypeKind.ValueType);
+		public static readonly BasicType RuntimeTypeHandle = new BasicType("RuntimeTypeHandle", TypeKind.ValueType);
+		public static readonly BasicType RuntimeFieldHandle = new BasicType("RuntimeFieldHandle", TypeKind.ValueType);
+		public static readonly BasicType ArrayLengthType = UInt32;
+		public static readonly BasicType SizeofType = UInt32;
 	}
 
 	public class UnknownType : IType
@@ -111,20 +73,29 @@ namespace Model.Types
 			}
 		}
 
+		public TypeKind TypeKind
+		{
+			get { return TypeKind.Unknown; }
+		}
+
 		public override string ToString()
 		{
-			return "UNK";
+			return "Unknown";
 		}
 	}
 
 	public class BasicType : IType
 	{
+		public TypeKind TypeKind { get; set; }
+		public string Assembly { get; set; }
+		public string Namespace { get; set; }
 		public string Name { get; set; }
 		public IList<IType> GenericArguments { get; private set; }
 
-		public BasicType(string name)
+		public BasicType(string name, TypeKind kind = TypeKind.Unknown)
 		{
 			this.Name = name;
+			this.TypeKind = kind;
 			this.GenericArguments = new List<IType>();
 		}
 
@@ -144,16 +115,69 @@ namespace Model.Types
 
 	public class TypeVariable : IType
 	{
+		public TypeKind TypeKind { get; set; }
 		public string Name { get; set; }
 
-		public TypeVariable(string name)
+		public TypeVariable(string name, TypeKind kind = TypeKind.Unknown)
 		{
 			this.Name = name;
+			this.TypeKind = kind;
+		}
+		
+		public override string ToString()
+		{
+			return this.Name;
+		}
+	}
+
+	public class FunctionPointerType : IReferenceType
+	{
+		public IType ReturnType { get; set; }
+		public IList<TypeVariable> GenericParameters { get; private set; }
+		public IList<MethodParameter> Parameters { get; private set; }
+		public bool IsStatic { get; set; }
+
+		public FunctionPointerType(IType returnType)
+		{
+			this.ReturnType = returnType;
+			this.GenericParameters = new List<TypeVariable>();
+			this.Parameters = new List<MethodParameter>();
+		}
+
+		public FunctionPointerType(IMethodReference method)
+			: this(method.ReturnType)
+		{
+			this.IsStatic = method.IsStatic;
+			this.GenericParameters.AddRange(method.GenericParameters);
+			this.Parameters.AddRange(method.Parameters);
+		}
+
+		public TypeKind TypeKind
+		{
+			get { return TypeKind.ReferenceType; }
 		}
 
 		public override string ToString()
 		{
-			return this.Name;
+			var result = new StringBuilder();
+
+			if (this.IsStatic)
+			{
+				result.Append("static ");
+			}
+
+			result.Append(this.ReturnType);
+
+			if (this.GenericParameters.Count > 0)
+			{
+				var gparameters = string.Join(", ", this.GenericParameters);
+				result.AppendFormat("<{0}>", gparameters);
+			}
+
+			var parameters = string.Join(", ", this.Parameters);
+			result.AppendFormat("({0})", parameters);
+			return result.ToString();
+
 		}
 	}
 
@@ -164,6 +188,11 @@ namespace Model.Types
 		public PointerType(IType targetType)
 		{
 			this.TargetType = targetType;
+		}
+
+		public TypeKind TypeKind
+		{
+			get { return TypeKind.ReferenceType; }
 		}
 
 		public override string ToString()
@@ -179,6 +208,11 @@ namespace Model.Types
 		public ArrayType(IType elementsType)
 		{
 			this.ElementsType = elementsType;
+		}
+
+		public TypeKind TypeKind
+		{
+			get { return TypeKind.ReferenceType; }
 		}
 
 		public override string ToString()
