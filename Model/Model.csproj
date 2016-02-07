@@ -41,8 +41,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assembly.cs" />
+    <Compile Include="Bytecode\Instructions.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Host.cs" />
+    <Compile Include="IInstruction.cs" />
     <Compile Include="Namespace.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ThreeAddressCode\ExceptionHandlers.cs" />

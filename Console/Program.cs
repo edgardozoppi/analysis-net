@@ -64,7 +64,7 @@ namespace Console
 
 			var type = new BasicType("Examples")
 			{
-				Assembly = "Test",
+				Assembly = new AssemblyReference("Test"),
 				Namespace = "Test"
 			};
 

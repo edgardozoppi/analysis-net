@@ -16,7 +16,7 @@ namespace Backend.Analysis
 		{
 			public override void Visit(LocalAllocationInstruction instruction)
 			{
-				instruction.TargetAddress.Type = PlatformTypes.NativePointer;
+				instruction.TargetAddress.Type = PlatformTypes.IntPtr;
 			}
 
 			public override void Visit(SizeofInstruction instruction)

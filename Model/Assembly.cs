@@ -20,6 +20,11 @@ namespace Model
 		{
 			this.Name = name;
 		}
+
+		public override string ToString()
+		{
+			return this.Name;
+		}
 	}
 
 	public class Assembly : IAssemblyReference
@@ -32,6 +37,17 @@ namespace Model
 		{
 			this.Name = name;
 			this.References = new List<IAssemblyReference>();
+		}
+
+		public bool MatchReference(IAssemblyReference reference)
+		{
+			var result = this.Name == reference.Name;
+			return result;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("assembly {0}", this.Name);
 		}
 	}
 }

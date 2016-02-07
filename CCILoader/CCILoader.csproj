@@ -76,7 +76,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblyTraverser.cs" />
+    <Compile Include="CodeProvider.cs" />
+    <Compile Include="Exceptions.cs" />
     <Compile Include="Loader.cs" />
+    <Compile Include="OperationHelper.cs" />
+    <Compile Include="TypeExtractor.cs" />
     <None Include="MethodVisitor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <None Include="packages.config" />

@@ -17,7 +17,7 @@ namespace Model
 
 		public ITypeDefinition ResolveType(BasicType type)
 		{
-			var assembly = this.Assemblies.SingleOrDefault(a => a.Name == type.Assembly);
+			var assembly = this.Assemblies.SingleOrDefault(a => a.MatchReference(type.Assembly));
 			if (assembly == null) return null;
 
 			var namespaces = type.Namespace.Split('.');
@@ -28,8 +28,8 @@ namespace Model
 				containingNamespace = containingNamespace.Namespaces.SingleOrDefault(n => n.Name == name);
 				if (containingNamespace == null) return null;
 			}
-			// TODO: Compare also generic parameters
-			var result = containingNamespace.Types.SingleOrDefault(t => t.Name == type.Name);
+			
+			var result = containingNamespace.Types.SingleOrDefault(t => t.MatchReference(type));
 			return result;
 		}
 	}

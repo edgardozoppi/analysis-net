@@ -50,12 +50,17 @@ namespace Model.Types
 		public static readonly BasicType Single = new BasicType("Single", TypeKind.ValueType);
 		public static readonly BasicType Double = new BasicType("Double", TypeKind.ValueType);
 		public static readonly BasicType Object = new BasicType("Object", TypeKind.ReferenceType);
-		public static readonly BasicType NativePointer = new BasicType("IntPtr", TypeKind.ValueType);
+		public static readonly BasicType IntPtr = new BasicType("IntPtr", TypeKind.ValueType);
+		public static readonly BasicType UIntPtr = new BasicType("UIntPtr", TypeKind.ValueType);
 		public static readonly BasicType RuntimeMethodHandle = new BasicType("RuntimeMethodHandle", TypeKind.ValueType);
 		public static readonly BasicType RuntimeTypeHandle = new BasicType("RuntimeTypeHandle", TypeKind.ValueType);
 		public static readonly BasicType RuntimeFieldHandle = new BasicType("RuntimeFieldHandle", TypeKind.ValueType);
 		public static readonly BasicType ArrayLengthType = UInt32;
 		public static readonly BasicType SizeofType = UInt32;
+		public static readonly BasicType Int8 = SByte;
+		public static readonly BasicType UInt8 = Byte;
+		public static readonly BasicType Float32 = Single;
+		public static readonly BasicType Float64 = Double;
 	}
 
 	public class UnknownType : IType
@@ -87,7 +92,7 @@ namespace Model.Types
 	public class BasicType : IType
 	{
 		public TypeKind TypeKind { get; set; }
-		public string Assembly { get; set; }
+		public IAssemblyReference Assembly { get; set; }
 		public string Namespace { get; set; }
 		public string Name { get; set; }
 		public IList<IType> GenericArguments { get; private set; }
@@ -97,6 +102,34 @@ namespace Model.Types
 			this.Name = name;
 			this.TypeKind = kind;
 			this.GenericArguments = new List<IType>();
+		}
+
+		public string FullName
+		{
+			get
+			{
+				var containingAssembly = string.Empty;
+				var containingNamespace = string.Empty;
+				var arguments = string.Empty;
+
+				if (this.Assembly != null)
+				{
+					containingAssembly = string.Format("[{0}]", this.Assembly.Name);
+				}
+
+				if (!string.IsNullOrEmpty(this.Namespace))
+				{
+					containingNamespace = string.Format("{0}.", this.Namespace);
+				}
+
+				if (this.GenericArguments.Count > 0)
+				{
+					arguments = string.Join(", ", this.GenericArguments);
+					arguments = string.Format("<{0}>", arguments);
+				}
+
+				return string.Format("{0}{1}{2}{3}", containingAssembly, containingNamespace, this.Name, arguments);
+			}
 		}
 
 		public override string ToString()
@@ -133,22 +166,19 @@ namespace Model.Types
 	public class FunctionPointerType : IReferenceType
 	{
 		public IType ReturnType { get; set; }
-		public IList<TypeVariable> GenericParameters { get; private set; }
-		public IList<MethodParameter> Parameters { get; private set; }
+		public IList<IMethodParameterReference> Parameters { get; private set; }
 		public bool IsStatic { get; set; }
 
 		public FunctionPointerType(IType returnType)
 		{
 			this.ReturnType = returnType;
-			this.GenericParameters = new List<TypeVariable>();
-			this.Parameters = new List<MethodParameter>();
+			this.Parameters = new List<IMethodParameterReference>();
 		}
 
 		public FunctionPointerType(IMethodReference method)
 			: this(method.ReturnType)
 		{
 			this.IsStatic = method.IsStatic;
-			this.GenericParameters.AddRange(method.GenericParameters);
 			this.Parameters.AddRange(method.Parameters);
 		}
 
@@ -160,24 +190,16 @@ namespace Model.Types
 		public override string ToString()
 		{
 			var result = new StringBuilder();
+			var parameters = string.Join(", ", this.Parameters);
 
 			if (this.IsStatic)
 			{
 				result.Append("static ");
 			}
-
+			
 			result.Append(this.ReturnType);
-
-			if (this.GenericParameters.Count > 0)
-			{
-				var gparameters = string.Join(", ", this.GenericParameters);
-				result.AppendFormat("<{0}>", gparameters);
-			}
-
-			var parameters = string.Join(", ", this.Parameters);
 			result.AppendFormat("({0})", parameters);
 			return result.ToString();
-
 		}
 	}
 
