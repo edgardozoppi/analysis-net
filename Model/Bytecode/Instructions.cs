@@ -42,7 +42,8 @@ namespace Model.Bytecode
 		IndirectStore,
 		StoreArrayElement,
 		Breakpoint,
-		Return
+		Return,
+		LoadArrayElement
 	}
 
 	public enum BranchOperation
@@ -55,7 +56,8 @@ namespace Model.Bytecode
 		Le,
 		Gt,
 		Ge,
-		Branch
+		Branch,
+		Leave
 	}
 
 	public enum ConvertOperation
@@ -82,10 +84,31 @@ namespace Model.Bytecode
 	public class BasicInstruction : Instruction
 	{
 		public BasicOperation Operation { get; set; }
+		public bool OverflowCheck { get; set; }
+		public bool UnsignedOperands { get; set; }
 
 		public BasicInstruction(uint label, BasicOperation operation)
 			: base(label)
 		{
+			this.Operation = operation;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  {1};", this.Label, this.Operation);
+		}
+	}
+
+	public class BranchInstruction : Instruction
+	{
+		public BranchOperation Operation { get; set; }
+		public string Target { get; set; }
+		public bool UnsignedOperands { get; set; }
+
+		public BranchInstruction(uint label, BranchOperation operation, uint target)
+			: base(label)
+		{
+			this.Target = string.Format("L_{0:X4}", target);
 			this.Operation = operation;
 		}
 

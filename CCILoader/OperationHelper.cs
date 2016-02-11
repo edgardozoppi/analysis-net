@@ -167,6 +167,8 @@ namespace CCILoader
 				case Cci.OperationCode.Blt_S:
 				case Cci.OperationCode.Blt_Un:
 				case Cci.OperationCode.Blt_Un_S:	return BranchOperation.Lt;
+				case Cci.OperationCode.Leave:
+				case Cci.OperationCode.Leave_S:		return BranchOperation.Leave;
 
 				default: throw new UnknownBytecodeException(opcode);
 			}

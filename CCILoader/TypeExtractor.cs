@@ -187,9 +187,18 @@ namespace CCILoader
 			return result;
 		}
 
+		public static IFieldReference ExtractReference(Cci.IFieldReference fieldref)
+		{
+			var type = ExtractType(fieldref.Type);
+			var field = new FieldReference(fieldref.Name.Value, type);
+
+			field.IsStatic = fieldref.IsStatic;
+			return field;
+		}
+
 		public static IMethodReference ExtractReference(Cci.IMethodReference methodref)
 		{
-			var returnType = TypeExtractor.ExtractType(methodref.Type);
+			var returnType = ExtractType(methodref.Type);
 			var method = new MethodReference(methodref.Name.Value, returnType);
 
 			method.GenericParameterCount = methodref.GenericParameterCount;

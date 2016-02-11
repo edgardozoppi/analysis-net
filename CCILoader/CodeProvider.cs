@@ -142,7 +142,7 @@ namespace CCILoader
 				case Cci.OperationCode.Sub_Ovf:
 				case Cci.OperationCode.Sub_Ovf_Un:
 				case Cci.OperationCode.Xor:
-					instruction = ProcessBinaryOperation(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				//case Cci.OperationCode.Arglist:
@@ -168,12 +168,12 @@ namespace CCILoader
 				case Cci.OperationCode.Ldelem_U2:
 				case Cci.OperationCode.Ldelem_U4:
 				case Cci.OperationCode.Ldelem_Ref:
-					instruction = ProcessLoadArrayElement(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Array_Addr:
 				case Cci.OperationCode.Ldelema:
-					instruction = ProcessLoadArrayElementAddress(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Beq:
@@ -210,11 +210,11 @@ namespace CCILoader
 					break;
 
 				case Cci.OperationCode.Break:
-					instruction = ProcessBreakpointOperation(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Nop:
-					instruction = ProcessEmptyOperation(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Brfalse:
@@ -296,31 +296,28 @@ namespace CCILoader
 					break;
 
 				case Cci.OperationCode.Cpblk:
-					instruction = ProcessCopyMemory(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Cpobj:
-					instruction = ProcessCopyObject(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Dup:
-					instruction = ProcessDup(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
-				//case Cci.OperationCode.Endfilter:
-				//    statement = result = ParseEndfilter();
-				//    break;
-
+				case Cci.OperationCode.Endfilter:
 				case Cci.OperationCode.Endfinally:
-					instruction = ProcessEndFinally(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Initblk:
-					instruction = ProcessInitializeMemory(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Initobj:
-					instruction = ProcessInitializeObject(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Ldarg:
@@ -411,7 +408,7 @@ namespace CCILoader
 					break;
 
 				case Cci.OperationCode.Ldlen:
-					instruction = ProcessLoadArrayLength(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Ldtoken:
@@ -419,7 +416,7 @@ namespace CCILoader
 					break;
 
 				case Cci.OperationCode.Localloc:
-					instruction = ProcessLocalAllocation(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				//case Cci.OperationCode.Mkrefany:
@@ -428,7 +425,7 @@ namespace CCILoader
 
 				case Cci.OperationCode.Neg:
 				case Cci.OperationCode.Not:
-					instruction = ProcessUnaryOperation(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Newobj:
@@ -441,7 +438,7 @@ namespace CCILoader
 					throw new NotImplementedException("Invalid opcode: No.");
 
 				case Cci.OperationCode.Pop:
-					instruction = ProcessPop(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				//case Cci.OperationCode.Readonly_:
@@ -457,7 +454,7 @@ namespace CCILoader
 				//    break;
 
 				case Cci.OperationCode.Ret:
-					instruction = ProcessReturn(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Sizeof:
@@ -479,7 +476,7 @@ namespace CCILoader
 				case Cci.OperationCode.Stelem_R4:
 				case Cci.OperationCode.Stelem_R8:
 				case Cci.OperationCode.Stelem_Ref:
-					instruction = ProcessStoreArrayElement(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Stfld:
@@ -499,7 +496,7 @@ namespace CCILoader
 				case Cci.OperationCode.Stind_R8:
 				case Cci.OperationCode.Stind_Ref:
 				case Cci.OperationCode.Stobj:
-					instruction = ProcessStoreIndirect(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				case Cci.OperationCode.Stloc:
@@ -520,11 +517,8 @@ namespace CCILoader
 				//    break;
 
 				case Cci.OperationCode.Throw:
-					instruction = ProcessThrow(operation);
-					break;
-
 				case Cci.OperationCode.Rethrow:
-					instruction = ProcessRethrow(operation);
+					instruction = ProcessBasic(operation);
 					break;
 
 				//case Cci.OperationCode.Unaligned_:
@@ -555,36 +549,6 @@ namespace CCILoader
 			return instruction;
 		}
 
-		private IInstruction ProcessThrow(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.Throw);
-			return instruction;
-		}
-
-		private IInstruction ProcessRethrow(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.Rethrow);
-			return instruction;
-		}
-
-		private IInstruction ProcessLocalAllocation(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.LocalAllocation);
-			return instruction;
-		}
-
-		private IInstruction ProcessInitializeMemory(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.InitBlock);
-			return instruction;
-		}
-
-		private IInstruction ProcessInitializeObject(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.InitObject);
-			return instruction;
-		}
-
 		private IInstruction ProcessCreateArray(Cci.IOperation op)
 		{
 			var cciArrayType = op.Value as Cci.IArrayTypeReference;
@@ -595,18 +559,6 @@ namespace CCILoader
 			//}
 
 			var instruction = new CreateArrayInstruction(op.Offset, ourArrayType);
-			return instruction;
-		}
-
-		private IInstruction ProcessCopyObject(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.CopyObject);
-			return instruction;
-		}
-
-		private IInstruction ProcessCopyMemory(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.CopyBlock);
 			return instruction;
 		}
 
@@ -675,16 +627,10 @@ namespace CCILoader
 			return instruction;
 		}
 
-		private IInstruction ProcessEndFinally(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.CopyBlock);
-			return instruction;
-		}
-
 		private IInstruction ProcessLeave(Cci.IOperation op)
 		{
 			var target = (uint)op.Value;
-			var instruction = new BranchInstruction(op.Offset, BranchOperation.Branch, target);
+			var instruction = new BranchInstruction(op.Offset, BranchOperation.Leave, target);
 			return instruction;
 		}
 
@@ -692,12 +638,6 @@ namespace CCILoader
 		{
 			var target = (uint)op.Value;
 			var instruction = new BranchInstruction(op.Offset, BranchOperation.Branch, target);
-			return instruction;
-		}
-
-		private IInstruction ProcessReturn(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.CopyBlock);
 			return instruction;
 		}
 
@@ -726,16 +666,15 @@ namespace CCILoader
 
 		private IInstruction ProcessLoadArgumentAddress(Cci.IOperation op)
 		{
-			var operand = thisParameter;
+			var source = thisParameter;
 
 			if (op.Value is Cci.IParameterDefinition)
 			{
 				var parameter = op.Value as Cci.IParameterDefinition;
-				operand = parameters[parameter];
+				source = parameters[parameter];
 			}
 
-			var source = new Reference(operand);
-			var instruction = new LoadInstruction(op.Offset, source);
+			var instruction = new LoadAddressInstruction(op.Offset, source);
 			return instruction;
 		}
 
@@ -799,24 +738,6 @@ namespace CCILoader
 			return instruction;
 		}
 
-		private IInstruction ProcessLoadArrayLength(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.LoadArrayLength);
-			return instruction;
-		}
-
-		private IInstruction ProcessLoadArrayElement(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.LoadArrayElementAddress);
-			return instruction;
-		}
-
-		private IInstruction ProcessLoadArrayElementAddress(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.LoadArrayElementAddress);
-			return instruction;
-		}
-
 		private IInstruction ProcessLoadMethodAddress(Cci.IOperation op)
 		{
 			var cciMethod = op.Value as Cci.IMethodReference;
@@ -867,12 +788,6 @@ namespace CCILoader
 			return instruction;
 		}
 
-		private IInstruction ProcessStoreIndirect(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.IndirectStore);
-			return instruction;
-		}
-
 		private IInstruction ProcessStoreInstanceField(Cci.IOperation op)
 		{
 			var cciField = op.Value as Cci.IFieldReference;
@@ -891,32 +806,7 @@ namespace CCILoader
 			return instruction;
 		}
 
-		private IInstruction ProcessStoreArrayElement(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.StoreArrayElement);
-			return instruction;
-		}
-
-		private IInstruction ProcessEmptyOperation(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.Nop);
-			return instruction;
-		}
-
-		private IInstruction ProcessBreakpointOperation(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.Breakpoint);
-			return instruction;
-		}
-
-		private IInstruction ProcessUnaryOperation(Cci.IOperation op)
-		{
-			var operation = OperationHelper.ToBasicOperation(op.OperationCode);
-			var instruction = new BasicInstruction(op.Offset, operation);
-			return instruction;
-		}
-
-		private IInstruction ProcessBinaryOperation(Cci.IOperation op)
+		private IInstruction ProcessBasic(Cci.IOperation op)
 		{
 			var operation = OperationHelper.ToBasicOperation(op.OperationCode);
 			var overflow = OperationHelper.PerformsOverflowCheck(op.OperationCode);
@@ -940,18 +830,6 @@ namespace CCILoader
 			var instruction = new ConvertInstruction(op.Offset, operation, ourType);
 			instruction.OverflowCheck = overflow;
 			instruction.UnsignedOperands = unsigned;
-			return instruction;
-		}
-
-		private IInstruction ProcessDup(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.Dup);
-			return instruction;
-		}
-
-		private IInstruction ProcessPop(Cci.IOperation op)
-		{
-			var instruction = new BasicInstruction(op.Offset, BasicOperation.Pop);
 			return instruction;
 		}
 

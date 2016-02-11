@@ -94,7 +94,27 @@ namespace Model.Types
 		IType ContainingType { get; }
 		IType Type { get; }
 		string Name { get; }
-		bool IsStatic { get; } 
+		bool IsStatic { get; }
+	}
+
+	public class FieldReference : IFieldReference
+	{
+		public IType ContainingType { get; set; }
+		public IType Type { get; set; }
+		public string Name { get; set; }
+		public bool IsStatic { get; set; }
+
+		public FieldReference(string name, IType type)
+		{
+			this.Name = name;
+			this.Type = type;
+		}
+
+		public override string ToString()
+		{
+			var modifier = this.IsStatic ? "static " : string.Empty;
+			return string.Format("{0}{1} {2}", modifier, this.Type, this.Name);
+		}
 	}
 
 	public class FieldDefinition //: IFieldReference
