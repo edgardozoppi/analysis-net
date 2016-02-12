@@ -40,7 +40,8 @@ namespace CCILoader
 				case Cci.OperationCode.Sub_Ovf:
 				case Cci.OperationCode.Sub_Ovf_Un:	return BasicOperation.Sub;
 				case Cci.OperationCode.Xor:			return BasicOperation.Xor;
-
+				case Cci.OperationCode.Endfilter:	return BasicOperation.EndFilter;
+				case Cci.OperationCode.Endfinally:	return BasicOperation.EndFinally;
 				case Cci.OperationCode.Throw:		return BasicOperation.Throw;
 				case Cci.OperationCode.Rethrow:		return BasicOperation.Rethrow;
 				case Cci.OperationCode.Nop:			return BasicOperation.Nop;
@@ -65,6 +66,19 @@ namespace CCILoader
 				case Cci.OperationCode.Ldind_U2:
 				case Cci.OperationCode.Ldind_U4:
 				case Cci.OperationCode.Ldobj:		return BasicOperation.IndirectLoad;
+				case Cci.OperationCode.Array_Get:
+				case Cci.OperationCode.Ldelem:
+				case Cci.OperationCode.Ldelem_I:
+				case Cci.OperationCode.Ldelem_I1:
+				case Cci.OperationCode.Ldelem_I2:
+				case Cci.OperationCode.Ldelem_I4:
+				case Cci.OperationCode.Ldelem_I8:
+				case Cci.OperationCode.Ldelem_R4:
+				case Cci.OperationCode.Ldelem_R8:
+				case Cci.OperationCode.Ldelem_U1:
+				case Cci.OperationCode.Ldelem_U2:
+				case Cci.OperationCode.Ldelem_U4:
+				case Cci.OperationCode.Ldelem_Ref:	return BasicOperation.LoadArrayElement;
 				case Cci.OperationCode.Array_Addr:
 				case Cci.OperationCode.Ldelema:		return BasicOperation.LoadArrayElementAddress;
 				case Cci.OperationCode.Stind_I:
@@ -169,6 +183,73 @@ namespace CCILoader
 				case Cci.OperationCode.Blt_Un_S:	return BranchOperation.Lt;
 				case Cci.OperationCode.Leave:
 				case Cci.OperationCode.Leave_S:		return BranchOperation.Leave;
+
+				default: throw new UnknownBytecodeException(opcode);
+			}
+		}
+
+		public static MethodCallOperation ToMethodCallOperation(Cci.OperationCode opcode)
+		{
+			switch (opcode)
+			{
+				case Cci.OperationCode.Call:		return MethodCallOperation.Static;
+				case Cci.OperationCode.Callvirt:	return MethodCallOperation.Virtual;
+				case Cci.OperationCode.Jmp:			return MethodCallOperation.Jump;
+
+				default: throw new UnknownBytecodeException(opcode);
+			}
+		}
+
+		public static LoadOperation ToLoadOperation(Cci.OperationCode opcode)
+		{
+			switch (opcode)
+			{
+				case Cci.OperationCode.Ldc_I4:
+				case Cci.OperationCode.Ldc_I4_0:
+				case Cci.OperationCode.Ldc_I4_1:
+				case Cci.OperationCode.Ldc_I4_2:
+				case Cci.OperationCode.Ldc_I4_3:
+				case Cci.OperationCode.Ldc_I4_4:
+				case Cci.OperationCode.Ldc_I4_5:
+				case Cci.OperationCode.Ldc_I4_6:
+				case Cci.OperationCode.Ldc_I4_7:
+				case Cci.OperationCode.Ldc_I4_8:
+				case Cci.OperationCode.Ldc_I4_M1:
+				case Cci.OperationCode.Ldc_I4_S:
+				case Cci.OperationCode.Ldc_I8:
+				case Cci.OperationCode.Ldc_R4:
+				case Cci.OperationCode.Ldc_R8:
+				case Cci.OperationCode.Ldnull:
+				case Cci.OperationCode.Ldstr: return LoadOperation.Value;
+				case Cci.OperationCode.Ldarg:
+				case Cci.OperationCode.Ldarg_0:
+				case Cci.OperationCode.Ldarg_1:
+				case Cci.OperationCode.Ldarg_2:
+				case Cci.OperationCode.Ldarg_3:
+				case Cci.OperationCode.Ldarg_S:
+				case Cci.OperationCode.Ldloc:
+				case Cci.OperationCode.Ldloc_0:
+				case Cci.OperationCode.Ldloc_1:
+				case Cci.OperationCode.Ldloc_2:
+				case Cci.OperationCode.Ldloc_3:
+				case Cci.OperationCode.Ldloc_S: return LoadOperation.Content;
+				case Cci.OperationCode.Ldarga:
+				case Cci.OperationCode.Ldarga_S:
+				case Cci.OperationCode.Ldloca:
+				case Cci.OperationCode.Ldloca_S: return LoadOperation.Address;
+
+				default: throw new UnknownBytecodeException(opcode);
+			}
+		}
+
+		public static LoadFieldOperation ToLoadFieldOperation(Cci.OperationCode opcode)
+		{
+			switch (opcode)
+			{
+				case Cci.OperationCode.Ldfld:
+				case Cci.OperationCode.Ldsfld: return LoadFieldOperation.Content;
+				case Cci.OperationCode.Ldflda:
+				case Cci.OperationCode.Ldsflda: return LoadFieldOperation.Address;
 
 				default: throw new UnknownBytecodeException(opcode);
 			}

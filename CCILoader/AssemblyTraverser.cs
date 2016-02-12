@@ -70,15 +70,15 @@ namespace CCILoader
 
 			if (typedef.IsClass)
 			{
-				result = TypeExtractor.ExtractClass(typedef);
+				result = TypeExtractor.ExtractClass(typedef, pdbReader);
 			}
 			else if (typedef.IsInterface)
 			{
-				result = TypeExtractor.ExtractInterface(typedef);
+				result = TypeExtractor.ExtractInterface(typedef, pdbReader);
 			}
 			else if (typedef.IsStruct)
 			{
-				result = TypeExtractor.ExtractStruct(typedef);
+				result = TypeExtractor.ExtractStruct(typedef, pdbReader);
 			}
 			else if (typedef.IsEnum)
 			{

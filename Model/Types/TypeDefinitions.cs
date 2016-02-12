@@ -241,7 +241,7 @@ namespace Model.Types
 				result.Append("static ");
 			}
 
-			result.AppendFormat("{0} {1}", this.ReturnType, this.Name);
+			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType, this.Name);
 
 			if (this.GenericParameterCount > 0)
 			{
@@ -272,6 +272,7 @@ namespace Model.Types
 			this.ReturnType = returnType;
 			this.GenericParameters = new List<TypeVariable>();
 			this.Parameters = new List<MethodParameter>();
+			this.Body = new MethodBody();
 		}
 
 		public override string ToString()
@@ -283,7 +284,7 @@ namespace Model.Types
 				result.Append("static ");
 			}
 
-			result.AppendFormat("{0} {1}", this.ReturnType, this.Name);
+			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType, this.Name);
 
 			if (this.GenericParameters.Count > 0)
 			{

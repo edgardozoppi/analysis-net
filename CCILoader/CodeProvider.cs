@@ -29,12 +29,16 @@ namespace CCILoader
 		{
 			var result = new MethodBody();
 
-			ExtractParameters(body.MethodDefinition, result.Parameters);
-			ExtractLocalVariables(body.LocalVariables, result.LocalVariables);
-			ExtractExceptionInformation(body.OperationExceptionInformation, result.ExceptionInformation);
-			ExtractInstructions(body.Operations, result.Instructions);
-
+			ExtractBody(result, body);
 			return result;
+		}
+		
+		public void ExtractBody(MethodBody ourBody, Cci.IMethodBody cciBody)
+		{
+			ExtractParameters(cciBody.MethodDefinition, ourBody.Parameters);
+			ExtractLocalVariables(cciBody.LocalVariables, ourBody.LocalVariables);
+			ExtractExceptionInformation(cciBody.OperationExceptionInformation, ourBody.ExceptionInformation);
+			ExtractInstructions(cciBody.Operations, ourBody.Instructions);
 		}
 
 		private void ExtractParameters(Cci.IMethodDefinition methoddef, IList<IVariable> ourParameters)
@@ -226,11 +230,8 @@ namespace CCILoader
 
 				case Cci.OperationCode.Call:
 				case Cci.OperationCode.Callvirt:
-					instruction = ProcessMethodCall(operation);
-					break;
-
 				case Cci.OperationCode.Jmp:
-					instruction = ProcessJumpCall(operation);
+					instruction = ProcessMethodCall(operation);
 					break;
 
 				case Cci.OperationCode.Calli:
@@ -326,12 +327,9 @@ namespace CCILoader
 				case Cci.OperationCode.Ldarg_2:
 				case Cci.OperationCode.Ldarg_3:
 				case Cci.OperationCode.Ldarg_S:
-					instruction = ProcessLoadArgument(operation);
-					break;
-
 				case Cci.OperationCode.Ldarga:
 				case Cci.OperationCode.Ldarga_S:
-					instruction = ProcessLoadArgumentAddress(operation);
+					instruction = ProcessLoadArgument(operation);
 					break;
 
 				case Cci.OperationCode.Ldloc:
@@ -340,36 +338,21 @@ namespace CCILoader
 				case Cci.OperationCode.Ldloc_2:
 				case Cci.OperationCode.Ldloc_3:
 				case Cci.OperationCode.Ldloc_S:
+				case Cci.OperationCode.Ldloca:
+				case Cci.OperationCode.Ldloca_S:
 					instruction = ProcessLoadLocal(operation);
 					break;
 
-				case Cci.OperationCode.Ldloca:
-				case Cci.OperationCode.Ldloca_S:
-					instruction = ProcessLoadLocalAddress(operation);
-					break;
-
 				case Cci.OperationCode.Ldfld:
-					instruction = ProcessLoadInstanceField(operation);
-					break;
-
 				case Cci.OperationCode.Ldsfld:
-					instruction = ProcessLoadStaticField(operation);
-					break;
-
 				case Cci.OperationCode.Ldflda:
-					instruction = ProcessLoadInstanceFieldAddress(operation);
-					break;
-
 				case Cci.OperationCode.Ldsflda:
-					instruction = ProcessLoadStaticFieldAddress(operation);
+					instruction = ProcessLoadField(operation);
 					break;
 
 				case Cci.OperationCode.Ldftn:
-					instruction = ProcessLoadMethodAddress(operation);
-					break;
-
 				case Cci.OperationCode.Ldvirtftn:
-					instruction = ProcessLoadVirtualMethodAddress(operation);
+					instruction = ProcessLoadMethodAddress(operation);
 					break;
 
 				case Cci.OperationCode.Ldc_I4:
@@ -480,11 +463,8 @@ namespace CCILoader
 					break;
 
 				case Cci.OperationCode.Stfld:
-					instruction = ProcessStoreInstanceField(operation);
-					break;
-
 				case Cci.OperationCode.Stsfld:
-					instruction = ProcessStoreStaticField(operation);
+					instruction = ProcessStoreField(operation);
 					break;
 
 				case Cci.OperationCode.Stind_I:
@@ -573,10 +553,11 @@ namespace CCILoader
 
 		private IInstruction ProcessMethodCall(Cci.IOperation op)
 		{
+			var operation = OperationHelper.ToMethodCallOperation(op.OperationCode);
 			var cciMethod = op.Value as Cci.IMethodReference;
 			var ourMethod = TypeExtractor.ExtractReference(cciMethod);
 
-			var instruction = new MethodCallInstruction(op.Offset, ourMethod);
+			var instruction = new MethodCallInstruction(op.Offset, operation, ourMethod);
 			return instruction;
 		}
 
@@ -586,15 +567,6 @@ namespace CCILoader
 			var ourFunctionPointer = TypeExtractor.ExtractType(cciFunctionPointer);
 
 			var instruction = new IndirectMethodCallInstruction(op.Offset, ourFunctionPointer);
-			return instruction;
-		}
-
-		private IInstruction ProcessJumpCall(Cci.IOperation op)
-		{
-			var cciMethod = op.Value as Cci.IMethodReference;
-			var ourMethod = TypeExtractor.ExtractReference(cciMethod);
-
-			var instruction = new MethodCallInstruction(op.Offset, ourMethod);
 			return instruction;
 		}
 
@@ -643,15 +615,17 @@ namespace CCILoader
 
 		private IInstruction ProcessLoadConstant(Cci.IOperation op)
 		{
+			var operation = OperationHelper.ToLoadOperation(op.OperationCode);
 			var type = OperationHelper.GetOperationType(op.OperationCode);
 			var source = new Constant(op.Value) { Type = type };
 
-			var instruction = new LoadInstruction(op.Offset, source);
+			var instruction = new LoadInstruction(op.Offset, operation, source);
 			return instruction;
 		}
 
 		private IInstruction ProcessLoadArgument(Cci.IOperation op)
 		{
+			var operation = OperationHelper.ToLoadOperation(op.OperationCode);
 			var source = thisParameter;
 
 			if (op.Value is Cci.IParameterDefinition)
@@ -660,39 +634,17 @@ namespace CCILoader
 				source = parameters[parameter];
 			}
 
-			var instruction = new LoadInstruction(op.Offset, source);
-			return instruction;
-		}
-
-		private IInstruction ProcessLoadArgumentAddress(Cci.IOperation op)
-		{
-			var source = thisParameter;
-
-			if (op.Value is Cci.IParameterDefinition)
-			{
-				var parameter = op.Value as Cci.IParameterDefinition;
-				source = parameters[parameter];
-			}
-
-			var instruction = new LoadAddressInstruction(op.Offset, source);
+			var instruction = new LoadInstruction(op.Offset, operation, source);
 			return instruction;
 		}
 
 		private IInstruction ProcessLoadLocal(Cci.IOperation op)
 		{
+			var operation = OperationHelper.ToLoadOperation(op.OperationCode);
 			var local = op.Value as Cci.ILocalDefinition;
 			var source = locals[local];
 
-			var instruction = new LoadInstruction(op.Offset, source);
-			return instruction;
-		}
-
-		private IInstruction ProcessLoadLocalAddress(Cci.IOperation op)
-		{
-			var local = op.Value as Cci.ILocalDefinition;
-			var source = locals[local];
-
-			var instruction = new LoadAddressInstruction(op.Offset, source);
+			var instruction = new LoadInstruction(op.Offset, operation, source);
 			return instruction;
 		}
 
@@ -702,52 +654,17 @@ namespace CCILoader
 			return instruction;
 		}
 
-		private IInstruction ProcessLoadInstanceField(Cci.IOperation op)
+		private IInstruction ProcessLoadField(Cci.IOperation op)
 		{
+			var operation = OperationHelper.ToLoadFieldOperation(op.OperationCode);
 			var cciField = op.Value as Cci.IFieldReference;
 			var ourField = TypeExtractor.ExtractReference(cciField);
 
-			var instruction = new LoadFieldInstruction(op.Offset, ourField);
-			return instruction;
-		}
-
-		private IInstruction ProcessLoadStaticField(Cci.IOperation op)
-		{
-			var cciField = op.Value as Cci.IFieldReference;
-			var ourField = TypeExtractor.ExtractReference(cciField);
-
-			var instruction = new LoadFieldInstruction(op.Offset, ourField);
-			return instruction;
-		}
-
-		private IInstruction ProcessLoadInstanceFieldAddress(Cci.IOperation op)
-		{
-			var cciField = op.Value as Cci.IFieldReference;
-			var ourField = TypeExtractor.ExtractReference(cciField);
-
-			var instruction = new LoadFieldAddressInstruction(op.Offset, ourField);
-			return instruction;
-		}
-
-		private IInstruction ProcessLoadStaticFieldAddress(Cci.IOperation op)
-		{
-			var cciField = op.Value as Cci.IFieldReference;
-			var ourField = TypeExtractor.ExtractReference(cciField);
-
-			var instruction = new LoadFieldAddressInstruction(op.Offset, ourField);
+			var instruction = new LoadFieldInstruction(op.Offset, operation, ourField);
 			return instruction;
 		}
 
 		private IInstruction ProcessLoadMethodAddress(Cci.IOperation op)
-		{
-			var cciMethod = op.Value as Cci.IMethodReference;
-			var ourMethod = TypeExtractor.ExtractReference(cciMethod);
-
-			var instruction = new LoadMethodAddressInstruction(op.Offset, ourMethod);
-			return instruction;
-		}
-
-		private IInstruction ProcessLoadVirtualMethodAddress(Cci.IOperation op)
 		{
 			var cciMethod = op.Value as Cci.IMethodReference;
 			var ourMethod = TypeExtractor.ExtractReference(cciMethod);
@@ -775,7 +692,7 @@ namespace CCILoader
 				dest = parameters[parameter];
 			}
 
-			var instruction = new LoadInstruction(op.Offset, dest);
+			var instruction = new StoreInstruction(op.Offset, dest);
 			return instruction;
 		}
 
@@ -784,20 +701,11 @@ namespace CCILoader
 			var local = op.Value as Cci.ILocalDefinition;
 			var dest = locals[local];
 
-			var instruction = new LoadInstruction(op.Offset, dest);
+			var instruction = new StoreInstruction(op.Offset, dest);
 			return instruction;
 		}
 
-		private IInstruction ProcessStoreInstanceField(Cci.IOperation op)
-		{
-			var cciField = op.Value as Cci.IFieldReference;
-			var ourField = TypeExtractor.ExtractReference(cciField);
-
-			var instruction = new StoreFieldInstruction(op.Offset, ourField);
-			return instruction;
-		}
-
-		private IInstruction ProcessStoreStaticField(Cci.IOperation op)
+		private IInstruction ProcessStoreField(Cci.IOperation op)
 		{
 			var cciField = op.Value as Cci.IFieldReference;
 			var ourField = TypeExtractor.ExtractReference(cciField);

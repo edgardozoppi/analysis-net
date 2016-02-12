@@ -22,7 +22,7 @@ namespace CCILoader
 			return type;
 		}
 
-		public static InterfaceDefinition ExtractInterface(Cci.INamedTypeDefinition typedef)
+		public static InterfaceDefinition ExtractInterface(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			var name = typedef.Name.Value;
 			var type = new InterfaceDefinition(name);
@@ -30,12 +30,12 @@ namespace CCILoader
 
 			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
-			ExtractMethods(containingType, type.Methods, typedef.Methods);
+			ExtractMethods(containingType, type.Methods, typedef.Methods, sourceLocationProvider);
 
 			return type;
 		}
 
-		public static ClassDefinition ExtractClass(Cci.INamedTypeDefinition typedef)
+		public static ClassDefinition ExtractClass(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			var name = typedef.Name.Value;
 			var type = new ClassDefinition(name);
@@ -52,12 +52,12 @@ namespace CCILoader
 			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractFields(containingType, type.Fields, typedef.Fields);
-			ExtractMethods(containingType, type.Methods, typedef.Methods);
+			ExtractMethods(containingType, type.Methods, typedef.Methods, sourceLocationProvider);
 
 			return type;
 		}
 
-		public static StructDefinition ExtractStruct(Cci.INamedTypeDefinition typedef)
+		public static StructDefinition ExtractStruct(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			var name = typedef.Name.Value;
 			var type = new StructDefinition(name);
@@ -65,7 +65,7 @@ namespace CCILoader
 
 			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
 			ExtractFields(containingType, type.Fields, typedef.Fields);
-			ExtractMethods(containingType, type.Methods, typedef.Methods);
+			ExtractMethods(containingType, type.Methods, typedef.Methods, sourceLocationProvider);
 
 			return type;
 		}
@@ -270,7 +270,7 @@ namespace CCILoader
 			return result;
 		}
 
-		private static void ExtractMethods(IType containingType, IList<MethodDefinition> dest, IEnumerable<Cci.IMethodDefinition> source)
+		private static void ExtractMethods(IType containingType, IList<MethodDefinition> dest, IEnumerable<Cci.IMethodDefinition> source, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			foreach (var methoddef in source)
 			{
@@ -280,6 +280,7 @@ namespace CCILoader
 
 				ExtractGenericParameters(method.GenericParameters, methoddef.GenericParameters);
 				ExtractParameters(method.Parameters, methoddef.Parameters);
+				ExtractBody(method.Body, methoddef.Body, sourceLocationProvider);
 
 				method.IsStatic = methoddef.IsStatic;
 				method.IsConstructor = methoddef.IsConstructor;
@@ -309,6 +310,17 @@ namespace CCILoader
 			if (parameterdef.MustBeReferenceType) result = TypeKind.ReferenceType;
 
 			return result;
+		}
+
+		private static void ExtractBody(MethodBody ourBody, Cci.IMethodBody cciBody, Cci.ISourceLocationProvider sourceLocationProvider)
+		{
+			// TODO: Is not a good idea to extract all method bodies defined
+			// in an assembly when loading it. It would be better to delay 
+			// the extraction so it take place when it is actually needed,
+			// like on demand in a lazy fashion.
+			var codeProvider = new CodeProvider(sourceLocationProvider);
+
+			codeProvider.ExtractBody(ourBody, cciBody);
 		}
 
 		private static void ExtractInterfaces(IList<BasicType> dest, IEnumerable<Cci.ITypeReference> source)
