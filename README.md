@@ -6,7 +6,8 @@ Control-flow and data-flow analysis framework for .NET programs.
     * Bytecode level
     * No need for source code
     * Can analyze standard libraries
-    + Intermediate representation
+    + Intermediate representations
+        * Simplified bytecode
         * Three address code
         * Static single assignment
         * Visitor pattern
@@ -16,6 +17,7 @@ Control-flow and data-flow analysis framework for .NET programs.
         * Natural loops
     + Data-flow analysis
         * Def-Use and Use-Def chains
+        * Reaching definitions
         * Copy propagation
         * Points-to analysis
     * Type inference
