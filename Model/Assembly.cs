@@ -25,9 +25,24 @@ namespace Model
 		{
 			return this.Name;
 		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as AssemblyReference;
+
+			var result = other != null &&
+						 this.Name == other.Name;
+
+			return result;
+		}
 	}
 
-	public class Assembly : IAssemblyReference
+	public class Assembly //: IAssemblyReference
 	{
 		public string Name { get; private set; }
 		public IList<IAssemblyReference> References { get; private set; }

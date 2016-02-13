@@ -15,7 +15,7 @@ namespace Model
 			this.Assemblies = new List<Assembly>();
 		}
 
-		public ITypeDefinition ResolveType(BasicType type)
+		public ITypeDefinition ResolveReference(BasicType type)
 		{
 			var assembly = this.Assemblies.SingleOrDefault(a => a.MatchReference(type.Assembly));
 			if (assembly == null) return null;
@@ -30,6 +30,15 @@ namespace Model
 			}
 			
 			var result = containingNamespace.Types.SingleOrDefault(t => t.MatchReference(type));
+			return result;
+		}
+
+		public ITypeMemberDefinition ResolveReference(ITypeMemberReference member)
+		{
+			var typedef = ResolveReference(member.ContainingType);
+			if (typedef == null) return null;
+
+			var result = typedef.Members.SingleOrDefault(m => m.MatchReference(member));
 			return result;
 		}
 	}

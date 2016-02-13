@@ -68,7 +68,15 @@ namespace Console
 				Namespace = "Test"
 			};
 
-			var typeDefinition = host.ResolveType(type);
+			var typeDefinition = host.ResolveReference(type);
+
+			var method = new MethodReference("ExampleLoopEnumerator", null)
+			{
+				ContainingType = type,
+				ReturnType = PlatformTypes.Void
+			};
+
+			var methodDefinition = host.ResolveReference(method);
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();

@@ -41,12 +41,12 @@ namespace Model.Bytecode
 		CopyBlock,
 		LoadArrayLength,
 		IndirectLoad,
+		LoadArrayElement,
 		LoadArrayElementAddress,
 		IndirectStore,
 		StoreArrayElement,
 		Breakpoint,
-		Return,
-		LoadArrayElement
+		Return
 	}
 
 	public enum BranchOperation
@@ -137,7 +137,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1};", this.Label, this.Operation);
+			return string.Format("{0}:  if {1} goto {2};", this.Label, this.Operation, this.Target);
 		}
 	}
 
@@ -186,7 +186,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  new {1} with {2};", this.Label, this.Constructor.ContainingType, this.Constructor);
+			return string.Format("{0}:  new {1} with <{2}>;", this.Label, this.Constructor.ContainingType, this.Constructor);
 		}
 	}
 
@@ -204,7 +204,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} {2};", this.Label, this.Operation, this.Method);
+			return string.Format("{0}:  {1} Call <{2}>;", this.Label, this.Operation, this.Method);
 		}
 	}
 
@@ -220,7 +220,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}: indirect call {1};", this.Label, this.Function);
+			return string.Format("{0}: Indirect Call <{1}>;", this.Label, this.Function);
 		}
 	}
 
@@ -288,7 +288,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  load address of {2};", this.Label, this.Method);
+			return string.Format("{0}:  load address of <{2}>;", this.Label, this.Method);
 		}
 	}
 
@@ -356,7 +356,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} {2} as {3};", this.Label, this.Operation ,this.ConversionType);
+			return string.Format("{0}:  {1} as {2};", this.Label, this.Operation ,this.ConversionType);
 		}
 	}
 

@@ -57,7 +57,7 @@ namespace CCILoader
 				currentNamespace.Namespaces.Add(ourNamespace);
 			}
 
-			ourNamespace.ContainingAssembly = currentAssembly;
+			ourNamespace.ContainingAssembly = new AssemblyReference(currentAssembly.Name);
 			ourNamespace.ContainingNamespace = currentNamespace;
 			currentNamespace = ourNamespace;
 

@@ -35,32 +35,44 @@ namespace Model.Types
 	public static class PlatformTypes
 	{
 		public static readonly UnknownType Unknown = UnknownType.Value;
-		public static readonly BasicType Boolean = new BasicType("Boolean", TypeKind.ValueType);
-		public static readonly BasicType Char = new BasicType("Char", TypeKind.ValueType);
-		public static readonly BasicType String = new BasicType("String", TypeKind.ReferenceType);
-		public static readonly BasicType Byte = new BasicType("Byte", TypeKind.ValueType);
-		public static readonly BasicType SByte = new BasicType("SByte", TypeKind.ValueType);
-		public static readonly BasicType Int16 = new BasicType("Int16", TypeKind.ValueType);
-		public static readonly BasicType Int32 = new BasicType("Int32", TypeKind.ValueType);
-		public static readonly BasicType Int64 = new BasicType("Int64", TypeKind.ValueType);
-		public static readonly BasicType UInt16 = new BasicType("UInt16", TypeKind.ValueType);
-		public static readonly BasicType UInt32 = new BasicType("UInt32", TypeKind.ValueType);
-		public static readonly BasicType UInt64 = new BasicType("UInt64", TypeKind.ValueType);
-		public static readonly BasicType Decimal = new BasicType("Decimal", TypeKind.ValueType);
-		public static readonly BasicType Single = new BasicType("Single", TypeKind.ValueType);
-		public static readonly BasicType Double = new BasicType("Double", TypeKind.ValueType);
-		public static readonly BasicType Object = new BasicType("Object", TypeKind.ReferenceType);
-		public static readonly BasicType IntPtr = new BasicType("IntPtr", TypeKind.ValueType);
-		public static readonly BasicType UIntPtr = new BasicType("UIntPtr", TypeKind.ValueType);
-		public static readonly BasicType RuntimeMethodHandle = new BasicType("RuntimeMethodHandle", TypeKind.ValueType);
-		public static readonly BasicType RuntimeTypeHandle = new BasicType("RuntimeTypeHandle", TypeKind.ValueType);
-		public static readonly BasicType RuntimeFieldHandle = new BasicType("RuntimeFieldHandle", TypeKind.ValueType);
+		public static readonly BasicType Void = New("mscorlib", "System", "Void", TypeKind.ValueType);
+		public static readonly BasicType Boolean = New("mscorlib", "System", "Boolean", TypeKind.ValueType);
+		public static readonly BasicType Char = New("mscorlib", "System", "Char", TypeKind.ValueType);
+		public static readonly BasicType String = New("mscorlib", "System", "String", TypeKind.ReferenceType);
+		public static readonly BasicType Byte = New("mscorlib", "System", "Byte", TypeKind.ValueType);
+		public static readonly BasicType SByte = New("mscorlib", "System", "SByte", TypeKind.ValueType);
+		public static readonly BasicType Int16 = New("mscorlib", "System", "Int16", TypeKind.ValueType);
+		public static readonly BasicType Int32 = New("mscorlib", "System", "Int32", TypeKind.ValueType);
+		public static readonly BasicType Int64 = New("mscorlib", "System", "Int64", TypeKind.ValueType);
+		public static readonly BasicType UInt16 = New("mscorlib", "System", "UInt16", TypeKind.ValueType);
+		public static readonly BasicType UInt32 = New("mscorlib", "System", "UInt32", TypeKind.ValueType);
+		public static readonly BasicType UInt64 = New("mscorlib", "System", "UInt64", TypeKind.ValueType);
+		public static readonly BasicType Decimal = New("mscorlib", "System", "Decimal", TypeKind.ValueType);
+		public static readonly BasicType Single = New("mscorlib", "System", "Single", TypeKind.ValueType);
+		public static readonly BasicType Double = New("mscorlib", "System", "Double", TypeKind.ValueType);
+		public static readonly BasicType Object = New("mscorlib", "System", "Object", TypeKind.ReferenceType);
+		public static readonly BasicType IntPtr = New("mscorlib", "System", "IntPtr", TypeKind.ValueType);
+		public static readonly BasicType UIntPtr = New("mscorlib", "System", "UIntPtr", TypeKind.ValueType);
+		public static readonly BasicType RuntimeMethodHandle = New("mscorlib", "System", "RuntimeMethodHandle", TypeKind.ValueType);
+		public static readonly BasicType RuntimeTypeHandle = New("mscorlib", "System", "RuntimeTypeHandle", TypeKind.ValueType);
+		public static readonly BasicType RuntimeFieldHandle = New("mscorlib", "System", "RuntimeFieldHandle", TypeKind.ValueType);
 		public static readonly BasicType ArrayLengthType = UInt32;
 		public static readonly BasicType SizeofType = UInt32;
 		public static readonly BasicType Int8 = SByte;
 		public static readonly BasicType UInt8 = Byte;
 		public static readonly BasicType Float32 = Single;
 		public static readonly BasicType Float64 = Double;
+
+		private static BasicType New(string containingAssembly, string containingNamespace, string name, TypeKind kind)
+		{
+			var result = new BasicType(name, kind)
+			{
+				Assembly = new AssemblyReference(containingAssembly),
+				Namespace = containingNamespace
+			};
+
+			return result;
+		}
 	}
 
 	public class UnknownType : IType
@@ -144,6 +156,24 @@ namespace Model.Types
 
 			return string.Format("{0}{1}", this.Name, arguments);
 		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as BasicType;
+			// TODO: Maybe we should also compare the TypeKind?
+			var result = other != null &&
+						 this.Assembly.Equals(other.Assembly) &&
+						 this.Namespace == other.Namespace &&
+						 this.Name == other.Name &&
+						 this.GenericArguments.SequenceEqual(other.GenericArguments);
+
+			return result;
+		}
 	}
 
 	public class TypeVariable : IType
@@ -160,6 +190,21 @@ namespace Model.Types
 		public override string ToString()
 		{
 			return this.Name;
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as TypeVariable;
+			// TODO: Maybe we should also compare the TypeKind?
+			var result = other != null &&
+						 this.Name == other.Name;
+
+			return result;
 		}
 	}
 
@@ -201,6 +246,27 @@ namespace Model.Types
 			result.AppendFormat("({0})", parameters);
 			return result.ToString();
 		}
+
+		public override int GetHashCode()
+		{
+			var result = this.ReturnType.GetHashCode() ^
+						 this.IsStatic.GetHashCode() ^
+						 this.Parameters.Aggregate(0, (hc, p) => hc ^ p.GetHashCode());
+
+			return result;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as FunctionPointerType;
+
+			var result = other != null &&
+						 this.IsStatic == other.IsStatic &&
+						 this.ReturnType.Equals(other.ReturnType) &&
+						 this.Parameters.SequenceEqual(other.Parameters);
+
+			return result;
+		}
 	}
 
 	public class PointerType : IReferenceType
@@ -221,6 +287,21 @@ namespace Model.Types
 		{
 			return string.Format("{0}*", this.TargetType);
 		}
+
+		public override int GetHashCode()
+		{
+			return this.TargetType.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as PointerType;
+
+			var result = other != null &&
+						 this.TargetType.Equals(other.TargetType);
+
+			return result;
+		}
 	}
 
 	public class ArrayType : IReferenceType
@@ -240,6 +321,21 @@ namespace Model.Types
 		public override string ToString()
 		{
 			return string.Format("{0}[]", this.ElementsType);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.ElementsType.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as ArrayType;
+
+			var result = other != null &&
+						 this.ElementsType.Equals(other.ElementsType);
+
+			return result;
 		}
 	}
 }
