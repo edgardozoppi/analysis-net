@@ -42,6 +42,8 @@
   <ItemGroup>
     <Compile Include="Assembly.cs" />
     <Compile Include="Bytecode\Instructions.cs" />
+    <Compile Include="Bytecode\Visitor\IInstructionVisitor.cs" />
+    <Compile Include="Bytecode\Visitor\InstructionVisitor.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IInstruction.cs" />
@@ -54,8 +56,8 @@
     <Compile Include="Types\TypeDefinitions.cs" />
     <Compile Include="Types\TypeHelper.cs" />
     <Compile Include="Types\Types.cs" />
-    <Compile Include="Visitors\IInstructionVisitor.cs" />
-    <Compile Include="Visitors\InstructionVisitor.cs" />
+    <Compile Include="ThreeAddressCode\Visitor\IInstructionVisitor.cs" />
+    <Compile Include="ThreeAddressCode\Visitor\InstructionVisitor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

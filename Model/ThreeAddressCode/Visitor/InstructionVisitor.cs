@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Model.ThreeAddressCode.Instructions;
 
-namespace Model.Visitors
+namespace Model.ThreeAddressCode.Visitor
 {
 	public abstract class InstructionVisitor : IInstructionVisitor
 	{
@@ -12,7 +12,8 @@ namespace Model.Visitors
 		{
 			foreach (var instruction in container.Instructions)
 			{
-				instruction.Accept(this);
+				var tacInstruction = instruction as Instruction;
+				tacInstruction.Accept(this);
 			}
 		}
 

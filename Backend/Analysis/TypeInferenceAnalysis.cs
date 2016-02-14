@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Model.ThreeAddressCode.Instructions;
-using Model.Visitors;
 using Model.Types;
+using Model.ThreeAddressCode.Instructions;
+using Model.ThreeAddressCode.Visitor;
 
 namespace Backend.Analysis
 {

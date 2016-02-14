@@ -5,7 +5,7 @@ using System.Text;
 using Model.Types;
 using Model.ThreeAddressCode.Values;
 using Model.ThreeAddressCode.Expressions;
-using Model.Visitors;
+using Model.ThreeAddressCode.Visitor;
 
 namespace Model.ThreeAddressCode.Instructions
 {
@@ -54,7 +54,7 @@ namespace Model.ThreeAddressCode.Instructions
 		UnboxPtr
 	}
 
-	public abstract class Instruction : IVariableContainer
+	public abstract class Instruction : IInstruction
 	{
 		public uint Offset { get; set; }
 		public string Label { get; set; }

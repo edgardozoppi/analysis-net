@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Model.ThreeAddressCode.Values;
 using Model.ThreeAddressCode.Instructions;
+using Model.Types;
 
 namespace Backend.Analysis
 {

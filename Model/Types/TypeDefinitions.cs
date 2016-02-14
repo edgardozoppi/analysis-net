@@ -663,19 +663,33 @@ namespace Model.Types
 		}
 	}
 
-	public class MethodBody
+	public class MethodBody : IInstructionContainer
 	{
 		public IList<IVariable> Parameters { get; private set; }
 		public IList<IVariable> LocalVariables { get; private set; }
 		public IList<IInstruction> Instructions { get; private set; }
-		public IList<IExceptionHandlerBlock> ExceptionInformation { get; private set; }
+		public IList<ProtectedBlock> ExceptionInformation { get; private set; }
 
 		public MethodBody()
 		{
 			this.Parameters = new List<IVariable>();
 			this.LocalVariables = new List<IVariable>();
 			this.Instructions = new List<IInstruction>();
-			this.ExceptionInformation = new List<IExceptionHandlerBlock>();
+			this.ExceptionInformation = new List<ProtectedBlock>();
+		}
+
+		public void UpdateVariables()
+		{
+			throw new NotImplementedException();
+
+			//this.LocalVariables.Clear();
+			//this.LocalVariables.AddRange(this.Parameters);
+
+			//// TODO: SSA is not inserting phi instructions into method's body instructions collection.
+			//foreach (var instruction in this.Instructions)
+			//{
+			//	this.LocalVariables.AddRange(instruction.Variables);
+			//}
 		}
 
 		public override string ToString()

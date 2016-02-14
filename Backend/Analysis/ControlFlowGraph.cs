@@ -6,7 +6,8 @@ using System.Collections;
 
 using Model.ThreeAddressCode;
 using Model.ThreeAddressCode.Instructions;
-using Model.Visitors;
+using Model;
+using Model.Types;
 
 namespace Backend.Analysis
 {
@@ -94,7 +95,7 @@ namespace Backend.Analysis
 		public CFGNodeKind Kind { get; private set; }
 		public ISet<CFGNode> Predecessors { get; private set; }
 		public ISet<CFGNode> Successors { get; private set; }
-		public IList<Instruction> Instructions { get; private set; }
+		public IList<IInstruction> Instructions { get; private set; }
 		public CFGNode ImmediateDominator { get; set; }
 		public ISet<CFGNode> Childs { get; private set; }
 		public ISet<CFGNode> DominanceFrontier { get; private set; }
@@ -107,7 +108,7 @@ namespace Backend.Analysis
 			this.BackwardIndex = -1;
 			this.Predecessors = new HashSet<CFGNode>();
 			this.Successors = new HashSet<CFGNode>();
-			this.Instructions = new List<Instruction>();
+			this.Instructions = new List<IInstruction>();
 			this.Childs = new HashSet<CFGNode>();
 			this.DominanceFrontier = new HashSet<CFGNode>();
 		}
@@ -213,15 +214,15 @@ namespace Backend.Analysis
 			var instructions = method.Instructions;
 			var leaders = ControlFlowGraph.CreateNodes(instructions);
 			var cfg = ControlFlowGraph.ConnectNodes(instructions, leaders);
-			ControlFlowGraph.ConnectNodesWithExceptionHandlers(cfg, method.ProtectedBlocks, leaders);
+			ControlFlowGraph.ConnectNodesWithExceptionHandlers(cfg, method.ExceptionInformation, leaders);
 
 			return cfg;
 		}
 
-		private static IList<Instruction> FilterExceptionHandlers(MethodBody method)
+		private static IList<IInstruction> FilterExceptionHandlers(MethodBody method)
 		{
-			var instructions = new List<Instruction>();
-			var handlers = method.ProtectedBlocks.Select(h => h.Handler).ToDictionary(h => h.Start);
+			var instructions = new List<IInstruction>();
+			var handlers = method.ExceptionInformation.Select(h => h.Handler).ToDictionary(h => h.Start);
 			var i = 0;
 
 			while (i < method.Instructions.Count)
@@ -249,7 +250,7 @@ namespace Backend.Analysis
 			return instructions;
 		}
 
-		private static IDictionary<string, CFGNode> CreateNodes(IEnumerable<Instruction> instructions)
+		private static IDictionary<string, CFGNode> CreateNodes(IEnumerable<IInstruction> instructions)
 		{
 			var leaders = new Dictionary<string, CFGNode>();
 			var nextIsLeader = true;
@@ -309,7 +310,7 @@ namespace Backend.Analysis
 			return leaders;
 		}
 
-		private static ControlFlowGraph ConnectNodes(IEnumerable<Instruction> instructions, IDictionary<string, CFGNode> leaders)
+		private static ControlFlowGraph ConnectNodes(IEnumerable<IInstruction> instructions, IDictionary<string, CFGNode> leaders)
 		{
 			var cfg = new ControlFlowGraph();
 			var connectWithPreviousNode = true;

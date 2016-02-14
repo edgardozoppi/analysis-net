@@ -4,13 +4,8 @@ using System.Linq;
 using System.Text;
 using Model.ThreeAddressCode.Instructions;
 
-namespace Model.Visitors
+namespace Model.ThreeAddressCode.Visitor
 {
-	public interface IInstructionContainer
-	{
-		IList<Instruction> Instructions { get; }
-	}
-
 	public interface IInstructionVisitor
 	{
 		void Visit(IInstructionContainer container);

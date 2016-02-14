@@ -1,4 +1,5 @@
-﻿using Model.ThreeAddressCode.Values;
+﻿using Model.Bytecode.Visitor;
+using Model.ThreeAddressCode.Values;
 using Model.Types;
 using System;
 using System.Collections.Generic;
@@ -102,6 +103,36 @@ namespace Model.Bytecode
 			this.Offset = offset;
 			this.Label = string.Format("L_{0:X4}", offset);
 		}
+
+		public ISet<IVariable> Variables
+		{
+			get
+			{
+				var result = new HashSet<IVariable>();
+				result.UnionWith(this.ModifiedVariables);
+				result.UnionWith(this.UsedVariables);
+				return result;
+			}
+		}
+
+		public virtual ISet<IVariable> ModifiedVariables
+		{
+			get { return new HashSet<IVariable>(); }
+		}
+
+		public virtual ISet<IVariable> UsedVariables
+		{
+			get { return new HashSet<IVariable>(); }
+		}
+
+		public virtual void Replace(IVariable oldvar, IVariable newvar)
+		{
+		}
+
+		public virtual void Accept(IInstructionVisitor visitor)
+		{
+			visitor.Visit(this);
+		}
 	}
 
 	public class BasicInstruction : Instruction
@@ -114,6 +145,12 @@ namespace Model.Bytecode
 			: base(label)
 		{
 			this.Operation = operation;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -135,6 +172,12 @@ namespace Model.Bytecode
 			this.Operation = operation;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  if {1} goto {2};", this.Label, this.Operation, this.Target);
@@ -149,6 +192,12 @@ namespace Model.Bytecode
 			: base(label)
 		{
 			this.Targets = targets.Select(target => string.Format("L_{0:X4}", target)).ToList();
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -168,6 +217,12 @@ namespace Model.Bytecode
 			this.Type = type;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  new {1};", this.Label, this.Type);
@@ -182,6 +237,12 @@ namespace Model.Bytecode
 			: base(label)
 		{
 			this.Constructor = constructor;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -202,6 +263,12 @@ namespace Model.Bytecode
 			this.Method = method;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  {1} Call <{2}>;", this.Label, this.Operation, this.Method);
@@ -218,6 +285,12 @@ namespace Model.Bytecode
 			this.Function = function;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}: Indirect Call <{1}>;", this.Label, this.Function);
@@ -232,6 +305,12 @@ namespace Model.Bytecode
 			: base(label)
 		{
 			this.MeasuredType = measuredType;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -252,6 +331,33 @@ namespace Model.Bytecode
 			this.Operand = operand;
 		}
 
+		public override ISet<IVariable> UsedVariables
+		{
+			get
+			{
+				var result = new HashSet<IVariable>();
+
+				if (this.Operand is IVariable)
+				{
+					var variable = this.Operand as IVariable;
+					result.Add(variable);
+				}
+
+				return result;
+			}
+		}
+
+		public override void Replace(IVariable oldvar, IVariable newvar)
+		{
+			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  load {1} of {2};", this.Label, this.Operation, this.Operand);
@@ -270,6 +376,12 @@ namespace Model.Bytecode
 			this.Field = field;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  load {1} of {2};", this.Label, this.Operation, this.Field);
@@ -284,6 +396,12 @@ namespace Model.Bytecode
 			: base(label)
 		{
 			this.Method = method;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -302,6 +420,12 @@ namespace Model.Bytecode
 			this.Token = token;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  load token {1};", this.Label, this.Token);
@@ -318,6 +442,22 @@ namespace Model.Bytecode
 			this.Operand = operand;
 		}
 
+		public override ISet<IVariable> ModifiedVariables
+		{
+			get { return new HashSet<IVariable>() { this.Operand }; }
+		}
+
+		public override void Replace(IVariable oldvar, IVariable newvar)
+		{
+			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  store {1};", this.Label, this.Operand);
@@ -332,6 +472,12 @@ namespace Model.Bytecode
 			: base(label)
 		{
 			this.Field = field;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
 		}
 
 		public override string ToString()
@@ -354,10 +500,15 @@ namespace Model.Bytecode
 			this.ConversionType = conversionType;
 		}
 
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0}:  {1} as {2};", this.Label, this.Operation ,this.ConversionType);
 		}
 	}
-
 }

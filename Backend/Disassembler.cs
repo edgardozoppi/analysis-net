@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Microsoft.Cci;
 using Model.ThreeAddressCode;
 using Backend.Utils;
 using Model.ThreeAddressCode.Values;
@@ -782,7 +781,7 @@ namespace Backend
 					//    break;
 
 					default:
-						System.Console.WriteLine("Unknown bytecode: {0}", op.OperationCode);
+						Console.WriteLine("Unknown bytecode: {0}", op.OperationCode);
 						//throw new UnknownBytecodeException(bb, op);
 						break;
 				}

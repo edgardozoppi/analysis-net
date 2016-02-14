@@ -5,9 +5,9 @@ using System.Text;
 using Model.ThreeAddressCode.Values;
 using Model.ThreeAddressCode.Expressions;
 using Model.ThreeAddressCode.Instructions;
-using Model.Visitors;
 using Backend.Analysis;
-using Microsoft.Cci;
+using Model.Types;
+using Model;
 
 namespace Backend.Utils
 {
@@ -242,7 +242,7 @@ namespace Backend.Utils
 
 			if (!result)
 			{
-				result = method.Name.Value == "get_Count" && Types.Instance.IsContainer(method.ContainingType);
+				result = method.Name == "get_Count" && Types.Instance.IsContainer(method.ContainingType);
 			}
 
 			return result;

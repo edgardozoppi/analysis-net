@@ -75,7 +75,7 @@ namespace CCILoader
 			}
 		}
 
-		private static void ExtractExceptionInformation(IEnumerable<Cci.IOperationExceptionInformation> cciExceptionInformation, IList<IExceptionHandlerBlock> ourExceptionInformation)
+		private static void ExtractExceptionInformation(IEnumerable<Cci.IOperationExceptionInformation> cciExceptionInformation, IList<ProtectedBlock> ourExceptionInformation)
 		{
 			foreach (var cciExceptionInfo in cciExceptionInformation)
 			{
