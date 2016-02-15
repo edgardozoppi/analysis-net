@@ -20,5 +20,11 @@ namespace Model
 		{
 			yield return item;
 		}
+
+		public static UnknownValueException<T> ToUnknownValueException<T>(this T self)
+			where T : struct
+		{
+			return new UnknownValueException<T>(self);
+		}
 	}
 }

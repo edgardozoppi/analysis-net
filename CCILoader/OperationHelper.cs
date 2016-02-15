@@ -5,6 +5,7 @@ using System.Text;
 using Cci = Microsoft.Cci;
 using Model.Bytecode;
 using Model.Types;
+using Model;
 
 namespace CCILoader
 {
@@ -102,7 +103,7 @@ namespace CCILoader
 				case Cci.OperationCode.Stelem_Ref:	return BasicOperation.StoreArrayElement;
 				case Cci.OperationCode.Break:		return BasicOperation.Breakpoint;
 				
-				default: throw new UnknownBytecodeException(opcode);
+				default: throw opcode.ToUnknownValueException();
 			}
 		}
 
@@ -149,7 +150,7 @@ namespace CCILoader
 				case Cci.OperationCode.Conv_R8:
 				case Cci.OperationCode.Conv_R_Un:	return ConvertOperation.Conv;
 
-				default: throw new UnknownBytecodeException(opcode);
+				default: throw opcode.ToUnknownValueException();
 			}
 		}
 
@@ -184,7 +185,7 @@ namespace CCILoader
 				case Cci.OperationCode.Leave:
 				case Cci.OperationCode.Leave_S:		return BranchOperation.Leave;
 
-				default: throw new UnknownBytecodeException(opcode);
+				default: throw opcode.ToUnknownValueException();
 			}
 		}
 
@@ -196,7 +197,7 @@ namespace CCILoader
 				case Cci.OperationCode.Callvirt:	return MethodCallOperation.Virtual;
 				case Cci.OperationCode.Jmp:			return MethodCallOperation.Jump;
 
-				default: throw new UnknownBytecodeException(opcode);
+				default: throw opcode.ToUnknownValueException();
 			}
 		}
 
@@ -238,7 +239,7 @@ namespace CCILoader
 				case Cci.OperationCode.Ldloca:
 				case Cci.OperationCode.Ldloca_S: return LoadOperation.Address;
 
-				default: throw new UnknownBytecodeException(opcode);
+				default: throw opcode.ToUnknownValueException();
 			}
 		}
 
@@ -251,7 +252,7 @@ namespace CCILoader
 				case Cci.OperationCode.Ldflda:
 				case Cci.OperationCode.Ldsflda: return LoadFieldOperation.Address;
 
-				default: throw new UnknownBytecodeException(opcode);
+				default: throw opcode.ToUnknownValueException();
 			}
 		}
 

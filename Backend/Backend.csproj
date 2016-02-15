@@ -51,7 +51,7 @@
     <Compile Include="Analysis\SymbolicAnalysis.cs" />
     <Compile Include="Analysis\TypeInferenceAnalysis.cs" />
     <Compile Include="Analysis\WebAnalysis.cs" />
-    <Compile Include="Disassembler.cs" />
+    <None Include="Disassembler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <None Include="Types.cs" />
     <Compile Include="Utils\OperationHelper.cs" />

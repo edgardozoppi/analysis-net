@@ -44,6 +44,7 @@
     <Compile Include="Bytecode\Instructions.cs" />
     <Compile Include="Bytecode\Visitor\IInstructionVisitor.cs" />
     <Compile Include="Bytecode\Visitor\InstructionVisitor.cs" />
+    <Compile Include="Exceptions.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IInstruction.cs" />
