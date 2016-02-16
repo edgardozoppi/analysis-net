@@ -5,6 +5,7 @@ using System.Text;
 
 using Model.ThreeAddressCode.Values;
 using Model.ThreeAddressCode.Instructions;
+using Model;
 
 namespace Backend.Analysis
 {
@@ -143,7 +144,7 @@ namespace Backend.Analysis
 			}
 		}
 
-		private KeyValuePair<IVariable, IInmediateValue>? Flow(Instruction instruction, IDictionary<IVariable, IInmediateValue> copies)
+		private KeyValuePair<IVariable, IInmediateValue>? Flow(IInstruction instruction, IDictionary<IVariable, IInmediateValue> copies)
 		{
 			KeyValuePair<IVariable, IInmediateValue>? result = null;
 

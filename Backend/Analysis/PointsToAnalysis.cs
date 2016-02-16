@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Model.Types;
+using Model;
 
 namespace Backend.Analysis
 {
@@ -318,7 +319,7 @@ namespace Backend.Analysis
             return ptg;
         }
 
-		private void Flow(PointsToGraph ptg, Instruction instruction)
+		private void Flow(PointsToGraph ptg, IInstruction instruction)
 		{
 			var offset = instruction.Offset;
 

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using Model.ThreeAddressCode.Instructions;
 using Model.ThreeAddressCode.Values;
+using Model;
 
 namespace Backend.Analysis
 {
@@ -13,8 +14,8 @@ namespace Backend.Analysis
 		private DefinitionInstruction[] definitions;
 		private IDictionary<IVariable, Subset<DefinitionInstruction>> variable_definitions;
 		private DataFlowAnalysisResult<Subset<DefinitionInstruction>>[] result;
-		private MapList<DefinitionInstruction, Instruction> def_use;
-		private MapList<Instruction, DefinitionInstruction> use_def;
+		private MapList<DefinitionInstruction, IInstruction> def_use;
+		private MapList<IInstruction, DefinitionInstruction> use_def;
 		private Subset<DefinitionInstruction>[] GEN;
 		private Subset<DefinitionInstruction>[] KILL;
 
@@ -23,12 +24,12 @@ namespace Backend.Analysis
 		{
 		}
 
-		public MapList<DefinitionInstruction, Instruction> DefinitionUses
+		public MapList<DefinitionInstruction, IInstruction> DefinitionUses
 		{
 			get { return def_use; }
 		}
 
-		public MapList<Instruction, DefinitionInstruction> UseDefinitions
+		public MapList<IInstruction, DefinitionInstruction> UseDefinitions
 		{
 			get { return use_def; }
 		}
@@ -37,8 +38,8 @@ namespace Backend.Analysis
 		{
 			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
 
-			this.def_use = new MapList<DefinitionInstruction, Instruction>();
-			this.use_def = new MapList<Instruction, DefinitionInstruction>();
+			this.def_use = new MapList<DefinitionInstruction, IInstruction>();
+			this.use_def = new MapList<IInstruction, DefinitionInstruction>();
 
 			foreach (var node in this.cfg.Nodes)
 			{

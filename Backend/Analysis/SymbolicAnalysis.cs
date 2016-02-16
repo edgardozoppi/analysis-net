@@ -6,6 +6,7 @@ using Backend.Utils;
 using Model.ThreeAddressCode.Values;
 using Model.ThreeAddressCode.Expressions;
 using Model.ThreeAddressCode.Instructions;
+using Model;
 
 namespace Backend.Analysis
 {
@@ -149,7 +150,7 @@ namespace Backend.Analysis
 			}
 		}
 
-		private KeyValuePair<IVariable, IExpression>? Flow(Instruction instruction, IDictionary<IVariable, IExpression> equalities)
+		private KeyValuePair<IVariable, IExpression>? Flow(IInstruction instruction, IDictionary<IVariable, IExpression> equalities)
 		{
 			KeyValuePair<IVariable, IExpression>? result = null;
 

@@ -666,14 +666,14 @@ namespace Model.Types
 	public class MethodBody : IInstructionContainer
 	{
 		public IList<IVariable> Parameters { get; private set; }
-		public IList<IVariable> LocalVariables { get; private set; }
+		public ISet<IVariable> LocalVariables { get; private set; }
 		public IList<IInstruction> Instructions { get; private set; }
 		public IList<ProtectedBlock> ExceptionInformation { get; private set; }
 
 		public MethodBody()
 		{
 			this.Parameters = new List<IVariable>();
-			this.LocalVariables = new List<IVariable>();
+			this.LocalVariables = new HashSet<IVariable>();
 			this.Instructions = new List<IInstruction>();
 			this.ExceptionInformation = new List<ProtectedBlock>();
 		}

@@ -112,7 +112,7 @@ namespace Backend.Analysis
 			var derived_variables = new Dictionary<IVariable, Stack<DerivedVariable>>();
 			var indices = new Dictionary<IVariable, uint>();
 
-			foreach (var variable in method.Variables)
+			foreach (var variable in method.LocalVariables)
 			{
 				var derived = new DerivedVariable(variable, 0u);
 				var stack = new Stack<DerivedVariable>();

@@ -5,6 +5,7 @@ using System.Text;
 using Model.ThreeAddressCode.Instructions;
 using Model.ThreeAddressCode.Values;
 using Backend.Utils;
+using Model;
 
 namespace Backend.Analysis
 {
@@ -12,13 +13,13 @@ namespace Backend.Analysis
 	{
 		public IVariable Variable { get; private set; }
 		public ISet<DefinitionInstruction> Definitions { get; private set; }
-		public ISet<Instruction> Uses { get; private set; }
+		public ISet<IInstruction> Uses { get; private set; }
 
 		public Web(IVariable variable)
 		{
 			this.Variable = variable;
 			this.Definitions = new HashSet<DefinitionInstruction>();
-			this.Uses = new HashSet<Instruction>();
+			this.Uses = new HashSet<IInstruction>();
 		}
 
 		public void Rename(IVariable variable)
@@ -86,7 +87,7 @@ namespace Backend.Analysis
 			}
 		}
 
-		private IList<Web> ComputeWebs(MapList<DefinitionInstruction, Instruction> def_use, MapList<Instruction, DefinitionInstruction> use_def)
+		private IList<Web> ComputeWebs(MapList<DefinitionInstruction, IInstruction> def_use, MapList<IInstruction, DefinitionInstruction> use_def)
 		{
 			var result = new List<Web>();
 			var definitions = def_use.Keys.ToList();
@@ -97,7 +98,7 @@ namespace Backend.Analysis
 				var variable = def.Result;
 				var web = new Web(variable);
 				var pending_defs = new HashSet<DefinitionInstruction>();
-				var pending_uses = new HashSet<Instruction>();
+				var pending_uses = new HashSet<IInstruction>();
 
 				result.Add(web);
 				pending_defs.Add(def);
