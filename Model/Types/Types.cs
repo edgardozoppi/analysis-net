@@ -8,6 +8,7 @@ namespace Model.Types
 {
 	public interface IMetadataReference
 	{
+		ISet<CustomAttribute> Attributes { get; }
 	}
 
 	public enum TypeKind
@@ -63,6 +64,8 @@ namespace Model.Types
 		public static readonly BasicType Float32 = Single;
 		public static readonly BasicType Float64 = Double;
 
+		public static readonly BasicType PureAttribute = New("mscorlib", "System.Diagnostics.Contracts", "PureAttribute", TypeKind.ReferenceType);
+
 		private static BasicType New(string containingAssembly, string containingNamespace, string name, TypeKind kind)
 		{
 			var result = new BasicType(name, kind)
@@ -95,6 +98,11 @@ namespace Model.Types
 			get { return TypeKind.Unknown; }
 		}
 
+		public ISet<CustomAttribute> Attributes
+		{
+			get { return null; }
+		}
+
 		public override string ToString()
 		{
 			return "Unknown";
@@ -103,6 +111,7 @@ namespace Model.Types
 
 	public class BasicType : IType
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeKind TypeKind { get; set; }
 		public IAssemblyReference Assembly { get; set; }
 		public string Namespace { get; set; }
@@ -114,6 +123,7 @@ namespace Model.Types
 			this.Name = name;
 			this.TypeKind = kind;
 			this.GenericArguments = new List<IType>();
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public string FullName
@@ -176,8 +186,209 @@ namespace Model.Types
 		}
 	}
 
+	#region class BasicType
+
+	//public class BasicType : IType
+	//{
+	//	public ISet<Attribute> Attributes { get; private set; }
+	//	public TypeKind TypeKind { get; set; }
+	//	public IAssemblyReference Assembly { get; set; }
+	//	public string Namespace { get; set; }
+	//	public string Name { get; set; }
+
+	//	public BasicType(string name, TypeKind kind = TypeKind.Unknown)
+	//	{
+	//		this.Name = name;
+	//		this.TypeKind = kind;
+	//		this.Attributes = new HashSet<Attribute>();
+	//	}
+
+	//	public virtual string FullName
+	//	{
+	//		get
+	//		{
+	//			var containingAssembly = string.Empty;
+	//			var containingNamespace = string.Empty;
+
+	//			if (this.Assembly != null)
+	//			{
+	//				containingAssembly = string.Format("[{0}]", this.Assembly.Name);
+	//			}
+
+	//			if (!string.IsNullOrEmpty(this.Namespace))
+	//			{
+	//				containingNamespace = string.Format("{0}.", this.Namespace);
+	//			}
+
+	//			return string.Format("{0}{1}{2}", containingAssembly, containingNamespace, this.Name);
+	//		}
+	//	}
+
+	//	public override string ToString()
+	//	{
+	//		return this.Name;
+	//	}
+
+	//	public override int GetHashCode()
+	//	{
+	//		return this.Name.GetHashCode();
+	//	}
+
+	//	public override bool Equals(object obj)
+	//	{
+	//		var other = obj as BasicType;
+	//		// TODO: Maybe we should also compare the TypeKind?
+	//		var result = other != null &&
+	//					 this.Assembly.Equals(other.Assembly) &&
+	//					 this.Namespace == other.Namespace &&
+	//					 this.Name == other.Name;
+
+	//		return result;
+	//	}
+	//}
+
+	#endregion
+
+	#region class GenericType
+
+	//public class GenericType : BasicType
+	//{
+	//	public int GenericParameterCount { get; set; }
+
+	//	public GenericType(string name, TypeKind kind = TypeKind.Unknown)
+	//		: base(name, kind)
+	//	{
+	//	}
+
+	//	public string NonGenericFullName
+	//	{
+	//		get { return base.FullName; }
+	//	}
+
+	//	public override string FullName
+	//	{
+	//		get
+	//		{
+	//			var parameters = string.Empty;
+
+	//			if (this.GenericParameterCount > 0)
+	//			{
+	//				parameters = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount + 1));
+	//				parameters = string.Format("<T{0}>", parameters);
+	//			}
+
+	//			return string.Format("{0}{1}", this.NonGenericFullName, parameters);
+	//		}
+	//	}
+
+	//	public override string ToString()
+	//	{
+	//		var parameters = string.Empty;
+
+	//		if (this.GenericParameterCount > 0)
+	//		{
+	//			parameters = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount + 1));
+	//			parameters = string.Format("<T{0}>", parameters);
+	//		}
+
+	//		return string.Format("{0}{1}", base.ToString(), parameters);
+	//	}
+
+	//	public override int GetHashCode()
+	//	{
+	//		return this.Name.GetHashCode();
+	//	}
+
+	//	public override bool Equals(object obj)
+	//	{
+	//		var other = obj as GenericType;
+
+	//		var result = other != null &&
+	//					 base.Equals(other) &&
+	//					 this.GenericParameterCount == other.GenericParameterCount;
+
+	//		return result;
+	//	}
+	//}
+
+	#endregion
+
+	#region class SpecializedType
+
+	//public class SpecializedType : IType
+	//{
+	//	public ISet<Attribute> Attributes { get; private set; }
+	//	public GenericType GenericType { get; set; }
+	//	public IList<IType> GenericArguments { get; private set; }
+
+	//	public SpecializedType(GenericType genericType)
+	//	{
+	//		this.GenericType = genericType;
+	//		this.GenericArguments = new List<IType>();
+	//		this.Attributes = new HashSet<Attribute>();
+	//	}
+
+	//	public TypeKind TypeKind
+	//	{
+	//		get { return this.GenericType.TypeKind; }
+	//	}
+
+	//	public string NonGenericFullName
+	//	{
+	//		get { return this.GenericType.NonGenericFullName; }
+	//	}
+
+	//	public string FullName
+	//	{
+	//		get
+	//		{
+	//			var arguments = string.Empty;
+
+	//			if (this.GenericArguments.Count > 0)
+	//			{
+	//				arguments = string.Join(", ", this.GenericArguments);
+	//				arguments = string.Format("<{0}>", arguments);
+	//			}
+
+	//			return string.Format("{0}{1}", this.NonGenericFullName, arguments);
+	//		}
+	//	}
+
+	//	public override string ToString()
+	//	{
+	//		var arguments = string.Empty;
+
+	//		if (this.GenericArguments.Count > 0)
+	//		{
+	//			arguments = string.Join(", ", this.GenericArguments);
+	//			arguments = string.Format("<{0}>", arguments);
+	//		}
+
+	//		return string.Format("{0}{1}", this.GenericType.Name, arguments);
+	//	}
+
+	//	public override int GetHashCode()
+	//	{
+	//		return this.GenericType.Name.GetHashCode();
+	//	}
+
+	//	public override bool Equals(object obj)
+	//	{
+	//		var other = obj as SpecializedType;
+
+	//		var result = other != null &&
+	//					 this.GenericType.Equals(other.GenericType) &&
+	//					 this.GenericArguments.SequenceEqual(other.GenericArguments);
+
+	//		return result;
+	//	}
+	//}
+
+	#endregion
+
 	public class TypeVariable : IType
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeKind TypeKind { get; set; }
 		public string Name { get; set; }
 
@@ -185,6 +396,7 @@ namespace Model.Types
 		{
 			this.Name = name;
 			this.TypeKind = kind;
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 		
 		public override string ToString()
@@ -210,6 +422,7 @@ namespace Model.Types
 
 	public class FunctionPointerType : IReferenceType
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public IType ReturnType { get; set; }
 		public IList<IMethodParameterReference> Parameters { get; private set; }
 		public bool IsStatic { get; set; }
@@ -218,6 +431,7 @@ namespace Model.Types
 		{
 			this.ReturnType = returnType;
 			this.Parameters = new List<IMethodParameterReference>();
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public FunctionPointerType(IMethodReference method)
@@ -271,11 +485,13 @@ namespace Model.Types
 
 	public class PointerType : IReferenceType
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public IType TargetType { get; set; }
 
 		public PointerType(IType targetType)
 		{
 			this.TargetType = targetType;
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public TypeKind TypeKind
@@ -306,11 +522,13 @@ namespace Model.Types
 
 	public class ArrayType : IReferenceType
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public IType ElementsType { get; set; }
 
 		public ArrayType(IType elementsType)
 		{
 			this.ElementsType = elementsType;
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public TypeKind TypeKind

@@ -28,6 +28,7 @@ namespace Model.Types
 	{
 		Assembly ContainingAssembly { get; set; }
 		Namespace ContainingNamespace { get; set; }
+		ISet<CustomAttribute> Attributes { get; }
 		string Name { get; }
 		string FullName { get; }
 		IEnumerable<ITypeMemberDefinition> Members { get; }
@@ -43,11 +44,30 @@ namespace Model.Types
 	{
 	}
 
+	public class CustomAttribute
+	{
+		public IType Type { get; set; }
+		public IMethodReference Constructor { get; set; }
+		public IList<Constant> Arguments { get; private set; }
+
+		public CustomAttribute()
+		{
+		}
+
+		public override string ToString()
+		{
+			var arguments = string.Join(", ", this.Arguments);
+
+			return string.Format("[{0}({1})]", this.Type, this.Constructor.Name, arguments);
+		}
+	}
+
 	public class StructDefinition : IValueTypeDefinition, ITypeDefinitionContainer
 	{
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
 		public ITypeDefinition ContainingType { get; set; }
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public string Name { get; set; }
 		public IList<TypeVariable> GenericParameters { get; private set; }
 		public IList<FieldDefinition> Fields { get; private set; }
@@ -57,6 +77,7 @@ namespace Model.Types
 		public StructDefinition(string name)
 		{
 			this.Name = name;
+			this.Attributes = new HashSet<CustomAttribute>();
 			this.GenericParameters = new List<TypeVariable>();
 			this.Fields = new List<FieldDefinition>();
 			this.Methods = new List<MethodDefinition>();
@@ -140,6 +161,7 @@ namespace Model.Types
 
 	public class FieldReference : IFieldReference
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public BasicType ContainingType { get; set; }
 		public IType Type { get; set; }
 		public string Name { get; set; }
@@ -149,6 +171,7 @@ namespace Model.Types
 		{
 			this.Name = name;
 			this.Type = type;
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public override string ToString()
@@ -160,6 +183,7 @@ namespace Model.Types
 
 	public class FieldDefinition : ITypeMemberDefinition //, IFieldReference
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public ITypeDefinition ContainingType { get; set; }
 		public IType Type { get; set; }
 		public string Name { get; set; }
@@ -169,6 +193,7 @@ namespace Model.Types
 		{
 			this.Name = name;
 			this.Type = type;
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public bool MatchReference(ITypeMemberReference member)
@@ -232,6 +257,7 @@ namespace Model.Types
 
 	public class MethodParameter // : IMethodParameterReference
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public string Name { get; set; }
 		public IType Type { get; set; }
 		public MethodParameterKind Kind {get; set; }
@@ -241,6 +267,7 @@ namespace Model.Types
 			this.Name = name;
 			this.Type = type;
 			this.Kind = MethodParameterKind.In;
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public bool MatchReference(IMethodParameterReference parameter)
@@ -277,6 +304,7 @@ namespace Model.Types
 
 	public class MethodReference : IMethodReference
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public BasicType ContainingType { get; set; }
 		public IType ReturnType { get; set; }
 		public string Name { get; set; }
@@ -289,6 +317,7 @@ namespace Model.Types
 			this.Name = name;
 			this.ReturnType = returnType;
 			this.Parameters = new List<IMethodParameterReference>();
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public override string ToString()
@@ -316,6 +345,7 @@ namespace Model.Types
 
 	public class MethodDefinition : ITypeMemberDefinition //, IMethodReference
 	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public ITypeDefinition ContainingType { get; set; }
 		public IType ReturnType { get; set; }
 		public string Name { get; set; }
@@ -329,6 +359,7 @@ namespace Model.Types
 		{
 			this.Name = name;
 			this.ReturnType = returnType;
+			this.Attributes = new HashSet<CustomAttribute>();
 			this.GenericParameters = new List<TypeVariable>();
 			this.Parameters = new List<MethodParameter>();
 			this.Body = new MethodBody();
@@ -405,6 +436,7 @@ namespace Model.Types
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
 		public ITypeDefinition ContainingType { get; set; }
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public string Name { get; set; }
 		public BasicType UnderlayingType { get; set; }
 		public IList<ConstantDefinition> Constants { get; private set; }
@@ -412,6 +444,7 @@ namespace Model.Types
 		public EnumDefinition(string name)
 		{
 			this.Name = name;
+			this.Attributes = new HashSet<CustomAttribute>();
 			this.Constants = new List<ConstantDefinition>();
 		}
 
@@ -483,6 +516,7 @@ namespace Model.Types
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
 		public ITypeDefinition ContainingType { get; set; }
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public string Name { get; set; }
 		public IList<BasicType> Interfaces { get; private set; }
 		public IList<TypeVariable> GenericParameters { get; private set; }
@@ -491,6 +525,7 @@ namespace Model.Types
 		public InterfaceDefinition(string name)
 		{
 			this.Name = name;
+			this.Attributes = new HashSet<CustomAttribute>();
 			this.Interfaces = new List<BasicType>();
 			this.GenericParameters = new List<TypeVariable>();
 			this.Methods = new List<MethodDefinition>();
@@ -562,6 +597,7 @@ namespace Model.Types
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
 		public ITypeDefinition ContainingType { get; set; }
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public string Name { get; set; }
 		public BasicType Base { get; set; }
 		public IList<BasicType> Interfaces { get; private set; }
@@ -573,6 +609,7 @@ namespace Model.Types
 		public ClassDefinition(string name)
 		{
 			this.Name = name;
+			this.Attributes = new HashSet<CustomAttribute>();
 			this.Interfaces = new List<BasicType>();
 			this.GenericParameters = new List<TypeVariable>();
 			this.Fields = new List<FieldDefinition>();

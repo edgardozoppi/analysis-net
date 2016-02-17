@@ -1,6 +1,5 @@
 ﻿using Model;
 using Model.Types;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,6 +15,7 @@ namespace CCILoader
 			var type = new EnumDefinition(name);
 
 			type.UnderlayingType = ExtractType(typedef.UnderlyingType) as BasicType;
+			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractConstants(type, type.Constants, typedef.Fields);
 
 			return type;
@@ -26,6 +26,7 @@ namespace CCILoader
 			var name = typedef.Name.Value;
 			var type = new InterfaceDefinition(name);
 
+			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractMethods(type, type.Methods, typedef.Methods, sourceLocationProvider);
@@ -46,6 +47,7 @@ namespace CCILoader
 
 			type.Base = ExtractType(basedef) as BasicType;
 
+			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractFields(type, type.Fields, typedef.Fields);
@@ -59,6 +61,7 @@ namespace CCILoader
 			var name = typedef.Name.Value;
 			var type = new StructDefinition(name);
 
+			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
 			ExtractFields(type, type.Fields, typedef.Fields);
 			ExtractMethods(type, type.Methods, typedef.Methods, sourceLocationProvider);
@@ -109,6 +112,8 @@ namespace CCILoader
 			var elements = ExtractType(typeref.ElementType);
 			var type = new ArrayType(elements);
 
+			ExtractAttributes(type.Attributes, typeref.Attributes);
+
 			return type;
 		}
 
@@ -117,6 +122,8 @@ namespace CCILoader
 			var target = ExtractType(typeref.TargetType);
 			var type = new PointerType(target);
 
+			ExtractAttributes(type.Attributes, typeref.Attributes);
+
 			return type;
 		}
 
@@ -124,6 +131,8 @@ namespace CCILoader
 		{
 			var name = GetTypeName(typeref);
 			var type = new TypeVariable(name);
+
+			ExtractAttributes(type.Attributes, typeref.Attributes);
 
 			return type;
 		}
@@ -144,19 +153,71 @@ namespace CCILoader
 			var kind = GetTypeKind(typeref);
 			var type = new BasicType(name, kind);
 
+			ExtractAttributes(type.Attributes, typeref.Attributes);
+
 			type.Assembly = new AssemblyReference(containingAssembly);
 			type.Namespace = containingNamespace;
+
 			return type;
 		}
+
+		#region Extract SpecializedType
+
+		//public static SpecializedType ExtractType(Cci.IGenericTypeInstanceReference typeref)
+		//{
+		//	var genericType = (GenericType)ExtractType(typeref.GenericType);
+		//	var type = new SpecializedType(genericType);
+
+		//	foreach (var argumentref in typeref.GenericArguments)
+		//	{
+		//		var typearg = ExtractType(argumentref);
+		//		type.GenericArguments.Add(typearg);
+		//	}
+
+		//	return type;
+		//}
+
+		#endregion
+
+		#region Extract GenericType and BasicType
+
+		//public static BasicType ExtractType(Cci.INamedTypeReference typeref)
+		//{
+		//	BasicType type;
+		//	string containingAssembly;
+		//	string containingNamespace;
+		//	var name = GetTypeName(typeref, out containingAssembly, out containingNamespace);
+		//	var kind = GetTypeKind(typeref);
+
+		//	if (typeref.GenericParameterCount > 0)
+		//	{
+		//		type = new GenericType(name, kind);
+		//	}
+		//	else
+		//	{
+		//		type = new BasicType(name, kind);
+		//	}
+
+		//	ExtractAttributes(type.Attributes, typeref.Attributes);
+
+		//	type.Assembly = new AssemblyReference(containingAssembly);
+		//	type.Namespace = containingNamespace;
+
+		//	return type;
+		//}
+
+		#endregion
 
 		public static FunctionPointerType ExtractType(Cci.IFunctionPointerTypeReference typeref)
 		{
 			var returnType = ExtractType(typeref.Type);
 			var type = new FunctionPointerType(returnType);
 
+			ExtractAttributes(type.Attributes, typeref.Attributes);
 			ExtractParameters(type.Parameters, typeref.Parameters);
 
 			type.IsStatic = typeref.IsStatic;
+
 			return type;
 		}
 
@@ -188,8 +249,11 @@ namespace CCILoader
 			var type = ExtractType(fieldref.Type);
 			var field = new FieldReference(fieldref.Name.Value, type);
 
+			ExtractAttributes(field.Attributes, fieldref.Attributes);
+
 			field.ContainingType = (BasicType)ExtractType(fieldref.ContainingType);
 			field.IsStatic = fieldref.IsStatic;
+
 			return field;
 		}
 
@@ -198,12 +262,32 @@ namespace CCILoader
 			var returnType = ExtractType(methodref.Type);
 			var method = new MethodReference(methodref.Name.Value, returnType);
 
+			ExtractAttributes(method.Attributes, methodref.Attributes);
 			ExtractParameters(method.Parameters, methodref.Parameters);
 
 			method.GenericParameterCount = methodref.GenericParameterCount;
 			method.ContainingType = (BasicType)ExtractType(methodref.ContainingType);
 			method.IsStatic = methodref.IsStatic;
+
 			return method;
+		}
+
+		private static void ExtractAttributes(ISet<CustomAttribute> dest, IEnumerable<Cci.ICustomAttribute> source)
+		{
+			foreach (var attrib in source)
+			{
+				var attribute = new CustomAttribute();
+
+				attribute.Type = ExtractType(attrib.Type);
+				attribute.Constructor = ExtractReference(attrib.Constructor);
+
+				foreach (var argument in attrib.Arguments)
+				{
+					
+				}
+
+				dest.Add(attribute);
+			}
 		}
 
 		private static void ExtractConstants(ITypeDefinition containingType, IList<ConstantDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
@@ -255,6 +339,7 @@ namespace CCILoader
 
 			var definingAssembly = Cci.TypeHelper.GetDefiningUnitReference(typeref);
 			containingAssembly = definingAssembly.Name.Value;
+
 			return name;
 		}
 
@@ -276,6 +361,7 @@ namespace CCILoader
 				var type = ExtractType(methoddef.Type);
 				var method = new MethodDefinition(name, type);
 
+				ExtractAttributes(method.Attributes, methoddef.Attributes);
 				ExtractGenericParameters(method.GenericParameters, methoddef.GenericParameters);
 				ExtractParameters(method.Parameters, methoddef.Parameters);
 				ExtractBody(method.Body, methoddef.Body, sourceLocationProvider);
@@ -294,8 +380,9 @@ namespace CCILoader
 				var name = parameterdef.Name.Value;
 				var parameter = new TypeVariable(name);
 
-				parameter.TypeKind = GetTypeParameterKind(parameterdef);
+				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 
+				parameter.TypeKind = GetTypeParameterKind(parameterdef);
 				dest.Add(parameter);
 			}
 		}
@@ -335,11 +422,10 @@ namespace CCILoader
 		{
 			foreach (var parameterref in source)
 			{
-				var type = TypeExtractor.ExtractType(parameterref.Type);
+				var type = ExtractType(parameterref.Type);
 				var parameter = new MethodParameterReference(type);
 
 				parameter.Kind = GetMethodParameterKind(parameterref);
-
 				dest.Add(parameter);
 			}
 		}
@@ -352,8 +438,9 @@ namespace CCILoader
 				var type = ExtractType(parameterdef.Type);
 				var parameter = new MethodParameter(name, type);
 
-				parameter.Kind = GetMethodParameterKind(parameterdef);
+				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 
+				parameter.Kind = GetMethodParameterKind(parameterdef);
 				dest.Add(parameter);
 			}
 		}
@@ -384,6 +471,8 @@ namespace CCILoader
 				var name = fielddef.Name.Value;
 				var type = ExtractType(fielddef.Type);
 				var field = new FieldDefinition(name, type);
+
+				ExtractAttributes(field.Attributes, fielddef.Attributes);
 
 				field.IsStatic = fielddef.IsStatic;
 				field.ContainingType = containingType;

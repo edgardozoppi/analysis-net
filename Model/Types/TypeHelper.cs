@@ -44,5 +44,43 @@ namespace Model.Types
 
 			return type;
 		}
+
+		public static bool IsContainer(IType type)
+		{
+			throw new NotImplementedException();
+
+			//var result = false;
+
+			//if (type is SpecializedType)
+			//{
+			//	var specializedType = type as SpecializedType;
+			//	type = specializedType.GenericType;
+			//}
+
+			//var typedef = TypeHelper.Resolve(type, host);
+
+			//if (typedef != null)
+			//{
+			//	result = TypeHelper.Type1ImplementsType2(typedef, host.PlatformType.SystemCollectionsICollection);
+			//	result = result || TypeHelper.Type1ImplementsType2(typedef, host.PlatformType.SystemCollectionsGenericICollection);
+			//}
+
+			//return result;
+		}
+
+		public static IType MergedType(IType left, IType right)
+		{
+			throw new NotImplementedException();
+		}
+
+		public static IType BinaryNumericOperationType(IType left, IType right, bool unsigned)
+		{
+			throw new NotImplementedException();
+		}
+
+		public static IType BinaryLogicalOperationType(IType left, IType right)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

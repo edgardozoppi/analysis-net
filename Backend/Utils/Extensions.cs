@@ -238,11 +238,11 @@ namespace Backend.Utils
 
 		public static bool IsPure(this IMethodReference method)
 		{
-			var result = method.Attributes.Any(a => a.Type == Types.Instance.PureAttributeType);
+			var result = method.Attributes.Any(a => a.Type.Equals(PlatformTypes.PureAttribute));
 
 			if (!result)
 			{
-				result = method.Name == "get_Count" && Types.Instance.IsContainer(method.ContainingType);
+				result = method.Name == "get_Count" && TypeHelper.IsContainer(method.ContainingType);
 			}
 
 			return result;
