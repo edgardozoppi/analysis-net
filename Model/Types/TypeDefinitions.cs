@@ -52,13 +52,14 @@ namespace Model.Types
 
 		public CustomAttribute()
 		{
+			this.Arguments = new List<Constant>();
 		}
 
 		public override string ToString()
 		{
 			var arguments = string.Join(", ", this.Arguments);
 
-			return string.Format("[{0}({1})]", this.Type, this.Constructor.Name, arguments);
+			return string.Format("[{0}({1})]", this.Type, arguments);
 		}
 	}
 

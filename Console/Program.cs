@@ -5,6 +5,8 @@ using System.Text;
 using CCILoader;
 using Model;
 using Model.Types;
+using Backend.Analysis;
+using Backend.Serialization;
 
 namespace Console
 {
@@ -76,7 +78,25 @@ namespace Console
 				ReturnType = PlatformTypes.Void
 			};
 
-			var methodDefinition = host.ResolveReference(method);
+			var methodDefinition = host.ResolveReference(method) as MethodDefinition;
+
+			var cfAnalysis = new ControlFlowAnalysis(methodDefinition.Body);
+			var cfg = cfAnalysis.GenerateNormalControlFlow();
+
+			var domAnalysis = new DominanceAnalysis(cfg);
+			domAnalysis.Analyze();
+			domAnalysis.GenerateDominanceTree();
+
+			var loopAnalysis = new NaturalLoopAnalysis(cfg);
+			loopAnalysis.Analyze();
+
+			var domFrontierAnalysis = new DominanceFrontierAnalysis(cfg);
+			domFrontierAnalysis.Analyze();
+
+			//var dot = DOTSerializer.Serialize(cfg);
+			var dgml = DGMLSerializer.Serialize(cfg);
+
+			dgml = DGMLSerializer.Serialize(host, typeDefinition);
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();

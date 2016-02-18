@@ -1,5 +1,7 @@
 ﻿using Model;
+using Model.ThreeAddressCode.Values;
 using Model.Types;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +11,19 @@ namespace CCILoader
 {
 	internal static class TypeExtractor
 	{
+		// Attribute classes can have attributes of their same type.
+		// Example: [AttributeUsage]class AttributeUsage { ... }
+		// So we need to cache attribute types to reuse them and avoid infinite recursion.
+		// The problem is related with type references (IType) having attributes.
+		// We cannot only add them to type definitions because the user may need
+		// to know the attributes of a type defined in an external library.
+		private static IDictionary<Cci.ITypeReference, BasicType> attributesCache;
+
+		static TypeExtractor()
+		{
+			attributesCache = new Dictionary<Cci.ITypeReference, BasicType>();
+		}
+
 		public static EnumDefinition ExtractEnum(Cci.INamedTypeDefinition typedef)
 		{
 			var name = typedef.Name.Value;
@@ -139,7 +154,7 @@ namespace CCILoader
 
 		public static BasicType ExtractType(Cci.IGenericTypeInstanceReference typeref)
 		{
-			var type = ExtractType(typeref.GenericType);
+			var type = ExtractType(typeref.GenericType, false);
 			ExtractGenericType(type, typeref);
 
 			return type;
@@ -147,16 +162,48 @@ namespace CCILoader
 
 		public static BasicType ExtractType(Cci.INamedTypeReference typeref)
 		{
-			string containingAssembly;
-			string containingNamespace;
-			var name = GetTypeName(typeref, out containingAssembly, out containingNamespace);
-			var kind = GetTypeKind(typeref);
-			var type = new BasicType(name, kind);
+			return ExtractType(typeref, true);
+		}
 
-			ExtractAttributes(type.Attributes, typeref.Attributes);
+		private static BasicType ExtractType(Cci.INamedTypeReference typeref, bool canReturnFromCache)
+		{
+			//string containingAssembly;
+			//string containingNamespace;
+			//var name = GetTypeName(typeref, out containingAssembly, out containingNamespace);
+			//var kind = GetTypeKind(typeref);
+			//var type = new BasicType(name, kind);
 
-			type.Assembly = new AssemblyReference(containingAssembly);
-			type.Namespace = containingNamespace;
+			BasicType type = null;
+
+			if (!attributesCache.TryGetValue(typeref, out type) || !canReturnFromCache)
+			{
+				string containingAssembly;
+				string containingNamespace;
+				var name = GetTypeName(typeref, out containingAssembly, out containingNamespace);
+				var kind = GetTypeKind(typeref);
+				var newType = new BasicType(name, kind);
+
+				newType.Assembly = new AssemblyReference(containingAssembly);
+				newType.Namespace = containingNamespace;
+
+				if (type == null)
+				{
+					attributesCache.Add(typeref, newType);
+
+					ExtractAttributes(newType.Attributes, typeref.Attributes);
+				}
+				else
+				{
+					newType.Attributes.UnionWith(type.Attributes);
+				}
+
+				type = newType;
+			}
+
+			//ExtractAttributes(type.Attributes, typeref.Attributes);
+
+			//type.Assembly = new AssemblyReference(containingAssembly);
+			//type.Namespace = containingNamespace;
 
 			return type;
 		}
@@ -281,12 +328,29 @@ namespace CCILoader
 				attribute.Type = ExtractType(attrib.Type);
 				attribute.Constructor = ExtractReference(attrib.Constructor);
 
-				foreach (var argument in attrib.Arguments)
-				{
-					
-				}
+				ExtractArguments(attribute.Arguments, attrib.Arguments);
 
 				dest.Add(attribute);
+			}
+		}
+
+		private static void ExtractArguments(IList<Constant> dest, IEnumerable<Cci.IMetadataExpression> source)
+		{
+			foreach (var mexpr in source)
+			{
+				Constant argument = null;
+
+				if (mexpr is Cci.IMetadataConstant)
+				{
+					var mconstant = mexpr as Cci.IMetadataConstant;
+					argument = new Constant(mconstant.Value);
+				}
+				else
+				{
+					throw new NotImplementedException();
+				}
+
+				dest.Add(argument);
 			}
 		}
 

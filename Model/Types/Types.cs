@@ -134,15 +134,15 @@ namespace Model.Types
 				var containingNamespace = string.Empty;
 				var arguments = string.Empty;
 
-				if (this.Assembly != null)
-				{
-					containingAssembly = string.Format("[{0}]", this.Assembly.Name);
-				}
+				//if (this.Assembly != null)
+				//{
+				//	containingAssembly = string.Format("[{0}]", this.Assembly.Name);
+				//}
 
-				if (!string.IsNullOrEmpty(this.Namespace))
-				{
-					containingNamespace = string.Format("{0}.", this.Namespace);
-				}
+				//if (!string.IsNullOrEmpty(this.Namespace))
+				//{
+				//	containingNamespace = string.Format("{0}.", this.Namespace);
+				//}
 
 				if (this.GenericArguments.Count > 0)
 				{
