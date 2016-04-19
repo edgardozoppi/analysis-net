@@ -68,17 +68,55 @@ namespace Model.Types
 			//return result;
 		}
 
-		public static IType MergedType(IType left, IType right)
+		/// <summary>
+		/// If both type references can be resolved, this returns the merged type of two types as per the verification algorithm in CLR.
+		/// Otherwise it returns either type1, or type2 or System.Object, depending on how much is known about either type.
+		/// </summary>
+		public static IType MergedType(IType type1, IType type2)
+		{
+			throw new NotImplementedException();
+
+			//if (TypesAreEquivalent(type1, type2)) return type1;
+			//if (StackTypesAreEquivalent(type1, type2)) return StackType(type1);
+			//var typedef1 = type1.ResolvedType;
+			//var typedef2 = type2.ResolvedType;
+
+			//if (typedef1 != null && typedef2 != null)
+			//{
+			//	return MergedType(typedef1, typedef2);
+			//}
+
+			//if (typedef1 != null && Type1ImplementsType2(typedef1, type2)) return type2;
+			//else if (typedef2 != null && Type1ImplementsType2(typedef2, type1)) return type1;
+
+			//return PlatformTypes.Object;
+		}
+
+		/// <summary>
+		/// Returns the merged type of two types as per the verification algorithm in CLR.
+		/// If the types cannot be merged, then it returns System.Object.
+		/// </summary>
+		public static IType MergedType(ITypeDefinition type1, ITypeDefinition type2)
+		{
+			throw new NotImplementedException();
+
+			//if (TypesAreEquivalent(type1, type2)) return type1;
+			//if (StackTypesAreEquivalent(type1, type2)) return StackType(type1);
+			//if (TypesAreAssignmentCompatible(type1, type2))	return type2;
+			//if (TypesAreAssignmentCompatible(type2, type1))	return type1;
+
+			//var mdcbc = MostDerivedCommonBaseClass(type1, type2);
+			//if (mdcbc != null) return mdcbc;
+
+			//return PlatformTypes.Object;
+		}
+
+		public static IType BinaryNumericOperationType(IType type1, IType type2, bool unsigned)
 		{
 			throw new NotImplementedException();
 		}
 
-		public static IType BinaryNumericOperationType(IType left, IType right, bool unsigned)
-		{
-			throw new NotImplementedException();
-		}
-
-		public static IType BinaryLogicalOperationType(IType left, IType right)
+		public static IType BinaryLogicalOperationType(IType type1, IType type2)
 		{
 			throw new NotImplementedException();
 		}
