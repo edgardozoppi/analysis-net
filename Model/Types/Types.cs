@@ -117,6 +117,7 @@ namespace Model.Types
 		public string Namespace { get; set; }
 		public string Name { get; set; }
 		public IList<IType> GenericArguments { get; private set; }
+		public ITypeDefinition ResolvedType { get; private set; }
 
 		public BasicType(string name, TypeKind kind = TypeKind.Unknown)
 		{
@@ -152,6 +153,12 @@ namespace Model.Types
 
 				return string.Format("{0}{1}{2}{3}", containingAssembly, containingNamespace, this.Name, arguments);
 			}
+		}
+
+		public ITypeDefinition Resolve(Host host)
+		{
+			this.ResolvedType = host.ResolveReference(this);
+			return this.ResolvedType;
 		}
 
 		public override string ToString()
