@@ -92,11 +92,15 @@ namespace Model.Types
 			{
 				var arrayType1 = type1 as ArrayType;
 				var arrayType2 = type2 as ArrayType;
-				type1 = arrayType1.ElementsType;
-				type2 = arrayType2.ElementsType;
 
-				var elementsType = MergedType(type1, type2);
-				result = new ArrayType(elementsType);
+				if (arrayType1.Rank == arrayType2.Rank)
+				{
+					type1 = arrayType1.ElementsType;
+					type2 = arrayType2.ElementsType;
+
+					var elementsType = MergedType(type1, type2);
+					result = new ArrayType(elementsType, arrayType1.Rank);
+				}
 			}
 			else if (type1 is BasicType && type2 is BasicType)
 			{
@@ -121,31 +125,27 @@ namespace Model.Types
 			var typedef1 = type1.ResolvedType;
 			var typedef2 = type2.ResolvedType;
 
-			if (typedef1 != null && typedef2 != null)
-			{
-				return MergedType(typedef1, typedef2);
-			}
-
-			if (typedef1 != null && Type1ImplementsType2(typedef1, type2)) return type2;
-			else if (typedef2 != null && Type1ImplementsType2(typedef2, type1)) return type1;
-
-			return PlatformTypes.Object;
-		}
-
-		/// <summary>
-		/// Returns the merged type of two types as per the verification algorithm in CLR.
-		/// If the types cannot be merged, then it returns System.Object.
-		/// </summary>
-		public static IType MergedType(ITypeDefinition type1, ITypeDefinition type2)
-		{
-			if (TypesAreEquivalent(type1, type2)) return type1;
-			if (StackTypesAreEquivalent(type1, type2)) return StackType(type1);
-			if (TypesAreAssignmentCompatible(type1, type2)) return type2;
-			if (TypesAreAssignmentCompatible(type2, type1)) return type1;
+			if (typedef1 != null && TypesAreAssignmentCompatible(typedef1, type2)) return type2;
+			if (typedef2 != null && TypesAreAssignmentCompatible(typedef2, type1)) return type1;
 
 			var mdcbc = MostDerivedCommonBaseClass(type1, type2);
 			if (mdcbc != null) return mdcbc;
 
+			//if (typedef1 != null && typedef2 != null)
+			//{
+			//	if (TypesAreEquivalent(typedef1, typedef2)) return type1;
+			//	//if (StackTypesAreEquivalent(typedef1, typedef2)) return StackType(type1);
+			//	if (typedef1 != null && TypesAreAssignmentCompatible(typedef1, type2)) return type2;
+			//	if (typedef2 != null && TypesAreAssignmentCompatible(typedef2, type1)) return type1;
+
+			//	var mdcbc = MostDerivedCommonBaseClass(type1, type2);
+			//	if (mdcbc != null) return mdcbc;
+			//}
+			//else
+			
+			if (typedef1 != null && Type1ImplementsType2(typedef1, type2)) return type2;
+			if (typedef2 != null && Type1ImplementsType2(typedef2, type1)) return type1;
+			
 			return PlatformTypes.Object;
 		}
 
@@ -162,6 +162,13 @@ namespace Model.Types
 			if (type1 == null || type2 == null) return false;
 			if (type1 == type2) return true;
 			if (type1.Equals(type2)) return true;
+			return false;
+		}
+
+		public static bool TypesAreEquivalent(ITypeDefinition type1, IType type2)
+		{
+			if (type1 == null || type2 == null) return false;
+			if (type2 is BasicType && type1.MatchReference(type2 as BasicType)) return true;
 			return false;
 		}
 
@@ -266,6 +273,11 @@ namespace Model.Types
 				var structdef = type1 as StructDefinition;
 				interfaces = structdef.Interfaces;
 			}
+			else if (type1 is InterfaceDefinition)
+			{
+				var interfacedef = type1 as InterfaceDefinition;
+				interfaces = interfacedef.Interfaces;
+			}
 
 			if (interfaces != null)
 			{
@@ -285,6 +297,151 @@ namespace Model.Types
 				return true;
 
 			return false;
+		}
+
+		/// <summary>
+		/// Returns true if a CLR supplied implicit reference conversion is available to convert a value of the given source type to a corresponding value of the given target type.
+		/// </summary>
+		public static bool TypesAreAssignmentCompatible(IType sourceType, IType targetType)
+		{
+			var result = false;
+
+			if (sourceType is PointerType && targetType is PointerType)
+			{
+				var sourcePointerType = sourceType as PointerType;
+				var targetPointerType = targetType as PointerType;
+				sourceType = sourcePointerType.TargetType;
+				targetType = targetPointerType.TargetType;
+
+				result = TypesAreAssignmentCompatible(sourceType, targetType);
+			}
+			else if (sourceType is ArrayType && targetType is ArrayType)
+			{
+				var sourceArrayType = sourceType as ArrayType;
+				var targetArrayType = targetType as ArrayType;
+
+				if (sourceArrayType.Rank == targetArrayType.Rank)
+				{
+					sourceType = sourceArrayType.ElementsType;
+					targetType = targetArrayType.ElementsType;
+
+					result = TypesAreAssignmentCompatible(sourceType, targetType);
+				}
+			}
+			else if (sourceType is BasicType && targetType is BasicType)
+			{
+				var sourceBasicType = sourceType as BasicType;
+
+				if (sourceBasicType.ResolvedType != null)
+				{
+					result = TypesAreAssignmentCompatible(sourceBasicType.ResolvedType, targetType);
+				}
+			}
+			else if (targetType is BasicType)
+			{
+				result = TypesAreEquivalent(targetType, PlatformTypes.Object);
+			}
+
+			return result;
+		}
+
+		/// <summary>
+		/// Returns true if a CLR supplied implicit reference conversion is available to convert a value of the given source type to a corresponding value of the given target type.
+		/// </summary>
+		private static bool TypesAreAssignmentCompatible(ITypeDefinition sourceType, IType targetType)
+		{
+			if (TypesAreEquivalent(sourceType, targetType)) return true;
+			if (Type1DerivesFromType2(sourceType, targetType)) return true;
+			if (Type1ImplementsType2(sourceType, targetType)) return true;
+			if (TypesAreEquivalent(targetType, PlatformTypes.Object)) return true;
+			if (Type1IsCovariantWithType2(sourceType, targetType)) return true;
+
+			return false;
+		}
+
+		/// <summary>
+		/// Returns true if type1 is the same as type2 or if it is derives from type2.
+		/// Type1 derives from type2 if the latter is a direct or indirect base class.
+		/// </summary>
+		public static bool Type1DerivesFromOrIsTheSameAsType2(ITypeDefinition type1, IType type2)
+		{
+			if (TypesAreEquivalent(type1, type2)) return true;
+			return Type1DerivesFromType2(type1, type2);
+		}
+
+		/// <summary>
+		/// Type1 derives from type2 if the latter is a direct or indirect base class.
+		/// </summary>
+		public static bool Type1DerivesFromType2(ITypeDefinition type1, IType type2)
+		{
+			if (type1 is ClassDefinition)
+			{
+				var class1 = type1 as ClassDefinition;
+
+				if (TypesAreEquivalent(class1.Base, type2)) return true;
+
+				if (class1.Base.ResolvedType is ClassDefinition &&
+					Type1DerivesFromType2(class1.Base.ResolvedType as ClassDefinition, type2)) return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Returns true if Type1 is CovariantWith Type2 as per CLR.
+		/// </summary>
+		public static bool Type1IsCovariantWithType2(ITypeDefinition type1, IType type2)
+		{
+			var arrayType1 = type1 as ArrayType;
+			var arrayType2 = type2 as ArrayType;
+
+			if (arrayType1 == null || arrayType2 == null) return false;
+			if (arrayType1.Rank != arrayType2.Rank) return false;
+
+			return TypesAreAssignmentCompatible(arrayType1.ElementsType, arrayType2.ElementsType);
+		}
+
+		/// <summary>
+		/// Returns the most derived base class that both given types have in common. Returns null if no such class exists.
+		/// For example: if either or both are interface types, then the result is null.
+		/// A class is considered its own base class for this algorithm, so if type1 derives from type2 the result is type2
+		/// and if type2 derives from type1 the result is type1.
+		/// </summary>
+		public static IType MostDerivedCommonBaseClass(IType type1, IType type2)
+		{
+			IType result = null;
+
+			var hierarchy1 = GetClassHierarchy(type1);
+			var hierarchy2 = GetClassHierarchy(type2);
+
+			foreach (var type in hierarchy1)
+			{
+				if (hierarchy2.Contains(type))
+				{
+					result = type;
+					break;
+				}
+			}
+
+			return result;
+		}
+
+		public static IEnumerable<BasicType> GetClassHierarchy(IType type)
+		{
+			var result = new List<BasicType>();
+			var basicType = type as BasicType;
+
+			while (basicType != null)
+			{
+				result.Add(basicType);
+
+				var typedef = basicType.ResolvedType as ClassDefinition;
+				if (typedef == null) break;
+
+				basicType = typedef.Base;
+			}
+
+			return result;
 		}
 
 		public static IType BinaryNumericOperationType(IType type1, IType type2, bool unsigned)

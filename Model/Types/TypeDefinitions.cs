@@ -33,6 +33,7 @@ namespace Model.Types
 		string FullName { get; }
 		IEnumerable<ITypeMemberDefinition> Members { get; }
 
+		//BasicType GetReference();
 		bool MatchReference(BasicType type);
 	}
 

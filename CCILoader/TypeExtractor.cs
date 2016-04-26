@@ -126,7 +126,7 @@ namespace CCILoader
 		public static ArrayType ExtractType(Cci.IArrayTypeReference typeref)
 		{
 			var elements = ExtractType(typeref.ElementType);
-			var type = new ArrayType(elements);
+			var type = new ArrayType(elements, typeref.Rank);
 
 			ExtractAttributes(type.Attributes, typeref.Attributes);
 

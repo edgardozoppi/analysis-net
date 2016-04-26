@@ -531,16 +531,23 @@ namespace Model.Types
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public IType ElementsType { get; set; }
+		public uint Rank { get; set; }
 
-		public ArrayType(IType elementsType)
+		public ArrayType(IType elementsType, uint rank = 1)
 		{
 			this.ElementsType = elementsType;
+			this.Rank = rank;
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public TypeKind TypeKind
 		{
 			get { return TypeKind.ReferenceType; }
+		}
+
+		public bool IsVector
+		{
+			get { return this.Rank == 1; }
 		}
 
 		public override string ToString()

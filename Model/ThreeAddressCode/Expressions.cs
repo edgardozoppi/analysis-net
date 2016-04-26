@@ -707,7 +707,7 @@ namespace Model.ThreeAddressCode.Expressions
 
 		public IType Type
 		{
-			get { return new ArrayType(this.ElementType); }
+			get { return new ArrayType(this.ElementType, this.Rank); }
 		}
 
 		public ISet<IVariable> Variables
