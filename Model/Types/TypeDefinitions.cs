@@ -70,6 +70,7 @@ namespace Model.Types
 		public ITypeDefinition ContainingType { get; set; }
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public string Name { get; set; }
+		public IList<BasicType> Interfaces { get; private set; }
 		public IList<TypeVariable> GenericParameters { get; private set; }
 		public IList<FieldDefinition> Fields { get; private set; }
 		public IList<MethodDefinition> Methods { get; private set; }
@@ -79,6 +80,7 @@ namespace Model.Types
 		{
 			this.Name = name;
 			this.Attributes = new HashSet<CustomAttribute>();
+			this.Interfaces = new List<BasicType>();
 			this.GenericParameters = new List<TypeVariable>();
 			this.Fields = new List<FieldDefinition>();
 			this.Methods = new List<MethodDefinition>();
@@ -132,6 +134,12 @@ namespace Model.Types
 		{
 			var result = new StringBuilder();
 			result.AppendFormat("struct {0}", this.FullName);
+
+			if (this.Interfaces.Count > 0)
+			{
+				var interfaces = string.Join(", ", this.Interfaces);
+				result.AppendFormat(" : {0}", interfaces);
+			}
 
 			result.AppendLine();
 			result.AppendLine("{");

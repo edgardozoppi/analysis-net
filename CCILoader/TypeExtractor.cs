@@ -78,6 +78,7 @@ namespace CCILoader
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
+			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractFields(type, type.Fields, typedef.Fields);
 			ExtractMethods(type, type.Methods, typedef.Methods, sourceLocationProvider);
 

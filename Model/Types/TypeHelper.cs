@@ -246,6 +246,47 @@ namespace Model.Types
 			return result;
 		}
 
+		/// <summary>
+		/// Returns true if the given type definition, or one of its base types, implements the given interface or an interface
+		/// that derives from the given interface.
+		/// </summary>
+		public static bool Type1ImplementsType2(ITypeDefinition type1, IType type2)
+		{
+			IEnumerable<BasicType> interfaces = null;
+			BasicType baseType = null;
+
+			if (type1 is ClassDefinition)
+			{
+				var classdef = type1 as ClassDefinition;
+				interfaces = classdef.Interfaces;
+				baseType = classdef.Base;
+			}
+			else if (type1 is StructDefinition)
+			{
+				var structdef = type1 as StructDefinition;
+				interfaces = structdef.Interfaces;
+			}
+
+			if (interfaces != null)
+			{
+				foreach (var implementedInterface in interfaces)
+				{
+					if (TypesAreEquivalent(implementedInterface, type2))
+						return true;
+
+					if (implementedInterface.ResolvedType != null &&
+						Type1ImplementsType2(implementedInterface.ResolvedType, type2))
+						return true;
+				}
+			}
+
+			if (baseType != null && baseType.ResolvedType != null &&
+				Type1ImplementsType2(baseType.ResolvedType, type2))
+				return true;
+
+			return false;
+		}
+
 		public static IType BinaryNumericOperationType(IType type1, IType type2, bool unsigned)
 		{
 			throw new NotImplementedException();
