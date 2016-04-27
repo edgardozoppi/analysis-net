@@ -65,14 +65,22 @@ namespace Model.Types
 		public static readonly BasicType Float64 = Double;
 
 		public static readonly BasicType PureAttribute = New("mscorlib", "System.Diagnostics.Contracts", "PureAttribute", TypeKind.ReferenceType);
+		public static readonly BasicType ICollection = New("mscorlib", "System.Collections", "ICollection", TypeKind.ReferenceType);
+		public static readonly BasicType GenericICollection = New("mscorlib", "System.Collections.Generic", "ICollection", TypeKind.ReferenceType, "T");
 
-		private static BasicType New(string containingAssembly, string containingNamespace, string name, TypeKind kind)
+		private static BasicType New(string containingAssembly, string containingNamespace, string name, TypeKind kind, params string[] genericArguments)
 		{
 			var result = new BasicType(name, kind)
 			{
 				Assembly = new AssemblyReference(containingAssembly),
 				Namespace = containingNamespace
 			};
+
+			foreach (var arg in genericArguments)
+			{
+				var typevar = new TypeVariable(arg);
+				result.GenericArguments.Add(typevar);
+			}
 
 			return result;
 		}

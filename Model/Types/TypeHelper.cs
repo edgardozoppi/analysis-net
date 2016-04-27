@@ -53,9 +53,7 @@ namespace Model.Types
 
 		public static bool IsContainer(IType type)
 		{
-			throw new NotImplementedException();
-
-			//var result = false;
+			var result = false;
 
 			//if (type is SpecializedType)
 			//{
@@ -65,13 +63,15 @@ namespace Model.Types
 
 			//var typedef = TypeHelper.Resolve(type, host);
 
-			//if (typedef != null)
-			//{
-			//	result = TypeHelper.Type1ImplementsType2(typedef, host.PlatformType.SystemCollectionsICollection);
-			//	result = result || TypeHelper.Type1ImplementsType2(typedef, host.PlatformType.SystemCollectionsGenericICollection);
-			//}
+			var basicType = type as BasicType;
 
-			//return result;
+			if (basicType != null && basicType.ResolvedType != null)
+			{
+				result = Type1ImplementsType2(basicType.ResolvedType, PlatformTypes.ICollection);
+				result = result || Type1ImplementsType2(basicType.ResolvedType, PlatformTypes.GenericICollection);
+			}
+
+			return result;
 		}
 
 		public static IType MergedType(IType type1, IType type2)
@@ -179,36 +179,45 @@ namespace Model.Types
 		/// </summary>
 		public static IType StackType(IType type)
 		{
-			switch (type.TypeCode)
+			var basicType = type as BasicType;
+			if (basicType == null) return type;
+
+			// TODO: Improve these comparisons (optimize for performance)!!
+			if (basicType.Equals(PlatformTypes.Boolean) ||
+				basicType.Equals(PlatformTypes.Char) ||
+				basicType.Equals(PlatformTypes.Int8) ||
+				basicType.Equals(PlatformTypes.Int16) ||
+				basicType.Equals(PlatformTypes.Int32) ||
+				basicType.Equals(PlatformTypes.UInt8) ||
+				basicType.Equals(PlatformTypes.UInt16) ||
+				basicType.Equals(PlatformTypes.UInt32))
 			{
-				case PrimitiveTypeCode.Boolean:
-				case PrimitiveTypeCode.Char:
-				case PrimitiveTypeCode.Int16:
-				case PrimitiveTypeCode.Int32:
-				case PrimitiveTypeCode.Int8:
-				case PrimitiveTypeCode.UInt16:
-				case PrimitiveTypeCode.UInt32:
-				case PrimitiveTypeCode.UInt8:
-					return type.PlatformType.SystemInt32;
+				return PlatformTypes.Int32;
+			}
 
-				case PrimitiveTypeCode.Int64:
-				case PrimitiveTypeCode.UInt64:
-					return type.PlatformType.SystemInt64;
+			if (basicType.Equals(PlatformTypes.Int64) ||
+				basicType.Equals(PlatformTypes.UInt64))
+			{
+				return PlatformTypes.Int64;
+			}
 
-				case PrimitiveTypeCode.Float32:
-				case PrimitiveTypeCode.Float64:
-					return type.PlatformType.SystemFloat64;
+			if (basicType.Equals(PlatformTypes.Float32) ||
+				basicType.Equals(PlatformTypes.Float64))
+			{
+				return PlatformTypes.Float64;
+			}
 
-				case PrimitiveTypeCode.IntPtr:
-				case PrimitiveTypeCode.UIntPtr:
-					return type.PlatformType.SystemIntPtr;
+			if (basicType.Equals(PlatformTypes.IntPtr) ||
+				basicType.Equals(PlatformTypes.UIntPtr))
+			{
+				return PlatformTypes.IntPtr;
+			}
 
-				case PrimitiveTypeCode.NotPrimitive:
-					if (type.IsEnum)
-					{
-						return StackType(type.ResolvedType.UnderlyingType);
-					}
-					break;
+			var enumdef = basicType.ResolvedType as EnumDefinition;
+
+			if (enumdef != null)
+			{
+				return StackType(enumdef.UnderlayingType);
 			}
 
 			return type;
