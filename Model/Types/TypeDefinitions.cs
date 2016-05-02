@@ -716,6 +716,7 @@ namespace Model.Types
 		public ISet<IVariable> LocalVariables { get; private set; }
 		public IList<IInstruction> Instructions { get; private set; }
 		public IList<ProtectedBlock> ExceptionInformation { get; private set; }
+		public ushort MaxStack { get; set; }
 
 		public MethodBody()
 		{
@@ -727,16 +728,14 @@ namespace Model.Types
 
 		public void UpdateVariables()
 		{
-			throw new NotImplementedException();
+			this.LocalVariables.Clear();
+			this.LocalVariables.AddRange(this.Parameters);
 
-			//this.LocalVariables.Clear();
-			//this.LocalVariables.AddRange(this.Parameters);
-
-			//// TODO: SSA is not inserting phi instructions into method's body instructions collection.
-			//foreach (var instruction in this.Instructions)
-			//{
-			//	this.LocalVariables.AddRange(instruction.Variables);
-			//}
+			// TODO: SSA is not inserting phi instructions into method's body instructions collection.
+			foreach (var instruction in this.Instructions)
+			{
+				this.LocalVariables.AddRange(instruction.Variables);
+			}
 		}
 
 		public override string ToString()

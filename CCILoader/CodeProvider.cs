@@ -35,6 +35,7 @@ namespace CCILoader
 		
 		public void ExtractBody(MethodBody ourBody, Cci.IMethodBody cciBody)
 		{
+			ourBody.MaxStack = cciBody.MaxStack;
 			ExtractParameters(cciBody.MethodDefinition, ourBody.Parameters);
 			ExtractLocalVariables(cciBody.LocalVariables, ourBody.LocalVariables);
 			ExtractExceptionInformation(cciBody.OperationExceptionInformation, ourBody.ExceptionInformation);

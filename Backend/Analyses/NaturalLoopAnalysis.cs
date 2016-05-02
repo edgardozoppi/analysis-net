@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Backend.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Backend.Analysis
+namespace Backend.Analyses
 {
 	public class NaturalLoopAnalysis
 	{

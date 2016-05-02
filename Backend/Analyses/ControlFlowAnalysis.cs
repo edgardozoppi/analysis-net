@@ -7,8 +7,9 @@ using Model.Types;
 using Model.ThreeAddressCode;
 using Bytecode = Model.Bytecode;
 using Tac = Model.ThreeAddressCode.Instructions;
+using Backend.Model;
 
-namespace Backend.Analysis
+namespace Backend.Analyses
 {
 	public class ControlFlowAnalysis
 	{

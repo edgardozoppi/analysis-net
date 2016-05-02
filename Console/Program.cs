@@ -5,7 +5,7 @@ using System.Text;
 using CCILoader;
 using Model;
 using Model.Types;
-using Backend.Analysis;
+using Backend.Analyses;
 using Backend.Serialization;
 
 namespace Console

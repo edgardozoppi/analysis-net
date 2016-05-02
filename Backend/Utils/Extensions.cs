@@ -5,9 +5,10 @@ using System.Text;
 using Model.ThreeAddressCode.Values;
 using Model.ThreeAddressCode.Expressions;
 using Model.ThreeAddressCode.Instructions;
-using Backend.Analysis;
+using Backend.Analyses;
 using Model.Types;
 using Model;
+using Backend.Model;
 
 namespace Backend.Utils
 {

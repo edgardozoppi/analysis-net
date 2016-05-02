@@ -4,9 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
-using Backend.Analysis;
+using Backend.Analyses;
 using Model.Types;
 using Model;
+using Backend.Model;
 
 namespace Backend.Serialization
 {
