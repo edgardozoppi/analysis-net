@@ -41,13 +41,13 @@ namespace Backend.Utils
 			return true;
 		}
 
-		public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> elements)
-		{
-			foreach (var element in elements)
-			{
-				collection.Add(element);
-			}
-		}
+		//public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> elements)
+		//{
+		//	foreach (var element in elements)
+		//	{
+		//		collection.Add(element);
+		//	}
+		//}
 
 		public static MapSet<K, V> ToMapSet<K, V>(this IEnumerable<V> elements, Func<V, K> keySelector)
 		{

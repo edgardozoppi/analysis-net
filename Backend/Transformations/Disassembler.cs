@@ -7,6 +7,9 @@ using Backend.Utils;
 using Model.ThreeAddressCode.Values;
 using Model.ThreeAddressCode.Instructions;
 using Model.Types;
+using Backend.Analyses;
+using Backend.Model;
+using Model;
 
 namespace Backend.Transformations
 {
@@ -75,48 +78,21 @@ namespace Backend.Transformations
 
 		#endregion
 
-		#region class BasicBlockInfo
-
-		private enum BasicBlockStatus
-		{
-			None,
-			Pending,
-			Processed
-		}
-
-		private class BasicBlockInfo
-		{
-			public uint Offset { get; private set; }
-			public bool CanEnterByFallThrough { get; set; }
-			public ushort StackSizeAtEntry { get; set; }
-			public BasicBlockStatus Status { get; set; }
-			public IList<Instruction> Instructions { get; private set; }
-
-			public BasicBlockInfo(uint offset)
-			{
-				this.Offset = offset;
-				this.CanEnterByFallThrough = true;
-				this.Instructions = new List<Instruction>();
-			}
-		}
-
-		#endregion
-
 		private MethodDefinition method;
 		private OperandStack stack;
-		private MapList<uint, IExceptionHandlerBlock> exceptionHandlersStart;
-		private MapList<uint, IExceptionHandlerBlock> exceptionHandlersEnd;
-		private IDictionary<uint, BasicBlockInfo> basicBlocks;
-		private Stack<uint> pendingBasicBlocks;
+		private MapList<string, IExceptionHandlerBlock> exceptionHandlersStart;
+		private MapList<string, IExceptionHandlerBlock> exceptionHandlersEnd;
+		private Stack<CFGNode> pendingNodes;
+		private bool[] processedNodes;
+		private ushort[] stackSizeAtEntry;
 
 		public Disassembler(MethodDefinition methodDefinition)
 		{
 			this.method = methodDefinition;
 			this.stack = new OperandStack(method.Body.MaxStack);
-			this.exceptionHandlersStart = new MapList<uint, IExceptionHandlerBlock>();
-			this.exceptionHandlersEnd = new MapList<uint, IExceptionHandlerBlock>();
-			this.basicBlocks = new SortedDictionary<uint, BasicBlockInfo>();
-			this.pendingBasicBlocks = new Stack<uint>();
+			this.exceptionHandlersStart = new MapList<string, IExceptionHandlerBlock>();
+			this.exceptionHandlersEnd = new MapList<string, IExceptionHandlerBlock>();
+			this.pendingNodes = new Stack<CFGNode>();
 		}
 
 		public MethodBody Execute()
@@ -129,163 +105,72 @@ namespace Backend.Transformations
 
 			if (method.Body.Instructions.Count > 0)
 			{
-				this.RecognizeBasicBlocks();
-				var operations = this.GetLinkedOperations();
-
-				pendingBasicBlocks.Push(0);
-
-				while (pendingBasicBlocks.Count > 0)
+				foreach (var protectedBlock in method.Body.ExceptionInformation)
 				{
-					var offset = pendingBasicBlocks.Pop();
-					var basicBlock = basicBlocks[offset];
-					var firstOperation = operations[offset];
-
-					basicBlock.Status = BasicBlockStatus.Processed;
-					stack.Size = basicBlock.StackSizeAtEntry;
-					this.ProcessBasicBlock(basicBlock, firstOperation);
+					exceptionHandlersStart.Add(protectedBlock.Start, protectedBlock);
+					exceptionHandlersEnd.Add(protectedBlock.End, protectedBlock);
 				}
 
+				var cfanalysis = new ControlFlowAnalysis(method.Body);
+				var cfg = cfanalysis.GenerateNormalControlFlow();
+
+				stackSizeAtEntry = new ushort[cfg.Nodes.Count];
+				processedNodes = new bool[cfg.Nodes.Count];
+				pendingNodes.Push(cfg.Entry);
+
+				while (pendingNodes.Count > 0)
+				{
+					var node = pendingNodes.Pop();
+					processedNodes[node.Id] = true;
+					stack.Size = stackSizeAtEntry[node.Id];
+					this.ProcessBasicBlock(body, node);
+
+					foreach (var successor in node.Successors)
+					{
+						if (!processedNodes[successor.Id] && !pendingNodes.Contains(successor))
+						{
+							pendingNodes.Push(successor);
+							stackSizeAtEntry[successor.Id] = stack.Size;
+						}
+						else
+						{
+							// TODO: Check that the already saved stack size is the same than the current size
+						}
+					}
+				}
+
+				//this.RecognizeBasicBlocks();
+				//var operations = this.GetLinkedOperations();
+
+				//pendingBasicBlocks.Push(0);
+
+				//while (pendingBasicBlocks.Count > 0)
+				//{
+				//	var offset = pendingBasicBlocks.Pop();
+				//	var basicBlock = basicBlocks[offset];
+				//	var firstOperation = operations[offset];
+
+				//	basicBlock.Status = BasicBlockStatus.Processed;
+				//	stack.Size = basicBlock.StackSizeAtEntry;
+				//	this.ProcessBasicBlock(basicBlock, firstOperation);
+				//}
+
 				body.LocalVariables.UnionWith(stack.Variables);
-				this.FillBodyInstructions(body);
 			}
 
 			return body;
 		}
 
-		private IDictionary<uint, LinkedListNode<IOperation>> GetLinkedOperations()
+		private void ProcessBasicBlock(MethodBody body, CFGNode node)
 		{
-			var linked_operations = new LinkedList<IOperation>(method.Body.Operations);
-			var operations = new Dictionary<uint, LinkedListNode<IOperation>>();
-			var node = linked_operations.First;
-
-			while (node != null)
+			if (node.Instructions.Count > 0)
 			{
-				operations.Add(node.Value.Offset, node);
-				node = node.Next;
+				var firstInstruction = node.Instructions.First();
+				this.ProcessExceptionHandling(body, firstInstruction);
 			}
 
-			return operations;
-		}
-
-		private void FillBodyVariables(MethodBody body)
-		{
-			body.Parameters.AddRange(method.Body.Parameters);
-			body.LocalVariables.UnionWith(method.Body.LocalVariables);
-			body.LocalVariables.UnionWith(stack.Variables);
-		}
-
-		private void FillBodyInstructions(MethodBody body)
-		{
-			foreach (var basicBlock in basicBlocks.Values)
+			foreach (var op in node.Instructions)
 			{
-				body.Instructions.AddRange(basicBlock.Instructions);
-			}
-		}
-
-		private void FillBodyExceptionHandlers(MethodBody body)
-		{
-			body.ExceptionInformation.AddRange(method.Body.ExceptionInformation);
-		}
-
-		private void RecognizeBasicBlocks()
-		{
-			var nextOperationIsLeader = true;
-			var fallThroughNextBlock = true;
-
-			foreach (var op in method.Body.Operations)
-			{
-				if (exceptionHandlersStart.ContainsKey(op.Offset))
-				{
-					nextOperationIsLeader = true;
-				}
-
-				if (nextOperationIsLeader)
-				{
-					BasicBlockInfo basicBlock;					
-
-					if (basicBlocks.ContainsKey(op.Offset))
-					{
-						basicBlock = basicBlocks[op.Offset];
-					}
-					else
-					{
-						basicBlock = new BasicBlockInfo(op.Offset);
-						basicBlocks.Add(op.Offset, basicBlock);
-					}
-
-					basicBlock.CanEnterByFallThrough = fallThroughNextBlock;
-				}
-
-				var isBranch = OperationHelper.IsBranch(op.OperationCode);
-				fallThroughNextBlock = OperationHelper.CanFallThroughNextOperation(op.OperationCode);
-				nextOperationIsLeader = isBranch || !fallThroughNextBlock;
-
-				if (isBranch)
-				{
-					if (op.OperationCode == OperationCode.Switch)
-					{
-						var targets = op.Value as uint[];
-
-						foreach (var target in targets)
-						{
-							if (!basicBlocks.ContainsKey(target))
-							{
-								var basicBlock = new BasicBlockInfo(target);
-								basicBlocks.Add(target, basicBlock);
-							}
-						}
-					}
-					else
-					{
-						var target = (uint)op.Value;
-
-						if (!basicBlocks.ContainsKey(target))
-						{
-							var basicBlock = new BasicBlockInfo(target);
-							basicBlocks.Add(target, basicBlock);
-						}
-					}
-				}
-			}
-		}
-
-		private void AddToPendingBasicBlocks(uint offset, bool isBranchTarget)
-		{
-			var basicBlock = basicBlocks[offset];
-
-			if (basicBlock.Status == BasicBlockStatus.None)
-			{
-				basicBlock.Status = BasicBlockStatus.Pending;
-				pendingBasicBlocks.Push(offset);
-
-				if (isBranchTarget || basicBlock.CanEnterByFallThrough)
-				{
-					basicBlock.StackSizeAtEntry = stack.Size;
-				}				
-			}
-
-			if ((isBranchTarget || basicBlock.CanEnterByFallThrough) &&
-				basicBlock.StackSizeAtEntry != stack.Size)
-			{
-				throw new Exception("Basic block with different stack size at entry!");
-			}
-		}
-
-		private void ProcessBasicBlock(BasicBlockInfo bb, LinkedListNode<IOperation> operation)
-		{
-			this.ProcessExceptionHandling(bb);
-
-			while (operation != null)
-			{
-				var op = operation.Value;
-				operation = operation.Next;
-
-				if (op.Offset > bb.Offset && basicBlocks.ContainsKey(op.Offset))
-				{
-					this.AddToPendingBasicBlocks(op.Offset, false);
-					return;
-				}
-
 				switch (op.OperationCode)
 				{
 					case OperationCode.Add:
@@ -312,7 +197,7 @@ namespace Backend.Transformations
 					case OperationCode.Sub_Ovf:
 					case OperationCode.Sub_Ovf_Un:
 					case OperationCode.Xor:
-						this.ProcessBinaryOperation(bb, op);
+						this.ProcessBinaryOperation(node, op);
 						break;
 
 					//case OperationCode.Arglist:
@@ -322,7 +207,7 @@ namespace Backend.Transformations
 					case OperationCode.Array_Create_WithLowerBound:
 					case OperationCode.Array_Create:
 					case OperationCode.Newarr:
-						this.ProcessCreateArray(bb, op);
+						this.ProcessCreateArray(node, op);
 						break;
 
 					case OperationCode.Array_Get:
@@ -338,12 +223,12 @@ namespace Backend.Transformations
 					case OperationCode.Ldelem_U2:
 					case OperationCode.Ldelem_U4:
 					case OperationCode.Ldelem_Ref:
-						this.ProcessLoadArrayElement(bb, op);
+						this.ProcessLoadArrayElement(node, op);
 						break;
 
 					case OperationCode.Array_Addr:
 					case OperationCode.Ldelema:
-						this.ProcessLoadArrayElementAddress(bb, op);
+						this.ProcessLoadArrayElementAddress(node, op);
 						break;
 
 					case OperationCode.Beq:
@@ -366,45 +251,45 @@ namespace Backend.Transformations
 					case OperationCode.Blt_S:
 					case OperationCode.Blt_Un:
 					case OperationCode.Blt_Un_S:
-						this.ProcessBinaryConditionalBranch(bb, op);
+						this.ProcessBinaryConditionalBranch(node, op);
 						break;
 
 					case OperationCode.Br:
 					case OperationCode.Br_S:
-						this.ProcessUnconditionalBranch(bb, op);
+						this.ProcessUnconditionalBranch(node, op);
 						break;
 
 					case OperationCode.Leave:
 					case OperationCode.Leave_S:
-						this.ProcessLeave(bb, op);
+						this.ProcessLeave(node, op);
 						break;
 
 					case OperationCode.Break:
-						this.ProcessBreakpointOperation(bb, op);
+						this.ProcessBreakpointOperation(node, op);
 						break;
 
 					case OperationCode.Nop:
-						this.ProcessEmptyOperation(bb, op);
+						this.ProcessEmptyOperation(node, op);
 						break;
 
 					case OperationCode.Brfalse:
 					case OperationCode.Brfalse_S:
 					case OperationCode.Brtrue:
 					case OperationCode.Brtrue_S:
-						this.ProcessUnaryConditionalBranch(bb, op);
+						this.ProcessUnaryConditionalBranch(node, op);
 						break;
 
 					case OperationCode.Call:
 					case OperationCode.Callvirt:
-						this.ProcessMethodCall(bb, op);
+						this.ProcessMethodCall(node, op);
 						break;
 
 					case OperationCode.Jmp:
-						this.ProcessJumpCall(bb, op);
+						this.ProcessJumpCall(node, op);
 						break;
 
 					case OperationCode.Calli:
-						this.ProcessMethodCallIndirect(bb, op);
+						this.ProcessMethodCallIndirect(node, op);
 						break;
 
 					case OperationCode.Castclass:
@@ -445,7 +330,7 @@ namespace Backend.Transformations
 					case OperationCode.Conv_R4:
 					case OperationCode.Conv_R8:
 					case OperationCode.Conv_R_Un:
-						this.ProcessConversion(bb, op);
+						this.ProcessConversion(node, op);
 						break;
 
 					//case OperationCode.Ckfinite:
@@ -466,15 +351,15 @@ namespace Backend.Transformations
 						break;
 
 					case OperationCode.Cpblk:
-						this.ProcessCopyMemory(bb, op);
+						this.ProcessCopyMemory(node, op);
 						break;
 
 					case OperationCode.Cpobj:
-						this.ProcessCopyObject(bb, op);
+						this.ProcessCopyObject(node, op);
 						break;
 
 					case OperationCode.Dup:
-						this.ProcessDup(bb, op);
+						this.ProcessDup(node, op);
 						break;
 
 					//case OperationCode.Endfilter:
@@ -482,15 +367,15 @@ namespace Backend.Transformations
 					//    break;
 
 					case OperationCode.Endfinally:
-						this.ProcessEndFinally(bb, op);
+						this.ProcessEndFinally(node, op);
 						break;
 
 					case OperationCode.Initblk:
-						this.ProcessInitializeMemory(bb, op);
+						this.ProcessInitializeMemory(node, op);
 						break;
 
 					case OperationCode.Initobj:
-						this.ProcessInitializeObject(bb, op);
+						this.ProcessInitializeObject(node, op);
 						break;
 
 					case OperationCode.Ldarg:
@@ -499,12 +384,12 @@ namespace Backend.Transformations
 					case OperationCode.Ldarg_2:
 					case OperationCode.Ldarg_3:
 					case OperationCode.Ldarg_S:
-						this.ProcessLoadArgument(bb, op);
+						this.ProcessLoadArgument(node, op);
 					    break;
 
 					case OperationCode.Ldarga:
 					case OperationCode.Ldarga_S:
-						this.ProcessLoadArgumentAddress(bb, op);
+						this.ProcessLoadArgumentAddress(node, op);
 						break;
 
 					case OperationCode.Ldloc:
@@ -513,36 +398,36 @@ namespace Backend.Transformations
 					case OperationCode.Ldloc_2:
 					case OperationCode.Ldloc_3:
 					case OperationCode.Ldloc_S:
-					    this.ProcessLoadLocal(bb, op);
+					    this.ProcessLoadLocal(node, op);
 					    break;
 
 					case OperationCode.Ldloca:
 					case OperationCode.Ldloca_S:
-						this.ProcessLoadLocalAddress(bb, op);
+						this.ProcessLoadLocalAddress(node, op);
 					    break;
 
 					case OperationCode.Ldfld:
-						this.ProcessLoadInstanceField(bb, op);
+						this.ProcessLoadInstanceField(node, op);
 						break;
 
 					case OperationCode.Ldsfld:
-						this.ProcessLoadStaticField(bb, op);
+						this.ProcessLoadStaticField(node, op);
 						break;
 
 					case OperationCode.Ldflda:
-						this.ProcessLoadInstanceFieldAddress(bb, op);
+						this.ProcessLoadInstanceFieldAddress(node, op);
 						break;
 
 					case OperationCode.Ldsflda:
-						this.ProcessLoadStaticFieldAddress(bb, op);
+						this.ProcessLoadStaticFieldAddress(node, op);
 						break;
 
 					case OperationCode.Ldftn:
-						this.ProcessLoadMethodAddress(bb, op);
+						this.ProcessLoadMethodAddress(node, op);
 						break;
 
 					case OperationCode.Ldvirtftn:
-						this.ProcessLoadVirtualMethodAddress(bb, op);
+						this.ProcessLoadVirtualMethodAddress(node, op);
 						break;
 
 					case OperationCode.Ldc_I4:
@@ -562,7 +447,7 @@ namespace Backend.Transformations
 					case OperationCode.Ldc_R8:
 					case OperationCode.Ldnull:
 					case OperationCode.Ldstr:
-						this.ProcessLoadConstant(bb, op);
+						this.ProcessLoadConstant(node, op);
 						break;
 
 					case OperationCode.Ldind_I:
@@ -577,19 +462,19 @@ namespace Backend.Transformations
 					case OperationCode.Ldind_U2:
 					case OperationCode.Ldind_U4:
 					case OperationCode.Ldobj:
-						this.ProcessLoadIndirect(bb, op);
+						this.ProcessLoadIndirect(node, op);
 						break;
 
 					case OperationCode.Ldlen:
-						this.ProcessLoadArrayLength(bb, op);
+						this.ProcessLoadArrayLength(node, op);
 						break;
 
 					case OperationCode.Ldtoken:
-						this.ProcessLoadToken(bb, op);
+						this.ProcessLoadToken(node, op);
 						break;
 
 					case OperationCode.Localloc:
-						this.ProcessLocalAllocation(bb, op);
+						this.ProcessLocalAllocation(node, op);
 						break;
 
 					//case OperationCode.Mkrefany:
@@ -598,11 +483,11 @@ namespace Backend.Transformations
 
 					case OperationCode.Neg:
 					case OperationCode.Not:
-						this.ProcessUnaryOperation(bb, op);
+						this.ProcessUnaryOperation(node, op);
 						break;
 
 					case OperationCode.Newobj:
-						this.ProcessCreateObject(bb, op);
+						this.ProcessCreateObject(node, op);
 						break;
 
 					case OperationCode.No_:
@@ -627,16 +512,16 @@ namespace Backend.Transformations
 					//    break;
 
 					case OperationCode.Ret:
-						this.ProcessReturn(bb, op);
+						this.ProcessReturn(node, op);
 						break;
 
 					case OperationCode.Sizeof:
-						this.ProcessSizeof(bb, op);
+						this.ProcessSizeof(node, op);
 						break;
 
 					case OperationCode.Starg:
 					case OperationCode.Starg_S:
-						this.ProcessStoreArgument(bb, op);
+						this.ProcessStoreArgument(node, op);
 					    break;
 
 					case OperationCode.Array_Set:
@@ -649,15 +534,15 @@ namespace Backend.Transformations
 					case OperationCode.Stelem_R4:
 					case OperationCode.Stelem_R8:
 					case OperationCode.Stelem_Ref:
-						this.ProcessStoreArrayElement(bb, op);
+						this.ProcessStoreArrayElement(node, op);
 						break;
 
 					case OperationCode.Stfld:
-						this.ProcessStoreInstanceField(bb, op);
+						this.ProcessStoreInstanceField(node, op);
 						break;
 
 					case OperationCode.Stsfld:
-						this.ProcessStoreStaticField(bb, op);
+						this.ProcessStoreStaticField(node, op);
 						break;
 
 					case OperationCode.Stind_I:
@@ -669,7 +554,7 @@ namespace Backend.Transformations
 					case OperationCode.Stind_R8:
 					case OperationCode.Stind_Ref:
 					case OperationCode.Stobj:
-						this.ProcessStoreIndirect(bb, op);
+						this.ProcessStoreIndirect(node, op);
 					    break;
 
 					case OperationCode.Stloc:
@@ -678,11 +563,11 @@ namespace Backend.Transformations
 					case OperationCode.Stloc_2:
 					case OperationCode.Stloc_3:
 					case OperationCode.Stloc_S:
-					    this.ProcessStoreLocal(bb, op);
+					    this.ProcessStoreLocal(node, op);
 					    break;
 
 					case OperationCode.Switch:
-						this.ProcessSwitch(bb, op);
+						this.ProcessSwitch(node, op);
 						break;
 
 					//case OperationCode.Tail_:
@@ -690,11 +575,11 @@ namespace Backend.Transformations
 					//    break;
 
 					case OperationCode.Throw:
-						this.ProcessThrow(bb, op);
+						this.ProcessThrow(node, op);
 						break;
 
 					case OperationCode.Rethrow:
-						this.ProcessRethrow(bb, op);
+						this.ProcessRethrow(node, op);
 						break;
 
 					//case OperationCode.Unaligned_:
@@ -716,11 +601,11 @@ namespace Backend.Transformations
 			}
 		}
 
-		private void ProcessExceptionHandling(BasicBlockInfo bb)
+		private void ProcessExceptionHandling(MethodBody body, IInstruction operation)
 		{
-			if (exceptionHandlersStart.ContainsKey(bb.Offset))
+			if (exceptionHandlersStart.ContainsKey(operation.Label))
 			{
-				var handlerBlocks = exceptionHandlersStart[bb.Offset];
+				var handlerBlocks = exceptionHandlersStart[operation.Label];
 
 				foreach (var block in handlerBlocks)
 				{
@@ -729,29 +614,29 @@ namespace Backend.Transformations
 					switch (block.Kind)
 					{
 						case ExceptionHandlerBlockKind.Try:
-							instruction = new TryInstruction(bb.Offset);
+							instruction = new TryInstruction(operation.Offset);
 							break;
 
 						case ExceptionHandlerBlockKind.Catch:
 							// push the exception into the stack
 							var exception = stack.Push();
 							var catchBlock = block as CatchExceptionHandler;
-							instruction = new CatchInstruction(bb.Offset, exception, catchBlock.ExceptionType);
+							instruction = new CatchInstruction(operation.Offset, exception, catchBlock.ExceptionType);
 							break;
 
 						case ExceptionHandlerBlockKind.Fault:
-							instruction = new FaultInstruction(bb.Offset);
+							instruction = new FaultInstruction(operation.Offset);
 							break;
 
 						case ExceptionHandlerBlockKind.Finally:
-							instruction = new FinallyInstruction(bb.Offset);
+							instruction = new FinallyInstruction(operation.Offset);
 							break;
 
 						default:
 							throw new Exception("Unknown ExceptionHandlerKind.");
 					}
 
-					bb.Instructions.Add(instruction);
+					body.Instructions.Add(instruction);
 				}
 			}
 		}
@@ -1408,19 +1293,6 @@ namespace Backend.Transformations
 			var dest = stack.Push();
 			var instruction = new LoadInstruction(op.Offset, dest, source);
 			bb.Instructions.Add(instruction);
-		}
-
-		private string GetLocalSourceName(ILocalDefinition local)
-		{
-			var name = local.Name.Value;
-
-			if (this.sourceLocationProvider != null)
-			{
-				bool isCompilerGenerated;
-				name = this.sourceLocationProvider.GetSourceNameFor(local, out isCompilerGenerated);
-			}
-
-			return name;
 		}
 	}
 }
