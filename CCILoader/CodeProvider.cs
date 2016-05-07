@@ -736,6 +736,15 @@ namespace CCILoader
 			var cciType = op.Value as Cci.ITypeReference;
 			var ourType = TypeExtractor.ExtractType(cciType);
 
+			if (operation == ConvertOperation.Box && cciType.IsValueType)
+			{
+				ourType = PlatformTypes.Object;
+			}
+			else if (operation == ConvertOperation.Conv)
+			{
+				ourType = OperationHelper.GetOperationType(op.OperationCode);
+			}
+			
 			var instruction = new ConvertInstruction(op.Offset, operation, ourType);
 			instruction.OverflowCheck = overflow;
 			instruction.UnsignedOperands = unsigned;

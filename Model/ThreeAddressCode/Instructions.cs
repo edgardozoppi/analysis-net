@@ -629,6 +629,12 @@ namespace Model.ThreeAddressCode.Instructions
 			this.Target = string.Format("L_{0:X4}", target);
 		}
 
+		public BranchInstruction(uint label, string target)
+			: base(label)
+		{
+			this.Target = target;
+		}
+
 		public override void Accept(IInstructionVisitor visitor)
 		{
 			base.Accept(visitor);
@@ -665,6 +671,11 @@ namespace Model.ThreeAddressCode.Instructions
 		{
 		}
 
+		public UnconditionalBranchInstruction(uint label, string target)
+			: base(label, target)
+		{
+		}
+
 		public override void Accept(IInstructionVisitor visitor)
 		{
 			base.Accept(visitor);
@@ -685,6 +696,14 @@ namespace Model.ThreeAddressCode.Instructions
 		public bool UnsignedOperands { get; set; }
 
 		public ConditionalBranchInstruction(uint label, IVariable left, BranchOperation operation, IInmediateValue right, uint target)
+			: base(label, target)
+		{
+			this.Operation = operation;
+			this.LeftOperand = left;
+			this.RightOperand = right;
+		}
+
+		public ConditionalBranchInstruction(uint label, IVariable left, BranchOperation operation, IInmediateValue right, string target)
 			: base(label, target)
 		{
 			this.Operation = operation;
@@ -737,6 +756,13 @@ namespace Model.ThreeAddressCode.Instructions
 		{
 			this.Operand = operand;
 			this.Targets = targets.Select(target => string.Format("L_{0:X4}", target)).ToList();
+		}
+
+		public SwitchInstruction(uint label, IVariable operand, IEnumerable<string> targets)
+			: base(label)
+		{
+			this.Operand = operand;
+			this.Targets = targets.ToList();
 		}
 
 		public override ISet<IVariable> UsedVariables
