@@ -413,5 +413,11 @@ namespace CCILoader
 				default:							return false;
 			}
 		}
+
+		public static bool CreateArrayWithLowerBounds(Cci.OperationCode opcode)
+		{
+			var result = opcode == Cci.OperationCode.Array_Create_WithLowerBound;
+			return result;
+		}
 	}
 }

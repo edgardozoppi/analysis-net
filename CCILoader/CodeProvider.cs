@@ -532,14 +532,12 @@ namespace CCILoader
 
 		private IInstruction ProcessCreateArray(Cci.IOperation op)
 		{
+			var withLowerBound = OperationHelper.CreateArrayWithLowerBounds(op.OperationCode);
 			var cciArrayType = op.Value as Cci.IArrayTypeReference;
 			var ourArrayType = TypeExtractor.ExtractType(cciArrayType);
 
-			//if (op.OperationCode == Cci.OperationCode.Array_Create_WithLowerBound)
-			//{
-			//}
-
 			var instruction = new CreateArrayInstruction(op.Offset, ourArrayType);
+			instruction.WithLowerBound = withLowerBound;
 			return instruction;
 		}
 

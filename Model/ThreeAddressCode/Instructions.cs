@@ -271,7 +271,6 @@ namespace Model.ThreeAddressCode.Instructions
 				// An optimization that would improve precision
 				// is to detect copies like x = x where
 				// variable x is assigned to itself.
-
 				var result = new HashSet<IVariable>();
 				if (this.HasResult && !this.Result.Equals(this.Operand)) result.Add(this.Result);
 				return result;

@@ -95,6 +95,69 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.BasicInstruction op)
 			{
+				switch (op.Operation)
+				{
+					case Bytecode.BasicOperation.Add:
+					case Bytecode.BasicOperation.Sub:
+					case Bytecode.BasicOperation.Mul:
+					case Bytecode.BasicOperation.Div:
+					case Bytecode.BasicOperation.Rem:
+					case Bytecode.BasicOperation.And:
+					case Bytecode.BasicOperation.Or:
+					case Bytecode.BasicOperation.Xor:
+					case Bytecode.BasicOperation.Shl:
+					case Bytecode.BasicOperation.Shr:
+					case Bytecode.BasicOperation.Eq:
+					case Bytecode.BasicOperation.Lt:
+					case Bytecode.BasicOperation.Gt:
+						break;
+					case Bytecode.BasicOperation.Throw:
+						break;
+					case Bytecode.BasicOperation.Rethrow:
+						break;
+					case Bytecode.BasicOperation.Not:
+						break;
+					case Bytecode.BasicOperation.Neg:
+						break;
+					case Bytecode.BasicOperation.Nop:
+						break;
+					case Bytecode.BasicOperation.Pop:
+						break;
+					case Bytecode.BasicOperation.Dup:
+						break;
+					case Bytecode.BasicOperation.EndFinally:
+						break;
+					case Bytecode.BasicOperation.EndFilter:
+						break;
+					case Bytecode.BasicOperation.LocalAllocation:
+						break;
+					case Bytecode.BasicOperation.InitBlock:
+						break;
+					case Bytecode.BasicOperation.InitObject:
+						break;
+					case Bytecode.BasicOperation.CopyObject:
+						break;
+					case Bytecode.BasicOperation.CopyBlock:
+						break;
+					case Bytecode.BasicOperation.LoadArrayLength:
+						break;
+					case Bytecode.BasicOperation.IndirectLoad:
+						break;
+					case Bytecode.BasicOperation.LoadArrayElement:
+						break;
+					case Bytecode.BasicOperation.LoadArrayElementAddress:
+						break;
+					case Bytecode.BasicOperation.IndirectStore:
+						break;
+					case Bytecode.BasicOperation.StoreArrayElement:
+						break;
+					case Bytecode.BasicOperation.Breakpoint:
+						break;
+					case Bytecode.BasicOperation.Return:
+						break;
+
+					default: throw op.Operation.ToUnknownValueException();
+				}
 			}
 
 			public override void Visit(Bytecode.BranchInstruction op)
@@ -160,9 +223,9 @@ namespace Backend.Transformations
 			public override void Visit(Bytecode.ConvertInstruction op)
 			{
 				var operation = OperationHelper.ToConvertOperation(op.Operation);
-
 				var operand = stack.Pop();
 				var result = stack.Push();
+
 				var instruction = new Tac.ConvertInstruction(op.Offset, result, operand, operation, op.ConversionType);
 				instruction.OverflowCheck = op.OverflowCheck;
 				instruction.UnsignedOperands = op.UnsignedOperands;
@@ -171,26 +234,213 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.CreateArrayInstruction op)
 			{
+				var lowerBounds = new List<IVariable>();
+				var sizes = new List<IVariable>();
+
+				if (op.WithLowerBound)
+				{
+					for (uint i = 0; i < op.Type.Rank; i++)
+					{
+						var operand = stack.Pop();
+						lowerBounds.Add(operand);
+					}
+				}
+
+				for (uint i = 0; i < op.Type.Rank; i++)
+				{
+					var operand = stack.Pop();
+					sizes.Add(operand);
+				}
+
+				lowerBounds.Reverse();
+				sizes.Reverse();
+
+				var result = stack.Push();
+				var instruction = new Tac.CreateArrayInstruction(op.Offset, result, op.Type.ElementsType, op.Type.Rank, lowerBounds, sizes);
+				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.CreateObjectInstruction op)
 			{
+				var arguments = new List<IVariable>();
+
+				foreach (var par in op.Constructor.Parameters)
+				{
+					var arg = stack.Pop();
+					arguments.Add(arg);
+				}
+
+				//foreach (var par in op.Constructor.ExtraParameters)
+				//{
+				//	var arg = stack.Pop();
+				//	arguments.Add(arg);
+				//}
+
+				var result = stack.Push();
+				// Adding implicit this parameter
+				// TODO: [Warning] Use of result variable before definition!
+				arguments.Add(result);
+				arguments.Reverse();
+
+				var instruction = new Tac.CreateObjectInstruction(op.Offset, result, op.Constructor, arguments);
+				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.IndirectMethodCallInstruction op)
 			{
+				var calleePointer = stack.Pop();
+				var arguments = new List<IVariable>();
+				IVariable result = null;
+
+				foreach (var par in op.Function.Parameters)
+				{
+					var arg = stack.Pop();
+					arguments.Add(arg);
+				}
+
+				if (!op.Function.IsStatic)
+				{
+					// Adding implicit this parameter
+					var argThis = stack.Pop();
+					arguments.Add(argThis);
+				}
+
+				arguments.Reverse();
+
+				if (!op.Function.ReturnType.Equals(PlatformTypes.Void))
+				{
+					result = stack.Push();
+				}
+
+				var instruction = new Tac.IndirectMethodCallInstruction(op.Offset, result, calleePointer, op.Function, arguments);
+				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.LoadFieldInstruction op)
 			{
+				switch (op.Operation)
+				{
+					case Bytecode.LoadFieldOperation.Content:
+						ProcessLoadField(op);
+						break;
+
+					case Bytecode.LoadFieldOperation.Address:
+						ProcessLoadFieldAddress(op);
+						break;
+
+					default: throw op.Operation.ToUnknownValueException();
+				}
+			}
+
+			private void ProcessLoadField(Bytecode.LoadFieldInstruction op)
+			{
+				if (op.Field.IsStatic)
+				{
+					ProcessLoadStaticField(op);
+				}
+				else
+				{
+					ProcessLoadInstanceField(op);
+				}
+			}
+
+			private void ProcessLoadFieldAddress(Bytecode.LoadFieldInstruction op)
+			{
+				if (op.Field.IsStatic)
+				{
+					ProcessLoadStaticFieldAddress(op);
+				}
+				else
+				{
+					ProcessLoadInstanceFieldAddress(op);
+				}
+			}
+
+			private void ProcessLoadStaticField(Bytecode.LoadFieldInstruction op)
+			{
+				var dest = stack.Push();
+				var source = new StaticFieldAccess(op.Field);
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
+			}
+
+			private void ProcessLoadInstanceField(Bytecode.LoadFieldInstruction op)
+			{
+				var obj = stack.Pop();
+				var dest = stack.Push();
+				var source = new InstanceFieldAccess(obj, op.Field);
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
+			}
+
+			private void ProcessLoadStaticFieldAddress(Bytecode.LoadFieldInstruction op)
+			{
+				var dest = stack.Push();
+				var access = new StaticFieldAccess(op.Field);
+				var source = new Reference(access);
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
+			}
+
+			private void ProcessLoadInstanceFieldAddress(Bytecode.LoadFieldInstruction op)
+			{
+				var obj = stack.Pop();
+				var dest = stack.Push();
+				var access = new InstanceFieldAccess(obj, op.Field);
+				var source = new Reference(access);
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.LoadInstruction op)
 			{
+				switch (op.Operation)
+				{
+					case Bytecode.LoadOperation.Value:
+						ProcessLoadConstant(op);
+						break;
+
+					case Bytecode.LoadOperation.Content:
+						ProcessLoadVariable(op);
+						break;
+
+					case Bytecode.LoadOperation.Address:
+						ProcessLoadVariableAddress(op);
+						break;
+
+					default: throw op.Operation.ToUnknownValueException();
+				}
+			}
+
+			private void ProcessLoadConstant(Bytecode.LoadInstruction op)
+			{
+				var dest = stack.Push();
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, op.Operand);
+				body.Instructions.Add(instruction);
+			}
+
+			private void ProcessLoadVariable(Bytecode.LoadInstruction op)
+			{
+				var dest = stack.Push();
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, op.Operand);
+				body.Instructions.Add(instruction);
+			}
+
+			private void ProcessLoadVariableAddress(Bytecode.LoadInstruction op)
+			{				
+				var dest = stack.Push();
+				var operand = (IVariable)op.Operand;
+				var source = new Reference(operand);
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.LoadMethodAddressInstruction op)
 			{
+				var dest = stack.Push();
+				var source = new StaticMethodReference(op.Method);
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.LoadTokenInstruction op)
@@ -202,6 +452,37 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.MethodCallInstruction op)
 			{
+				var arguments = new List<IVariable>();
+				IVariable result = null;
+
+				foreach (var par in op.Method.Parameters)
+				{
+					var arg = stack.Pop();
+					arguments.Add(arg);
+				}
+
+				//foreach (var par in op.Method.ExtraParameters)
+				//{
+				//	var arg = stack.Pop();
+				//	arguments.Add(arg);
+				//}
+
+				if (!op.Method.IsStatic)
+				{
+					// Adding implicit this parameter
+					var argThis = stack.Pop();
+					arguments.Add(argThis);
+				}
+
+				arguments.Reverse();
+
+				if (!op.Method.ReturnType.Equals(PlatformTypes.Void))
+				{
+					result = stack.Push();
+				}
+
+				var instruction = new Tac.MethodCallInstruction(op.Offset, result, op.Method, arguments);
+				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.SizeofInstruction op)
@@ -213,16 +494,43 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.StoreFieldInstruction op)
 			{
+				if (op.Field.IsStatic)
+				{
+					ProcessStoreStaticField(op);
+				}
+				else
+				{
+					ProcessStoreInstanceField(op);
+				}
+			}
+
+			private void ProcessStoreStaticField(Bytecode.StoreFieldInstruction op)
+			{
+				var source = stack.Pop();
+				var dest = new StaticFieldAccess(op.Field);
+				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
+			}
+
+			private void ProcessStoreInstanceField(Bytecode.StoreFieldInstruction op)
+			{
+				var source = stack.Pop();
+				var obj = stack.Pop();
+				var dest = new InstanceFieldAccess(obj, op.Field);
+				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.StoreInstruction op)
 			{
+				var source = stack.Pop();
+				var instruction = new Tac.LoadInstruction(op.Offset, op.Target, source);
+				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.SwitchInstruction op)
 			{
 				var operand = stack.Pop();
-
 				var instruction = new Tac.SwitchInstruction(op.Offset, operand, op.Targets);
 				body.Instructions.Add(instruction);
 			}

@@ -21,11 +21,8 @@ namespace Model.Bytecode
 		Shl,
 		Shr,
 		Eq,
-		Neq,
 		Lt,
-		Le,
 		Gt,
-		Ge,
 		Throw,
 		Rethrow,
 		Not,
@@ -210,6 +207,7 @@ namespace Model.Bytecode
 	public class CreateArrayInstruction : Instruction
 	{
 		public ArrayType Type { get; set; }
+		public bool WithLowerBound { get; set; }
 
 		public CreateArrayInstruction(uint label, ArrayType type)
 			: base(label)
@@ -434,22 +432,22 @@ namespace Model.Bytecode
 
 	public class StoreInstruction : Instruction
 	{
-		public IVariable Operand { get; set; }
+		public IVariable Target { get; set; }
 
 		public StoreInstruction(uint label, IVariable operand)
 			: base(label)
 		{
-			this.Operand = operand;
+			this.Target = operand;
 		}
 
 		public override ISet<IVariable> ModifiedVariables
 		{
-			get { return new HashSet<IVariable>() { this.Operand }; }
+			get { return new HashSet<IVariable>() { this.Target }; }
 		}
 
 		public override void Replace(IVariable oldvar, IVariable newvar)
 		{
-			if (this.Operand.Equals(oldvar)) this.Operand = newvar;
+			if (this.Target.Equals(oldvar)) this.Target = newvar;
 		}
 
 		public override void Accept(IInstructionVisitor visitor)
@@ -460,7 +458,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  store {1};", this.Label, this.Operand);
+			return string.Format("{0}:  store {1};", this.Label, this.Target);
 		}
 	}
 
