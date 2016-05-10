@@ -7,6 +7,7 @@ using Model;
 using Model.Types;
 using Backend.Analyses;
 using Backend.Serialization;
+using Backend.Transformations;
 
 namespace Console
 {
@@ -80,23 +81,27 @@ namespace Console
 
 			var methodDefinition = host.ResolveReference(method) as MethodDefinition;
 
+			var disassembler = new Disassembler(methodDefinition);
+			var newBody = disassembler.Execute();
+			methodDefinition.Body = newBody;
+
 			var cfAnalysis = new ControlFlowAnalysis(methodDefinition.Body);
 			var cfg = cfAnalysis.GenerateNormalControlFlow();
 
-			var domAnalysis = new DominanceAnalysis(cfg);
-			domAnalysis.Analyze();
-			domAnalysis.GenerateDominanceTree();
+			//var domAnalysis = new DominanceAnalysis(cfg);
+			//domAnalysis.Analyze();
+			//domAnalysis.GenerateDominanceTree();
 
-			var loopAnalysis = new NaturalLoopAnalysis(cfg);
-			loopAnalysis.Analyze();
+			//var loopAnalysis = new NaturalLoopAnalysis(cfg);
+			//loopAnalysis.Analyze();
 
-			var domFrontierAnalysis = new DominanceFrontierAnalysis(cfg);
-			domFrontierAnalysis.Analyze();
+			//var domFrontierAnalysis = new DominanceFrontierAnalysis(cfg);
+			//domFrontierAnalysis.Analyze();
 
 			//var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);
 
-			dgml = DGMLSerializer.Serialize(host, typeDefinition);
+			//dgml = DGMLSerializer.Serialize(host, typeDefinition);
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();

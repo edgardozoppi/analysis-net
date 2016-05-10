@@ -917,7 +917,7 @@ namespace Model.ThreeAddressCode.Instructions
 				result = string.Format("{0} = ", this.Result);
 			}
 
-			return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, this.Method.ContainingType, this.Method, arguments);
+			return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, this.Method.ContainingType, this.Method.Name, arguments);
 		}
 	}
 
