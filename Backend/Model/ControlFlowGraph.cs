@@ -246,39 +246,43 @@ namespace Backend.Model
 		//    }
 		//}
 
+		private enum TopologicalSortNodeStatus
+		{
+			NeverVisited, // never pushed into stack
+			FirstVisit, // pushed into stack for the first time
+			SecondVisit // pushed into stack for the second time
+		}
+
 		private CFGNode[] ComputeForwardTopologicalSort()
 		{
 			// reverse postorder traversal from entry node
-			// status == 0: never pushed into stack
-			// status == 1: pushed into stack
-			// status == 2: visited once
 			var stack = new Stack<CFGNode>();
 			var result = new CFGNode[this.Nodes.Count];
-			var status = new byte[this.Nodes.Count];
+			var status = new TopologicalSortNodeStatus[this.Nodes.Count];
 			var index = this.Nodes.Count - 1;
 
 			stack.Push(this.Entry);
-			status[this.Entry.Id] = 1;
+			status[this.Entry.Id] = TopologicalSortNodeStatus.FirstVisit;
 
 			do
 			{
 				var node = stack.Peek();
 				var node_status = status[node.Id];
 
-				if (node_status == 1)
+				if (node_status == TopologicalSortNodeStatus.FirstVisit)
 				{
-					status[node.Id] = 2;
+					status[node.Id] = TopologicalSortNodeStatus.SecondVisit;
 
 					foreach (var succ in node.Successors)
 					{
 						if (status[succ.Id] == 0)
 						{
 							stack.Push(succ);
-							status[succ.Id] = 1;
+							status[succ.Id] = TopologicalSortNodeStatus.FirstVisit;
 						}
 					}
 				}
-				else if (node_status == 2)
+				else if (node_status == TopologicalSortNodeStatus.SecondVisit)
 				{
 					stack.Pop();
 					node.ForwardIndex = index;
@@ -301,36 +305,33 @@ namespace Backend.Model
 		private CFGNode[] ComputeBackwardTopologicalSort()
 		{
 			// reverse postorder traversal from exit node
-			// status == 0: never pushed into stack
-			// status == 1: pushed into stack
-			// status == 2: visited once
 			var stack = new Stack<CFGNode>();
 			var result = new CFGNode[this.Nodes.Count];
-			var status = new byte[this.Nodes.Count];
+			var status = new TopologicalSortNodeStatus[this.Nodes.Count];
 			var index = this.Nodes.Count - 1;
 
 			stack.Push(this.Exit);
-			status[this.Exit.Id] = 1;
+			status[this.Exit.Id] = TopologicalSortNodeStatus.FirstVisit;
 
 			do
 			{
 				var node = stack.Peek();
 				var node_status = status[node.Id];
 
-				if (node_status == 1)
+				if (node_status == TopologicalSortNodeStatus.FirstVisit)
 				{
-					status[node.Id] = 2;
+					status[node.Id] = TopologicalSortNodeStatus.SecondVisit;
 
 					foreach (var pred in node.Predecessors)
 					{
 						if (status[pred.Id] == 0)
 						{
 							stack.Push(pred);
-							status[pred.Id] = 1;
+							status[pred.Id] = TopologicalSortNodeStatus.FirstVisit;
 						}
 					}
 				}
-				else if (node_status == 2)
+				else if (node_status == TopologicalSortNodeStatus.SecondVisit)
 				{
 					stack.Pop();
 					node.BackwardIndex = index;

@@ -897,6 +897,10 @@ namespace Backend.Transformations
 				}
 
 				body.LocalVariables.UnionWith(stack.Variables);
+
+				var instructions = body.Instructions.OrderBy(op => op.Offset).ToList();
+				body.Instructions.Clear();
+				body.Instructions.AddRange(instructions);
 			}
 
 			return body;
