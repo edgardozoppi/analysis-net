@@ -256,6 +256,32 @@ namespace CCILoader
 			}
 		}
 
+		public static object GetOperationConstant(Cci.IOperation op)
+		{
+			switch (op.OperationCode)
+			{
+				case Cci.OperationCode.Ldc_I4_0: return 0;
+				case Cci.OperationCode.Ldc_I4_1: return 1;
+				case Cci.OperationCode.Ldc_I4_2: return 2;
+				case Cci.OperationCode.Ldc_I4_3: return 3;
+				case Cci.OperationCode.Ldc_I4_4: return 4;
+				case Cci.OperationCode.Ldc_I4_5: return 5;
+				case Cci.OperationCode.Ldc_I4_6: return 6;
+				case Cci.OperationCode.Ldc_I4_7: return 7;
+				case Cci.OperationCode.Ldc_I4_8: return 8;
+				case Cci.OperationCode.Ldc_I4_M1: return -1;
+				case Cci.OperationCode.Ldc_I4:
+				case Cci.OperationCode.Ldc_I4_S:
+				case Cci.OperationCode.Ldc_I8:
+				case Cci.OperationCode.Ldc_R4:
+				case Cci.OperationCode.Ldc_R8:
+				case Cci.OperationCode.Ldnull:
+				case Cci.OperationCode.Ldstr: return op.Value;
+
+				default: throw op.OperationCode.ToUnknownValueException();
+			}
+		}
+
 		public static IType GetOperationType(Cci.OperationCode opcode)
 		{
 			switch (opcode)

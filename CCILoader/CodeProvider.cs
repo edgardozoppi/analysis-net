@@ -113,6 +113,14 @@ namespace CCILoader
 			foreach (var op in operations)
 			{
 				var instruction = ExtractInstruction(op);
+
+				if (instruction == null)
+				{
+					Console.WriteLine("Unknown bytecode: {0}", op.OperationCode);
+					//throw new UnknownBytecodeException(op);
+					continue;
+				}
+
 				instructions.Add(instruction);
 			}
 		}
@@ -616,7 +624,8 @@ namespace CCILoader
 		{
 			var operation = OperationHelper.ToLoadOperation(op.OperationCode);
 			var type = OperationHelper.GetOperationType(op.OperationCode);
-			var source = new Constant(op.Value) { Type = type };
+			var value = OperationHelper.GetOperationConstant(op);
+			var source = new Constant(value) { Type = type };
 
 			var instruction = new LoadInstruction(op.Offset, operation, source);
 			return instruction;

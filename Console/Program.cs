@@ -13,6 +13,78 @@ namespace Console
 {
 	class Program
 	{
+		private Host host;
+
+		public int TotalLoops { get; private set; }
+		public int RecognizedLoops { get; private set; }
+
+		public Program(Host host)
+		{
+			this.host = host;
+		}
+		
+		public void VisitMethods()
+		{
+			var methods = host.Assemblies.SelectMany(a => a.RootNamespace.GetAllTypes())
+											  .SelectMany(t => t.Members.OfType<MethodDefinition>())
+											  .Where(md => md.Body != null);
+
+			foreach (var method in methods)
+			{
+				VisitMethod(method);
+			}
+		}
+
+		private void VisitMethod(MethodDefinition method)
+		{
+			System.Console.WriteLine(method.Name);
+
+			var disassembler = new Disassembler(method);
+			var methodBody = disassembler.Execute();
+			method.Body = methodBody;
+
+			var cfAnalysis = new ControlFlowAnalysis(method.Body);
+			var cfg = cfAnalysis.GenerateNormalControlFlow();
+
+			var domAnalysis = new DominanceAnalysis(cfg);
+			domAnalysis.Analyze();
+			domAnalysis.GenerateDominanceTree();
+
+			var loopAnalysis = new NaturalLoopAnalysis(cfg);
+			loopAnalysis.Analyze();
+
+			var domFrontierAnalysis = new DominanceFrontierAnalysis(cfg);
+			domFrontierAnalysis.Analyze();
+
+			var splitter = new WebAnalysis(cfg);
+			splitter.Analyze();
+			splitter.Transform();
+
+			methodBody.UpdateVariables();
+
+			var analysis = new TypeInferenceAnalysis(cfg);
+			analysis.Analyze();
+
+			//var pointsTo = new PointsToAnalysis(cfg);
+			//var result = pointsTo.Analyze();
+
+			var ssa = new StaticSingleAssignment(methodBody, cfg);
+			ssa.Transform();
+
+			methodBody.UpdateVariables();
+
+			//var dot = DOTSerializer.Serialize(cfg);
+			var dgml = DGMLSerializer.Serialize(cfg);
+
+			//dgml = DGMLSerializer.Serialize(host, typeDefinition);
+
+			var bounds = new LoopBoundAnalysis(cfg);
+			bounds.Analyze();
+
+			this.TotalLoops += bounds.TotalLoops;
+			this.RecognizedLoops += bounds.RecognizedLoops;
+		}
+
 		static void Main(string[] args)
 		{
 			const string root = @"..\..\..";
@@ -81,49 +153,32 @@ namespace Console
 
 			var methodDefinition = host.ResolveReference(method) as MethodDefinition;
 
-			var disassembler = new Disassembler(methodDefinition);
-			var newBody = disassembler.Execute();
-			methodDefinition.Body = newBody;
+			var program = new Program(host);
+			program.VisitMethods();
 
-			var cfAnalysis = new ControlFlowAnalysis(methodDefinition.Body);
-			var cfg = cfAnalysis.GenerateNormalControlFlow();
-
-			//var domAnalysis = new DominanceAnalysis(cfg);
-			//domAnalysis.Analyze();
-			//domAnalysis.GenerateDominanceTree();
-
-			//var loopAnalysis = new NaturalLoopAnalysis(cfg);
-			//loopAnalysis.Analyze();
-
-			//var domFrontierAnalysis = new DominanceFrontierAnalysis(cfg);
-			//domFrontierAnalysis.Analyze();
-
-			//var dot = DOTSerializer.Serialize(cfg);
-			var dgml = DGMLSerializer.Serialize(cfg);
-
-			//dgml = DGMLSerializer.Serialize(host, typeDefinition);
+			DisplayLoopsInfo(program.TotalLoops, program.RecognizedLoops);
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();
 		}
 
-		//private static void DisplayLoopsInfo(int totalLoops, int recognizedLoops)
-		//{
-		//	var unknownLoops = totalLoops - recognizedLoops;
-		//	var perRecognizedLoops = 0;
-		//	var perUnknownLoops = 0;
+		private static void DisplayLoopsInfo(int totalLoops, int recognizedLoops)
+		{
+			var unknownLoops = totalLoops - recognizedLoops;
+			var perRecognizedLoops = 0;
+			var perUnknownLoops = 0;
 
-		//	if (totalLoops > 0)
-		//	{
-		//		perRecognizedLoops = recognizedLoops * 100 / totalLoops;
-		//		perUnknownLoops = unknownLoops * 100 / totalLoops;
-		//	}
+			if (totalLoops > 0)
+			{
+				perRecognizedLoops = recognizedLoops * 100 / totalLoops;
+				perUnknownLoops = unknownLoops * 100 / totalLoops;
+			}
 
-		//	System.Console.WriteLine();
-		//	System.Console.WriteLine("Total loops:\t\t{0}", totalLoops);
-		//	System.Console.WriteLine("Recognized loops:\t{0} ({1}%)", recognizedLoops, perRecognizedLoops);
-		//	System.Console.WriteLine("Unknown loops:\t\t{0} ({1}%)", unknownLoops, perUnknownLoops);
-		//	System.Console.WriteLine();
-		//}
+			System.Console.WriteLine();
+			System.Console.WriteLine("Total loops:\t\t{0}", totalLoops);
+			System.Console.WriteLine("Recognized loops:\t{0} ({1}%)", recognizedLoops, perRecognizedLoops);
+			System.Console.WriteLine("Unknown loops:\t\t{0} ({1}%)", unknownLoops, perUnknownLoops);
+			System.Console.WriteLine();
+		}
 	}
 }

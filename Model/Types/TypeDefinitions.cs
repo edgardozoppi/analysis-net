@@ -729,7 +729,7 @@ namespace Model.Types
 		public void UpdateVariables()
 		{
 			this.LocalVariables.Clear();
-			this.LocalVariables.AddRange(this.Parameters);
+			//this.LocalVariables.AddRange(this.Parameters);
 
 			// TODO: SSA is not inserting phi instructions into method's body instructions collection.
 			foreach (var instruction in this.Instructions)

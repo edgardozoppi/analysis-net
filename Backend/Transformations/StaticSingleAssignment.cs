@@ -114,7 +114,9 @@ namespace Backend.Transformations
 			var derived_variables = new Dictionary<IVariable, Stack<DerivedVariable>>();
 			var indices = new Dictionary<IVariable, uint>();
 
-			foreach (var variable in method.LocalVariables)
+			var allVariables = method.LocalVariables.Union(method.Parameters);
+
+			foreach (var variable in allVariables)
 			{
 				var derived = new DerivedVariable(variable, 0u);
 				var stack = new Stack<DerivedVariable>();
