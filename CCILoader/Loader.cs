@@ -12,23 +12,39 @@ namespace CCILoader
 {
 	public class Loader : IDisposable
 	{
-		private Cci.MetadataReaderHost host;
+		private Host ourHost;
+		private Cci.MetadataReaderHost cciHost;
 
-		public Loader()
+		public Loader(Host host)
 		{
-			host = new Cci.PeReader.DefaultHost();
+			this.ourHost = host;
+			this.cciHost = new Cci.PeReader.DefaultHost();
 		}
 
 		public void Dispose()
 		{
-			host.Dispose();
-			host = null;
+			this.cciHost.Dispose();
+			this.cciHost = null;
+			this.ourHost = null;
 			GC.SuppressFinalize(this);
+		}
+
+		public Assembly LoadCoreAssembly()
+		{
+			var module = cciHost.LoadUnit(cciHost.CoreAssemblySymbolicIdentity) as Cci.IModule;
+
+			if (module == null || module == Cci.Dummy.Module || module == Cci.Dummy.Assembly)
+				throw new Exception("The input is not a valid CLR module or assembly.");
+
+			var assembly = this.ExtractAssembly(module, null);
+
+			ourHost.Assemblies.Add(assembly);
+			return assembly;
 		}
 
 		public Assembly LoadAssembly(string fileName)
 		{
-			var module = host.LoadUnitFrom(fileName) as Cci.IModule;
+			var module = cciHost.LoadUnitFrom(fileName) as Cci.IModule;
 
 			if (module == null || module == Cci.Dummy.Module || module == Cci.Dummy.Assembly)
 				throw new Exception("The input is not a valid CLR module or assembly.");
@@ -40,7 +56,7 @@ namespace CCILoader
 			{
 				using (var pdbStream = File.OpenRead(pdbFileName))
 				{
-					pdbReader = new Cci.PdbReader(pdbStream, host);
+					pdbReader = new Cci.PdbReader(pdbStream, cciHost);
 				}
 			}
 
@@ -51,12 +67,13 @@ namespace CCILoader
 				pdbReader.Dispose();
 			}
 
+			ourHost.Assemblies.Add(assembly);
 			return assembly;
 		}
 
 		private Assembly ExtractAssembly(Cci.IModule module, Cci.PdbReader pdbReader)
 		{
-			var traverser = new AssemblyTraverser(host, pdbReader);
+			var traverser = new AssemblyTraverser(ourHost, cciHost, pdbReader);
 			traverser.Traverse(module.ContainingAssembly);
 			var result = traverser.Result;
 			return result;

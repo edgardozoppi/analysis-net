@@ -13,13 +13,15 @@ namespace CCILoader
 {
 	internal class CodeProvider
 	{
+		private TypeExtractor typeExtractor;
 		private Cci.ISourceLocationProvider sourceLocationProvider;
 		private IDictionary<Cci.IParameterDefinition, IVariable> parameters;
 		private IDictionary<Cci.ILocalDefinition, IVariable> locals;
 		private IVariable thisParameter;
 
-		public CodeProvider(Cci.ISourceLocationProvider sourceLocationProvider)
+		public CodeProvider(TypeExtractor typeExtractor, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
+			this.typeExtractor = typeExtractor;
 			this.sourceLocationProvider = sourceLocationProvider;
 			this.parameters = new Dictionary<Cci.IParameterDefinition, IVariable>();
 			this.locals = new Dictionary<Cci.ILocalDefinition, IVariable>();
@@ -46,7 +48,7 @@ namespace CCILoader
 		{
 			if (!methoddef.IsStatic)
 			{
-				var type = TypeExtractor.ExtractType(methoddef.ContainingType);
+				var type = typeExtractor.ExtractType(methoddef.ContainingType);
 				var v = new LocalVariable("this", true) { Type = type };
 
 				ourParameters.Add(v);
@@ -55,7 +57,7 @@ namespace CCILoader
 
 			foreach (var parameter in methoddef.Parameters)
 			{
-				var type = TypeExtractor.ExtractType(parameter.Type);
+				var type = typeExtractor.ExtractType(parameter.Type);
 				var v = new LocalVariable(parameter.Name.Value, true) { Type = type };
 
 				ourParameters.Add(v);
@@ -68,7 +70,7 @@ namespace CCILoader
 			foreach (var local in cciLocalVariables)
 			{
 				var name = GetLocalSourceName(local);
-				var type = TypeExtractor.ExtractType(local.Type);
+				var type = typeExtractor.ExtractType(local.Type);
 				var v = new LocalVariable(name) { Type = type };
 
 				ourLocalVariables.Add(v);
@@ -76,7 +78,7 @@ namespace CCILoader
 			}
 		}
 
-		private static void ExtractExceptionInformation(IEnumerable<Cci.IOperationExceptionInformation> cciExceptionInformation, IList<ProtectedBlock> ourExceptionInformation)
+		private void ExtractExceptionInformation(IEnumerable<Cci.IOperationExceptionInformation> cciExceptionInformation, IList<ProtectedBlock> ourExceptionInformation)
 		{
 			foreach (var cciExceptionInfo in cciExceptionInformation)
 			{
@@ -85,7 +87,7 @@ namespace CCILoader
 				switch (cciExceptionInfo.HandlerKind)
 				{
 					case Cci.HandlerKind.Catch:
-						var exceptionType = TypeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
+						var exceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
 						var catchHandler = new CatchExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, exceptionType);
 						tryHandler.Handler = catchHandler;
 						break;
@@ -542,7 +544,7 @@ namespace CCILoader
 		{
 			var withLowerBound = OperationHelper.CreateArrayWithLowerBounds(op.OperationCode);
 			var cciArrayType = op.Value as Cci.IArrayTypeReference;
-			var ourArrayType = TypeExtractor.ExtractType(cciArrayType);
+			var ourArrayType = typeExtractor.ExtractType(cciArrayType);
 
 			var instruction = new CreateArrayInstruction(op.Offset, ourArrayType);
 			instruction.WithLowerBound = withLowerBound;
@@ -552,7 +554,7 @@ namespace CCILoader
 		private IInstruction ProcessCreateObject(Cci.IOperation op)
 		{
 			var cciMethod = op.Value as Cci.IMethodReference;
-			var ourMethod = TypeExtractor.ExtractReference(cciMethod);
+			var ourMethod = typeExtractor.ExtractReference(cciMethod);
 
 			var instruction = new CreateObjectInstruction(op.Offset, ourMethod);
 			return instruction;
@@ -562,7 +564,7 @@ namespace CCILoader
 		{
 			var operation = OperationHelper.ToMethodCallOperation(op.OperationCode);
 			var cciMethod = op.Value as Cci.IMethodReference;
-			var ourMethod = TypeExtractor.ExtractReference(cciMethod);
+			var ourMethod = typeExtractor.ExtractReference(cciMethod);
 
 			var instruction = new MethodCallInstruction(op.Offset, operation, ourMethod);
 			return instruction;
@@ -571,7 +573,7 @@ namespace CCILoader
 		private IInstruction ProcessMethodCallIndirect(Cci.IOperation op)
 		{
 			var cciFunctionPointer = op.Value as Cci.IFunctionPointerTypeReference;
-			var ourFunctionPointer = TypeExtractor.ExtractType(cciFunctionPointer);
+			var ourFunctionPointer = typeExtractor.ExtractType(cciFunctionPointer);
 
 			var instruction = new IndirectMethodCallInstruction(op.Offset, ourFunctionPointer);
 			return instruction;
@@ -580,7 +582,7 @@ namespace CCILoader
 		private IInstruction ProcessSizeof(Cci.IOperation op)
 		{
 			var cciType = op.Value as Cci.ITypeReference;
-			var ourType = TypeExtractor.ExtractType(cciType);
+			var ourType = typeExtractor.ExtractType(cciType);
 
 			var instruction = new SizeofInstruction(op.Offset, ourType);
 			return instruction;
@@ -666,7 +668,7 @@ namespace CCILoader
 		{
 			var operation = OperationHelper.ToLoadFieldOperation(op.OperationCode);
 			var cciField = op.Value as Cci.IFieldReference;
-			var ourField = TypeExtractor.ExtractReference(cciField);
+			var ourField = typeExtractor.ExtractReference(cciField);
 
 			var instruction = new LoadFieldInstruction(op.Offset, operation, ourField);
 			return instruction;
@@ -675,7 +677,7 @@ namespace CCILoader
 		private IInstruction ProcessLoadMethodAddress(Cci.IOperation op)
 		{
 			var cciMethod = op.Value as Cci.IMethodReference;
-			var ourMethod = TypeExtractor.ExtractReference(cciMethod);
+			var ourMethod = typeExtractor.ExtractReference(cciMethod);
 
 			var instruction = new LoadMethodAddressInstruction(op.Offset, ourMethod);
 			return instruction;
@@ -684,7 +686,7 @@ namespace CCILoader
 		private IInstruction ProcessLoadToken(Cci.IOperation op)
 		{
 			var cciToken = op.Value as Cci.IReference;
-			var ourToken = TypeExtractor.ExtractToken(cciToken);
+			var ourToken = typeExtractor.ExtractToken(cciToken);
 
 			var instruction = new LoadTokenInstruction(op.Offset, ourToken);
 			return instruction;
@@ -716,7 +718,7 @@ namespace CCILoader
 		private IInstruction ProcessStoreField(Cci.IOperation op)
 		{
 			var cciField = op.Value as Cci.IFieldReference;
-			var ourField = TypeExtractor.ExtractReference(cciField);
+			var ourField = typeExtractor.ExtractReference(cciField);
 
 			var instruction = new StoreFieldInstruction(op.Offset, ourField);
 			return instruction;
@@ -741,7 +743,7 @@ namespace CCILoader
 			var unsigned = OperationHelper.OperandsAreUnsigned(op.OperationCode);
 
 			var cciType = op.Value as Cci.ITypeReference;
-			var ourType = TypeExtractor.ExtractType(cciType);
+			var ourType = typeExtractor.ExtractType(cciType);
 
 			if (operation == ConvertOperation.Box && cciType.IsValueType)
 			{

@@ -10,23 +10,27 @@ namespace CCILoader
 {
 	internal class AssemblyTraverser : Cci.MetadataTraverser
 	{
-		private Cci.IMetadataHost host;
+		//private Host ourHost;
+		private Cci.IMetadataHost cciHost;
 		private Cci.PdbReader pdbReader;
 
 		private Assembly currentAssembly;
 		private Namespace currentNamespace;
 		private ITypeDefinition currentType;
+		private TypeExtractor typeExtractor;
 
 		public Assembly Result
 		{
 			get { return currentAssembly; }
 		}
 
-		public AssemblyTraverser(Cci.IMetadataHost host, Cci.PdbReader pdbReader)
+		public AssemblyTraverser(Host host, Cci.IMetadataHost cciHost, Cci.PdbReader pdbReader)
 		{
-			this.host = host;
+			//this.ourHost = host;
+			this.cciHost = cciHost;
 			this.pdbReader = pdbReader;
 			this.TraverseIntoMethodBodies = false;
+			this.typeExtractor = new TypeExtractor(host);
 		}
 
 		public override void TraverseChildren(Cci.IAssembly cciAssembly)
@@ -70,19 +74,19 @@ namespace CCILoader
 
 			if (typedef.IsClass)
 			{
-				result = TypeExtractor.ExtractClass(typedef, pdbReader);
+				result = typeExtractor.ExtractClass(typedef, pdbReader);
 			}
 			else if (typedef.IsInterface)
 			{
-				result = TypeExtractor.ExtractInterface(typedef, pdbReader);
+				result = typeExtractor.ExtractInterface(typedef, pdbReader);
 			}
 			else if (typedef.IsStruct)
 			{
-				result = TypeExtractor.ExtractStruct(typedef, pdbReader);
+				result = typeExtractor.ExtractStruct(typedef, pdbReader);
 			}
 			else if (typedef.IsEnum)
 			{
-				result = TypeExtractor.ExtractEnum(typedef);
+				result = typeExtractor.ExtractEnum(typedef);
 			}
 
 			if (result != null)

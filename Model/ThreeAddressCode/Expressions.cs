@@ -495,7 +495,7 @@ namespace Model.ThreeAddressCode.Expressions
 		{
 			var arguments = string.Join(", ", this.Arguments);
 
-			return string.Format("{0}::{1}({2})", this.Method.ContainingType, this.Method, arguments);
+			return string.Format("{0}::{1}({2})", this.Method.ContainingType, this.Method.Name, arguments);
 		}
 	}
 

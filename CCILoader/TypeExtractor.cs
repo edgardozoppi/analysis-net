@@ -9,7 +9,7 @@ using Cci = Microsoft.Cci;
 
 namespace CCILoader
 {
-	internal static class TypeExtractor
+	internal class TypeExtractor
 	{
 		// Attribute classes can have attributes of their same type.
 		// Example: [AttributeUsage]class AttributeUsage { ... }
@@ -19,12 +19,15 @@ namespace CCILoader
 		// to know the attributes of a type defined in an external library.
 		private static IDictionary<Cci.ITypeReference, BasicType> attributesCache;
 
-		static TypeExtractor()
+		private Host host;
+
+		public TypeExtractor(Host host)
 		{
+			this.host = host;
 			attributesCache = new Dictionary<Cci.ITypeReference, BasicType>();
 		}
 
-		public static EnumDefinition ExtractEnum(Cci.INamedTypeDefinition typedef)
+		public EnumDefinition ExtractEnum(Cci.INamedTypeDefinition typedef)
 		{
 			var name = typedef.Name.Value;
 			var type = new EnumDefinition(name);
@@ -36,7 +39,7 @@ namespace CCILoader
 			return type;
 		}
 
-		public static InterfaceDefinition ExtractInterface(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
+		public InterfaceDefinition ExtractInterface(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			var name = typedef.Name.Value;
 			var type = new InterfaceDefinition(name);
@@ -49,7 +52,7 @@ namespace CCILoader
 			return type;
 		}
 
-		public static ClassDefinition ExtractClass(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
+		public ClassDefinition ExtractClass(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			var name = typedef.Name.Value;
 			var type = new ClassDefinition(name);
@@ -71,7 +74,7 @@ namespace CCILoader
 			return type;
 		}
 
-		public static StructDefinition ExtractStruct(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
+		public StructDefinition ExtractStruct(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			var name = typedef.Name.Value;
 			var type = new StructDefinition(name);
@@ -85,7 +88,7 @@ namespace CCILoader
 			return type;
 		}
 
-		public static IType ExtractType(Cci.ITypeReference typeref)
+		public IType ExtractType(Cci.ITypeReference typeref)
 		{
 			IType result = null;
 
@@ -120,10 +123,16 @@ namespace CCILoader
 				result = ExtractType(ntyperef);
 			}
 
+			if (result is BasicType)
+			{
+				var basicType = result as BasicType;
+				basicType.Resolve(host);
+			}
+
 			return result;
 		}
 
-		public static ArrayType ExtractType(Cci.IArrayTypeReference typeref)
+		public ArrayType ExtractType(Cci.IArrayTypeReference typeref)
 		{
 			var elements = ExtractType(typeref.ElementType);
 			var type = new ArrayType(elements, typeref.Rank);
@@ -133,7 +142,7 @@ namespace CCILoader
 			return type;
 		}
 
-		public static PointerType ExtractType(Cci.IPointerTypeReference typeref)
+		public PointerType ExtractType(Cci.IPointerTypeReference typeref)
 		{
 			var target = ExtractType(typeref.TargetType);
 			var type = new PointerType(target);
@@ -143,7 +152,7 @@ namespace CCILoader
 			return type;
 		}
 
-		public static TypeVariable ExtractType(Cci.IGenericParameterReference typeref)
+		public TypeVariable ExtractType(Cci.IGenericParameterReference typeref)
 		{
 			var name = GetTypeName(typeref);
 			var type = new TypeVariable(name);
@@ -153,7 +162,7 @@ namespace CCILoader
 			return type;
 		}
 
-		public static BasicType ExtractType(Cci.IGenericTypeInstanceReference typeref)
+		public BasicType ExtractType(Cci.IGenericTypeInstanceReference typeref)
 		{
 			var type = ExtractType(typeref.GenericType, false);
 			ExtractGenericType(type, typeref);
@@ -161,12 +170,12 @@ namespace CCILoader
 			return type;
 		}
 
-		public static BasicType ExtractType(Cci.INamedTypeReference typeref)
+		public BasicType ExtractType(Cci.INamedTypeReference typeref)
 		{
 			return ExtractType(typeref, true);
 		}
 
-		private static BasicType ExtractType(Cci.INamedTypeReference typeref, bool canReturnFromCache)
+		private BasicType ExtractType(Cci.INamedTypeReference typeref, bool canReturnFromCache)
 		{
 			//string containingAssembly;
 			//string containingNamespace;
@@ -211,7 +220,7 @@ namespace CCILoader
 
 		#region Extract SpecializedType
 
-		//public static SpecializedType ExtractType(Cci.IGenericTypeInstanceReference typeref)
+		//public SpecializedType ExtractType(Cci.IGenericTypeInstanceReference typeref)
 		//{
 		//	var genericType = (GenericType)ExtractType(typeref.GenericType);
 		//	var type = new SpecializedType(genericType);
@@ -229,7 +238,7 @@ namespace CCILoader
 
 		#region Extract GenericType and BasicType
 
-		//public static BasicType ExtractType(Cci.INamedTypeReference typeref)
+		//public BasicType ExtractType(Cci.INamedTypeReference typeref)
 		//{
 		//	BasicType type;
 		//	string containingAssembly;
@@ -256,7 +265,7 @@ namespace CCILoader
 
 		#endregion
 
-		public static FunctionPointerType ExtractType(Cci.IFunctionPointerTypeReference typeref)
+		public FunctionPointerType ExtractType(Cci.IFunctionPointerTypeReference typeref)
 		{
 			var returnType = ExtractType(typeref.Type);
 			var type = new FunctionPointerType(returnType);
@@ -269,7 +278,7 @@ namespace CCILoader
 			return type;
 		}
 
-		public static IMetadataReference ExtractToken(Cci.IReference token)
+		public IMetadataReference ExtractToken(Cci.IReference token)
 		{
 			IMetadataReference result = PlatformTypes.Unknown;
 
@@ -292,7 +301,7 @@ namespace CCILoader
 			return result;
 		}
 
-		public static IFieldReference ExtractReference(Cci.IFieldReference fieldref)
+		public IFieldReference ExtractReference(Cci.IFieldReference fieldref)
 		{
 			var type = ExtractType(fieldref.Type);
 			var field = new FieldReference(fieldref.Name.Value, type);
@@ -305,7 +314,7 @@ namespace CCILoader
 			return field;
 		}
 
-		public static IMethodReference ExtractReference(Cci.IMethodReference methodref)
+		public IMethodReference ExtractReference(Cci.IMethodReference methodref)
 		{
 			var returnType = ExtractType(methodref.Type);
 			var method = new MethodReference(methodref.Name.Value, returnType);
@@ -320,7 +329,7 @@ namespace CCILoader
 			return method;
 		}
 
-		private static void ExtractAttributes(ISet<CustomAttribute> dest, IEnumerable<Cci.ICustomAttribute> source)
+		private void ExtractAttributes(ISet<CustomAttribute> dest, IEnumerable<Cci.ICustomAttribute> source)
 		{
 			foreach (var attrib in source)
 			{
@@ -335,7 +344,7 @@ namespace CCILoader
 			}
 		}
 
-		private static void ExtractArguments(IList<Constant> dest, IEnumerable<Cci.IMetadataExpression> source)
+		private void ExtractArguments(IList<Constant> dest, IEnumerable<Cci.IMetadataExpression> source)
 		{
 			foreach (var mexpr in source)
 			{
@@ -355,7 +364,7 @@ namespace CCILoader
 			}
 		}
 
-		private static void ExtractConstants(ITypeDefinition containingType, IList<ConstantDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
+		private void ExtractConstants(ITypeDefinition containingType, IList<ConstantDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
 		{
 			source = source.Skip(1);
 
@@ -370,7 +379,7 @@ namespace CCILoader
 			}
 		}
 
-		private static void ExtractGenericType(BasicType type, Cci.IGenericTypeInstanceReference typeref)
+		private void ExtractGenericType(BasicType type, Cci.IGenericTypeInstanceReference typeref)
 		{
 			foreach (var argumentref in typeref.GenericArguments)
 			{
@@ -379,13 +388,13 @@ namespace CCILoader
 			}
 		}
 
-		private static string GetTypeName(Cci.ITypeReference typeref)
+		private string GetTypeName(Cci.ITypeReference typeref)
 		{
 			var name = Cci.TypeHelper.GetTypeName(typeref, Cci.NameFormattingOptions.OmitContainingType | Cci.NameFormattingOptions.PreserveSpecialNames);
 			return name;
 		}
 
-		private static string GetTypeName(Cci.ITypeReference typeref, out string containingAssembly, out string containingNamespace)
+		private string GetTypeName(Cci.ITypeReference typeref, out string containingAssembly, out string containingNamespace)
 		{
 			var fullName = Cci.TypeHelper.GetTypeName(typeref, Cci.NameFormattingOptions.OmitContainingType | Cci.NameFormattingOptions.PreserveSpecialNames);
 			var lastDotIndex = fullName.LastIndexOf('.');
@@ -408,7 +417,7 @@ namespace CCILoader
 			return name;
 		}
 
-		private static TypeKind GetTypeKind(Cci.ITypeReference typeref)
+		private TypeKind GetTypeKind(Cci.ITypeReference typeref)
 		{
 			var result = TypeKind.Unknown;
 
@@ -418,7 +427,7 @@ namespace CCILoader
 			return result;
 		}
 
-		private static void ExtractMethods(ITypeDefinition containingType, IList<MethodDefinition> dest, IEnumerable<Cci.IMethodDefinition> source, Cci.ISourceLocationProvider sourceLocationProvider)
+		private void ExtractMethods(ITypeDefinition containingType, IList<MethodDefinition> dest, IEnumerable<Cci.IMethodDefinition> source, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			foreach (var methoddef in source)
 			{
@@ -438,7 +447,7 @@ namespace CCILoader
 			}
 		}
 
-		private static void ExtractGenericParameters(IList<TypeVariable> dest, IEnumerable<Cci.IGenericParameter> source)
+		private void ExtractGenericParameters(IList<TypeVariable> dest, IEnumerable<Cci.IGenericParameter> source)
 		{
 			foreach (var parameterdef in source)
 			{
@@ -452,7 +461,7 @@ namespace CCILoader
 			}
 		}
 
-		private static TypeKind GetTypeParameterKind(Cci.IGenericParameter parameterdef)
+		private TypeKind GetTypeParameterKind(Cci.IGenericParameter parameterdef)
 		{
 			var result = TypeKind.Unknown;
 
@@ -462,18 +471,18 @@ namespace CCILoader
 			return result;
 		}
 
-		private static void ExtractBody(MethodBody ourBody, Cci.IMethodBody cciBody, Cci.ISourceLocationProvider sourceLocationProvider)
+		private void ExtractBody(MethodBody ourBody, Cci.IMethodBody cciBody, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			// TODO: Is not a good idea to extract all method bodies defined
 			// in an assembly when loading it. It would be better to delay 
 			// the extraction so it take place when it is actually needed,
 			// like on demand in a lazy fashion.
-			var codeProvider = new CodeProvider(sourceLocationProvider);
+			var codeProvider = new CodeProvider(this, sourceLocationProvider);
 
 			codeProvider.ExtractBody(ourBody, cciBody);
 		}
 
-		private static void ExtractInterfaces(IList<BasicType> dest, IEnumerable<Cci.ITypeReference> source)
+		private void ExtractInterfaces(IList<BasicType> dest, IEnumerable<Cci.ITypeReference> source)
 		{
 			foreach (var interfaceref in source)
 			{
@@ -483,7 +492,7 @@ namespace CCILoader
 			}
 		}
 
-		private static void ExtractParameters(IList<IMethodParameterReference> dest, IEnumerable<Cci.IParameterTypeInformation> source)
+		private void ExtractParameters(IList<IMethodParameterReference> dest, IEnumerable<Cci.IParameterTypeInformation> source)
 		{
 			foreach (var parameterref in source)
 			{
@@ -495,7 +504,7 @@ namespace CCILoader
 			}
 		}
 
-		private static void ExtractParameters(IList<MethodParameter> dest, IEnumerable<Cci.IParameterDefinition> source)
+		private void ExtractParameters(IList<MethodParameter> dest, IEnumerable<Cci.IParameterDefinition> source)
 		{
 			foreach (var parameterdef in source)
 			{
@@ -510,7 +519,7 @@ namespace CCILoader
 			}
 		}
 
-		private static MethodParameterKind GetMethodParameterKind(Cci.IParameterTypeInformation parameterref)
+		private MethodParameterKind GetMethodParameterKind(Cci.IParameterTypeInformation parameterref)
 		{
 			var result = MethodParameterKind.In;
 
@@ -519,7 +528,7 @@ namespace CCILoader
 			return result;
 		}
 
-		private static MethodParameterKind GetMethodParameterKind(Cci.IParameterDefinition parameterdef)
+		private MethodParameterKind GetMethodParameterKind(Cci.IParameterDefinition parameterdef)
 		{
 			var result = MethodParameterKind.In;
 
@@ -529,7 +538,7 @@ namespace CCILoader
 			return result;
 		}
 
-		private static void ExtractFields(ITypeDefinition containingType, IList<FieldDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
+		private void ExtractFields(ITypeDefinition containingType, IList<FieldDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
 		{
 			foreach (var fielddef in source)
 			{

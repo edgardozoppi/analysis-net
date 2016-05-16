@@ -119,13 +119,16 @@ namespace Model.Types
 
 	public class BasicType : IType
 	{
+		private Func<ITypeDefinition> ResolveType;
+		private ITypeDefinition resolvedType;
+
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeKind TypeKind { get; set; }
 		public IAssemblyReference Assembly { get; set; }
 		public string Namespace { get; set; }
 		public string Name { get; set; }
 		public IList<IType> GenericArguments { get; private set; }
-		public ITypeDefinition ResolvedType { get; private set; }
+		//blic ITypeDefinition ResolvedType { get; private set; }
 
 		public BasicType(string name, TypeKind kind = TypeKind.Unknown)
 		{
@@ -163,10 +166,28 @@ namespace Model.Types
 			}
 		}
 
-		public ITypeDefinition Resolve(Host host)
+		public ITypeDefinition ResolvedType
 		{
-			this.ResolvedType = host.ResolveReference(this);
-			return this.ResolvedType;
+			get
+			{
+				if (resolvedType == null)
+				{
+					resolvedType = ResolveType();
+				}
+
+				return resolvedType;
+			}
+		}
+
+		//public ITypeDefinition Resolve(Host host)
+		//{
+		//	this.ResolvedType = host.ResolveReference(this);
+		//	return this.ResolvedType;
+		//}
+
+		public void Resolve(Host host)
+		{
+			ResolveType = () => host.ResolveReference(this);
 		}
 
 		public override string ToString()

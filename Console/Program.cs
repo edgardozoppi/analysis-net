@@ -26,8 +26,8 @@ namespace Console
 		public void VisitMethods()
 		{
 			var methods = host.Assemblies.SelectMany(a => a.RootNamespace.GetAllTypes())
-											  .SelectMany(t => t.Members.OfType<MethodDefinition>())
-											  .Where(md => md.Body != null);
+										 .SelectMany(t => t.Members.OfType<MethodDefinition>())
+										 .Where(md => md.Body != null);
 
 			foreach (var method in methods)
 			{
@@ -131,11 +131,12 @@ namespace Console
 			//	DisplayLoopsInfo(visitor.TotalLoops, visitor.RecognizedLoops);
 			//}
 
-			var loader = new Loader();
-			var assembly = loader.LoadAssembly(input);
-
 			var host = new Host();
-			host.Assemblies.Add(assembly);
+			//host.Assemblies.Add(assembly);
+
+			var loader = new Loader(host);
+			loader.LoadAssembly(input);
+			loader.LoadCoreAssembly();
 
 			var type = new BasicType("Examples")
 			{
