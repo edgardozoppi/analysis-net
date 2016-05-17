@@ -66,6 +66,8 @@ namespace CCILoader
 			currentNamespace = ourNamespace;
 
 			base.TraverseChildren(cciNamespace);
+
+			currentNamespace = ourNamespace.ContainingNamespace;
 		}
 
 		public override void TraverseChildren(Cci.INamedTypeDefinition typedef)

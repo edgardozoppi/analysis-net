@@ -309,7 +309,8 @@ namespace CCILoader
 			ExtractAttributes(field.Attributes, fieldref.Attributes);
 
 			field.ContainingType = (BasicType)ExtractType(fieldref.ContainingType);
-			field.IsStatic = fieldref.IsStatic;
+			//field.IsStatic = fieldref.IsStatic;
+			field.IsStatic = fieldref.ResolvedField.IsStatic;
 
 			return field;
 		}
@@ -357,7 +358,7 @@ namespace CCILoader
 				}
 				else
 				{
-					throw new NotImplementedException();
+					//throw new NotImplementedException();
 				}
 
 				dest.Add(argument);

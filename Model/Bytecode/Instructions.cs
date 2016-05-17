@@ -382,7 +382,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  load {1} of {2};", this.Label, this.Operation, this.Field);
+			return string.Format("{0}:  load {1} of field {2};", this.Label, this.Operation, this.Field.Name);
 		}
 	}
 
@@ -480,7 +480,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  store {1};", this.Label, this.Field);
+			return string.Format("{0}:  store field {1};", this.Label, this.Field.Name);
 		}
 	}
 

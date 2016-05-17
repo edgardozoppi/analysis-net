@@ -120,7 +120,11 @@ namespace CCILoader
 				{
 					Console.WriteLine("Unknown bytecode: {0}", op.OperationCode);
 					//throw new UnknownBytecodeException(op);
-					continue;
+					//continue;
+
+					// Quick fix to preserve the offset in case it is a target location of some jump
+					// Otherwise it will break the control-flow analysis later.
+					instruction = new BasicInstruction(op.Offset, BasicOperation.Nop);					
 				}
 
 				instructions.Add(instruction);
