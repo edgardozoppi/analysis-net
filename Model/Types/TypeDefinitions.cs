@@ -732,10 +732,13 @@ namespace Model.Types
 			//this.LocalVariables.AddRange(this.Parameters);
 
 			// TODO: SSA is not inserting phi instructions into method's body instructions collection.
+
 			foreach (var instruction in this.Instructions)
 			{
 				this.LocalVariables.AddRange(instruction.Variables);
 			}
+
+			this.LocalVariables.ExceptWith(this.Parameters);
 		}
 
 		public override string ToString()
