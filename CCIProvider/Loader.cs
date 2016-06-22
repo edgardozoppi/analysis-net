@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Cci = Microsoft.Cci;
 
-namespace CCILoader
+namespace CCIProvider
 {
 	public class Loader : IDisposable
 	{

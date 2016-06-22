@@ -7,7 +7,7 @@ using Model.Bytecode;
 using Model.Types;
 using Model;
 
-namespace CCILoader
+namespace CCIProvider
 {
 	public static class OperationHelper
 	{

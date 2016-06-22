@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using Cci = Microsoft.Cci;
 
-namespace CCILoader
+namespace CCIProvider
 {
 	internal class TypeExtractor
 	{

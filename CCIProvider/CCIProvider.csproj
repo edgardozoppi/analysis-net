@@ -7,8 +7,8 @@
     <ProjectGuid>{D19D0C62-FB8C-427D-B6A4-8433EF3DB6A5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CCILoader</RootNamespace>
-    <AssemblyName>CCILoader</AssemblyName>
+    <RootNamespace>CCIProvider</RootNamespace>
+    <AssemblyName>CCIProvider</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />

@@ -9,7 +9,7 @@ using Cci = Microsoft.Cci;
 using Model;
 using Model.Bytecode;
 
-namespace CCILoader
+namespace CCIProvider
 {
 	internal class CodeProvider
 	{

@@ -51,9 +51,9 @@
       <Project>{45c7b613-e32d-43e8-8030-932d509602eb}</Project>
       <Name>Backend</Name>
     </ProjectReference>
-    <ProjectReference Include="..\CCILoader\CCILoader.csproj">
+    <ProjectReference Include="..\CCIProvider\CCIProvider.csproj">
       <Project>{d19d0c62-fb8c-427d-b6a4-8433ef3db6a5}</Project>
-      <Name>CCILoader</Name>
+      <Name>CCIProvider</Name>
     </ProjectReference>
     <ProjectReference Include="..\Model\Model.csproj">
       <Project>{f08216ad-e55c-44b1-a253-ab8b024b7597}</Project>

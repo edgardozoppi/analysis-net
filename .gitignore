@@ -13,3 +13,5 @@ Test/obj
 /CCILoader/bin
 /CCILoader/obj
 /packages
+/CCIProvider/bin/Debug
+/CCIProvider/obj/Debug

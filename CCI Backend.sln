@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console", "Console\Console.csproj", "{C836D6AD-2A48-4FFF-A958-023C48A65478}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -14,7 +14,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Model", "Model\Model.csproj", "{F08216AD-E55C-44B1-A253-AB8B024B7597}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CCILoader", "CCILoader\CCILoader.csproj", "{D19D0C62-FB8C-427D-B6A4-8433EF3DB6A5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CCIProvider", "CCIProvider\CCIProvider.csproj", "{D19D0C62-FB8C-427D-B6A4-8433EF3DB6A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

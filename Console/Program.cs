@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using CCILoader;
+using CCIProvider;
 using Model;
 using Model.Types;
 using Backend.Analyses;
