@@ -597,60 +597,31 @@ namespace Model.ThreeAddressCode.Expressions
 
 	public class CreateObjectExpression : IExpression
 	{
-		public IMethodReference Constructor { get; set; }
-		public IList<IVariable> Arguments { get; private set; }
+		public IType AllocationType { get; set; }
 
-		public CreateObjectExpression(IMethodReference constructor)
+		public CreateObjectExpression(IType allocationType)
 		{
-			this.Arguments = new List<IVariable>();
-			this.Constructor = constructor;
-		}
-
-		public CreateObjectExpression(IMethodReference constructor, IEnumerable<IVariable> arguments)
-		{
-			this.Arguments = new List<IVariable>(arguments);
-			this.Constructor = constructor;
+			this.AllocationType = allocationType;
 		}
 
 		public IType Type
 		{
-			get { return this.Constructor.ContainingType; }
+			get { return this.AllocationType; }
 		}
 
 		public ISet<IVariable> Variables
 		{
-			get { return new HashSet<IVariable>(this.Arguments); }
+			get { return new HashSet<IVariable>(); }
 		}
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
-			for (var i = 0; i < this.Arguments.Count; ++i)
-			{
-				var argument = this.Arguments[i];
-				if (argument.Equals(oldvar)) this.Arguments[i] = newvar;
-			}
 		}
 
 		public IExpression Replace(IExpression oldexpr, IExpression newexpr)
 		{
 			if (this.Equals(oldexpr)) return newexpr;
-			var result = this;
-
-			if (oldexpr is IVariable && newexpr is IVariable)
-			{
-				var oldvar = oldexpr as IVariable;
-				var newvar = newexpr as IVariable;
-				result = new CreateObjectExpression(this.Constructor);
-
-				foreach (var argument in this.Arguments)
-				{
-					var variable = argument;
-					if (argument.Equals(oldvar)) variable = newvar;
-					result.Arguments.Add(variable);
-				}
-			}
-
-			return result;
+			return this;
 		}
 
 		IExpression IExpressible.ToExpression()
@@ -664,21 +635,17 @@ namespace Model.ThreeAddressCode.Expressions
 			var other = obj as CreateObjectExpression;
 
 			return other != null &&
-				this.Constructor.Equals(other.Constructor) &&
-				this.Arguments.SequenceEqual(other.Arguments);
+				this.AllocationType.Equals(other.AllocationType);
 		}
 
 		public override int GetHashCode()
 		{
-			return this.Constructor.GetHashCode() ^
-				this.Arguments.GetHashCode();
+			return this.AllocationType.GetHashCode();
 		}
 
 		public override string ToString()
 		{
-			var arguments = string.Join(", ", this.Arguments.Skip(1));
-
-			return string.Format("new {0}({1});", this.Constructor.ContainingType, arguments);
+			return string.Format("new {0};", this.AllocationType);
 		}
 	}
 

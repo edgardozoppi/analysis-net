@@ -576,11 +576,13 @@ namespace Backend.Transformations
 
 				var result = stack.Push();
 				// Adding implicit this parameter
-				// TODO: [Warning] Use of result variable before definition!
 				arguments.Add(result);
 				arguments.Reverse();
 
-				var instruction = new Tac.CreateObjectInstruction(op.Offset, result, op.Constructor, arguments);
+				IInstruction instruction = new Tac.CreateObjectInstruction(op.Offset, result, op.Constructor.ContainingType);
+				body.Instructions.Add(instruction);
+
+				instruction = new Tac.MethodCallInstruction(op.Offset, null, op.Constructor, arguments);
 				body.Instructions.Add(instruction);
 			}
 
