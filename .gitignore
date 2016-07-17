@@ -8,3 +8,8 @@ Console/obj
 Test/bin
 Test/obj
 .vs
+/packages/CustomMetadataFix.Microsoft.Cci.Metadata.3.0.0
+/Model/obj/Debug
+/Model/bin/Debug
+/CCIProvider/bin/Debug
+/CCIProvider/obj/Debug

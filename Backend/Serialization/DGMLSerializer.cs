@@ -172,7 +172,7 @@ namespace Backend.Serialization
 
 					foreach (var g in fieldsBySource)
 					{
-						var sourceId = Convert.ToString(g.Key);
+						var sourceId = Convert.ToString(g.Key.Id);
 						var label = DGMLSerializer.GetLabel(g);
 
 						xmlWriter.WriteStartElement("Link");
