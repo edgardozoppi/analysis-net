@@ -81,10 +81,12 @@ namespace Backend.Analyses
 			foreach (var web in this.result)
 			{
 				// Do not rename local variables, only rename temporal variables.
-				if (web.Variable is LocalVariable) continue;
-				var variable = new TemporalVariable("$r", index);
-				web.Rename(variable);
-				index++;
+				if (web.Variable.IsTemporal())
+				{
+					var variable = new TemporalVariable("$r", index);
+					web.Rename(variable);
+					index++;
+				}
 			}
 		}
 

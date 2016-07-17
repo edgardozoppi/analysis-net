@@ -118,7 +118,7 @@ namespace Backend.Analyses
 				var node = sorted_nodes[i];
 				var node_result = new DataFlowAnalysisResult<T>();
 
-				node_result.Output = this.InitialValue(node);
+				node_result.Input = this.InitialValue(node);
 				result[node.Id] = node_result;
 
 				if (node.Successors.Count > 0)
@@ -142,7 +142,7 @@ namespace Backend.Analyses
 					foreach (var succ in other_successors)
 					{
 						succ_result = result[succ.Id];
-						node_output = this.Join(node_output, succ_result.Output);
+						node_output = this.Join(node_output, succ_result.Input);
 					}
 
 					node_result.Output = node_output;
