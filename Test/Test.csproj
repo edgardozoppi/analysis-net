@@ -42,9 +42,9 @@
   <ItemGroup>
     <None Include="Examples.cs" />
     <None Include="LinkedList.cs" />
-    <None Include="ExamplesPointsTo.cs" />
+    <Compile Include="ExamplesPointsTo.cs" />
     <None Include="ExamplesLazyInit.cs" />
-    <Compile Include="ExamplesLoops.cs" />
+    <None Include="ExamplesLoops.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -21,14 +21,16 @@ namespace Backend.Transformations
 
 		private class OperandStack
 		{
+			private ushort capacity;
 			private ushort top;
 			private TemporalVariable[] stack;			
 
 			public OperandStack(ushort capacity)
 			{
-				stack = new TemporalVariable[capacity];
+				this.capacity = capacity;
+				stack = new TemporalVariable[capacity + 1];
 
-				for (var i = 0u; i < capacity; ++i)
+				for (var i = 0u; i < stack.Length; ++i)
 				{
 					stack[i] = new TemporalVariable("$s", i);
 				}
@@ -41,7 +43,7 @@ namespace Backend.Transformations
 
 			public int Capacity
 			{
-				get { return stack.Length; }
+				get { return capacity; }
 			}
 
 			public ushort Size
@@ -49,7 +51,7 @@ namespace Backend.Transformations
 				get { return top; }
 				set
 				{
-					if (value < 0 || value > stack.Length) throw new InvalidOperationException();
+					if (value < 0 || value > capacity) throw new InvalidOperationException();
 					top = value;
 				}
 			}
@@ -59,9 +61,21 @@ namespace Backend.Transformations
 				top = 0;
 			}
 
+			public void IncrementCapacity()
+			{
+				if (capacity >= stack.Length) throw new InvalidOperationException();
+				capacity++;
+			}
+
+			public void DecrementCapacity()
+			{
+				if (capacity <= stack.Length - 1) throw new InvalidOperationException();
+				capacity--;
+			}
+
 			public TemporalVariable Push()
 			{
-				if (top >= stack.Length) throw new InvalidOperationException();
+				if (top >= capacity) throw new InvalidOperationException();
 				return stack[top++];
 			}
 
@@ -560,6 +574,11 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.CreateObjectInstruction op)
 			{
+				stack.IncrementCapacity();
+
+				var allocationResult = stack.Push();
+				stack.Pop();
+
 				var arguments = new List<IVariable>();
 
 				foreach (var par in op.Constructor.Parameters)
@@ -574,16 +593,22 @@ namespace Backend.Transformations
 				//	arguments.Add(arg);
 				//}
 
-				var result = stack.Push();
 				// Adding implicit this parameter
-				arguments.Add(result);
+				arguments.Add(allocationResult);
 				arguments.Reverse();
 
-				IInstruction instruction = new Tac.CreateObjectInstruction(op.Offset, result, op.Constructor.ContainingType);
+				IInstruction instruction = new Tac.CreateObjectInstruction(op.Offset, allocationResult, op.Constructor.ContainingType);
 				body.Instructions.Add(instruction);
 
 				instruction = new Tac.MethodCallInstruction(op.Offset, null, op.Constructor, arguments);
 				body.Instructions.Add(instruction);
+
+				var result = stack.Push();
+
+				instruction = new Tac.LoadInstruction(op.Offset, result, allocationResult);
+				body.Instructions.Add(instruction);
+
+				stack.DecrementCapacity();
 			}
 
 			public override void Visit(Bytecode.IndirectMethodCallInstruction op)

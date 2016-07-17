@@ -39,8 +39,9 @@ namespace Console
 		{
 			System.Console.WriteLine(method.Name);
 
+			var methodBodyBytecode = method.Body;
 			var disassembler = new Disassembler(method);
-			var methodBody = disassembler.Execute();
+			var methodBody = disassembler.Execute();			
 			method.Body = methodBody;
 
 			var cfAnalysis = new ControlFlowAnalysis(method.Body);
@@ -136,7 +137,7 @@ namespace Console
 
 			var loader = new Loader(host);
 			loader.LoadAssembly(input);
-			loader.LoadCoreAssembly();
+			//loader.LoadCoreAssembly();
 
 			var type = new BasicType("Examples")
 			{
