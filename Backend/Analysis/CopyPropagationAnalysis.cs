@@ -58,12 +58,17 @@ namespace Backend.Analysis
 						}
 					}
 
+					foreach (var variable in instruction.ModifiedVariables)
+					{
+						this.RemoveCopiesWithVariable(copies, variable);
+					}
+
 					if (copy.HasValue &&
 						// Only replace temporal variables
 						copy.Value.Key.IsTemporal() &&
 						copy.Value.Value is IVariable)
 					{
-						copies[copy.Value.Key] = copy.Value.Value;
+						copies.Add(copy.Value.Key, copy.Value.Value);
 
 						// Remove the copy instruction
 						body.Instructions.Remove(instruction);

@@ -205,6 +205,27 @@ namespace Backend.Utils
 			return result;
 		}
 
+		public static bool IsCopy(this Instruction instruction, out IVariable left, out IVariable right)
+		{
+			var result = false;
+			left = null;
+			right = null;
+
+			if (instruction is LoadInstruction)
+			{
+				var load = instruction as LoadInstruction;
+
+				if (load.Operand is IVariable)
+				{
+					left = load.Result;
+					right = load.Operand as IVariable;
+					result = true;
+				}
+			}
+
+			return result;
+		}
+
 		public static IExpression ReplaceVariables<T>(this IExpression expr, IDictionary<IVariable, T> equalities) where T : IExpression
 		{
 			foreach (var variable in expr.Variables)
