@@ -44,7 +44,7 @@ namespace Backend.Analyses
 
 			foreach (var node in this.cfg.Nodes)
 			{
-				ISet<DefinitionInstruction> input = new HashSet<DefinitionInstruction>();
+				var input = new HashSet<DefinitionInstruction>();
 				var node_result = this.result[node.Id];
 
 				if (node_result.Input != null)

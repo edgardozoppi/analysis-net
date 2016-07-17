@@ -63,8 +63,12 @@ namespace Console
 
 			methodBody.UpdateVariables();
 
-			var analysis = new TypeInferenceAnalysis(cfg);
-			analysis.Analyze();
+			var typeAnalysis = new TypeInferenceAnalysis(cfg);
+			typeAnalysis.Analyze();
+
+			var copyAnalysis = new CopyPropagationAnalysis(cfg);
+			var result = copyAnalysis.Analyze();
+			copyAnalysis.Transform(methodBody);
 
 			//var pointsTo = new PointsToAnalysis(cfg);
 			//var result = pointsTo.Analyze();
