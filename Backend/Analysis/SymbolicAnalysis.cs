@@ -48,7 +48,7 @@ namespace Backend.Analysis
 
 		protected override bool Compare(IDictionary<IVariable, IExpression> left, IDictionary<IVariable, IExpression> right)
 		{
-			return left.SequenceEqual(right);
+			return left.DictionaryEquals(right);
 		}
 
 		protected override IDictionary<IVariable, IExpression> Join(IDictionary<IVariable, IExpression> left, IDictionary<IVariable, IExpression> right)

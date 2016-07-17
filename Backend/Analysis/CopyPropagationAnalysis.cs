@@ -10,7 +10,7 @@ using Backend.ThreeAddressCode.Instructions;
 
 namespace Backend.Analysis
 {
-	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IInmediateValue>> 
+	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IInmediateValue>>
 	{
 		private DataFlowAnalysisResult<IDictionary<IVariable, IInmediateValue>>[] result;
 		private IDictionary<IVariable, IInmediateValue>[] GEN;
@@ -19,6 +19,61 @@ namespace Backend.Analysis
 		public CopyPropagationAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
+		}
+
+		public void Transform(MethodBody body)
+		{
+			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
+
+			foreach (var node in this.cfg.Nodes)
+			{
+				var node_result = this.result[node.Id];
+				var copies = new Dictionary<IVariable, IInmediateValue>();
+
+				if (node_result.Input != null)
+				{
+					foreach (var copy in node_result.Input)
+					{
+						// Only replace temporal variables
+						if (copy.Key.IsTemporal() &&
+							copy.Value is IVariable)
+						{
+							copies.Add(copy.Key, copy.Value);
+						}
+					}
+				}
+
+				for (var i = 0; i < node.Instructions.Count; ++i)
+				{
+					var instruction = node.Instructions[i];
+					var copy = this.Flow(instruction, copies);
+
+					foreach (var variable in instruction.UsedVariables)
+					{
+						if (copies.ContainsKey(variable))
+						{
+							var operand = copies[variable] as IVariable;
+
+							instruction.Replace(variable, operand);
+						}
+					}
+
+					if (copy.HasValue &&
+						// Only replace temporal variables
+						copy.Value.Key.IsTemporal() &&
+						copy.Value.Value is IVariable)
+					{
+						copies[copy.Value.Key] = copy.Value.Value;
+
+						// Remove the copy instruction
+						body.Instructions.Remove(instruction);
+						node.Instructions.RemoveAt(i);
+						--i;
+					}
+				}
+			}
+
+			body.UpdateVariables();
 		}
 
 		public override DataFlowAnalysisResult<IDictionary<IVariable, IInmediateValue>>[] Analyze()
@@ -42,7 +97,7 @@ namespace Backend.Analysis
 
 		protected override bool Compare(IDictionary<IVariable, IInmediateValue> left, IDictionary<IVariable, IInmediateValue> right)
 		{
-			return left.SequenceEqual(right);
+			return left.DictionaryEquals(right);
 		}
 
 		protected override IDictionary<IVariable, IInmediateValue> Join(IDictionary<IVariable, IInmediateValue> left, IDictionary<IVariable, IInmediateValue> right)
@@ -74,33 +129,17 @@ namespace Backend.Analysis
 
 		protected override IDictionary<IVariable, IInmediateValue> Flow(CFGNode node, IDictionary<IVariable, IInmediateValue> input)
 		{
-			IDictionary<IVariable, IInmediateValue> result;
+			var output = new Dictionary<IVariable, IInmediateValue>(input);
+			var kill = KILL[node.Id];
+			var gen = GEN[node.Id];
 
-			if (input == null)
+			foreach (var variable in kill)
 			{
-				result = new Dictionary<IVariable, IInmediateValue>();
-			}
-			else
-			{
-				result = new Dictionary<IVariable, IInmediateValue>(input);
+				this.RemoveCopiesWithVariable(output, variable);
 			}
 
-			foreach (var instruction in node.Instructions)
-			{
-				var copy = this.Flow(instruction, result);
-
-				foreach (var variable in instruction.ModifiedVariables)
-				{
-					this.RemoveCopiesWithVariable(result, variable);
-				}
-
-				if (copy.HasValue)
-				{
-					result.Add(copy.Value);
-				}
-			}
-
-			return result;
+			output.AddRange(gen);
+			return output;
 		}
 
 		private void ComputeGen()
@@ -109,7 +148,23 @@ namespace Backend.Analysis
 
 			foreach (var node in this.cfg.Nodes)
 			{
-				var gen = this.Flow(node, null);
+				var gen = new Dictionary<IVariable, IInmediateValue>();
+
+				foreach (var instruction in node.Instructions)
+				{
+					var copy = this.Flow(instruction, gen);
+
+					foreach (var variable in instruction.ModifiedVariables)
+					{
+						this.RemoveCopiesWithVariable(gen, variable);
+					}
+
+					if (copy.HasValue)
+					{
+						gen.Add(copy.Value.Key, copy.Value.Value);
+					}
+				}
+
 				GEN[node.Id] = gen;
 			}
 		}
@@ -157,7 +212,7 @@ namespace Backend.Analysis
 				{
 					result = new KeyValuePair<IVariable, IInmediateValue>(definition.Result, UnknownValue.Value);
 				}
-				
+
 				if (definition is LoadInstruction)
 				{
 					var assignment = definition as LoadInstruction;
@@ -172,7 +227,10 @@ namespace Backend.Analysis
 						var variable = assignment.Operand as IVariable;
 						IInmediateValue operand = variable;
 
-						if (copies.ContainsKey(variable))
+						// Only replace temporal variables
+						if (variable.IsTemporal() &&
+							copies.ContainsKey(variable) &&
+							copies[variable] != UnknownValue.Value)
 						{
 							operand = copies[variable];
 						}

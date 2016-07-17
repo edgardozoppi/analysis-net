@@ -193,19 +193,23 @@ namespace Backend.Utils
 			return result;
 		}
 
+		public static bool IsTemporal(this IVariable variable)
+		{
+			while (variable is DerivedVariable)
+			{
+				var derived = variable as DerivedVariable;
+				variable = derived.Original;
+			}
+
+			var result = variable is TemporalVariable;
+			return result;
+		}
+
 		public static IExpression ReplaceVariables<T>(this IExpression expr, IDictionary<IVariable, T> equalities) where T : IExpression
 		{
 			foreach (var variable in expr.Variables)
 			{
-				var isTemporal = variable is TemporalVariable;
-
-				if (variable is DerivedVariable)
-				{
-					var derived = variable as DerivedVariable;
-					isTemporal = derived.Original is TemporalVariable;
-				}
-
-				if (isTemporal)
+				if (variable.IsTemporal())
 				{
 					var hasValue = equalities.ContainsKey(variable);
 
