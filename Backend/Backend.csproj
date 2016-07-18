@@ -41,8 +41,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Analyses\ControlFlowAnalysis.cs" />
+    <Compile Include="Analyses\BackwardCopyPropagationAnalysis.cs" />
     <Compile Include="Model\ControlFlowGraph.cs" />
-    <Compile Include="Analyses\CopyPropagationAnalysis.cs" />
+    <Compile Include="Analyses\ForwardCopyPropagationAnalysis.cs" />
     <Compile Include="Analyses\DataFlowAnalysis.cs" />
     <Compile Include="Analyses\DominanceAnalysis.cs" />
     <Compile Include="Analyses\DominanceFrontierAnalysis.cs" />

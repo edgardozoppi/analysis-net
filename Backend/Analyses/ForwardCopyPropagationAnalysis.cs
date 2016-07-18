@@ -12,13 +12,13 @@ using Model.Types;
 
 namespace Backend.Analyses
 {
-	public class CopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IInmediateValue>> 
+	public class ForwardCopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IInmediateValue>> 
 	{
 		private DataFlowAnalysisResult<IDictionary<IVariable, IInmediateValue>>[] result;
 		private IDictionary<IVariable, IInmediateValue>[] GEN;
 		private ISet<IVariable>[] KILL;
 
-		public CopyPropagationAnalysis(ControlFlowGraph cfg)
+		public ForwardCopyPropagationAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
 		}

@@ -8,6 +8,9 @@ using Model.Types;
 using Backend.Analyses;
 using Backend.Serialization;
 using Backend.Transformations;
+using Backend.Utils;
+using Model.ThreeAddressCode.Values;
+using Backend.Model;
 
 namespace Console
 {
@@ -66,9 +69,13 @@ namespace Console
 			var typeAnalysis = new TypeInferenceAnalysis(cfg);
 			typeAnalysis.Analyze();
 
-			var copyAnalysis = new CopyPropagationAnalysis(cfg);
-			var result = copyAnalysis.Analyze();
-			copyAnalysis.Transform(methodBody);
+			var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
+			forwardCopyAnalysis.Analyze();
+			forwardCopyAnalysis.Transform(methodBody);
+
+			//var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
+			//backwardCopyAnalysis.Analyze();
+			//backwardCopyAnalysis.Transform(methodBody);
 
 			//var pointsTo = new PointsToAnalysis(cfg);
 			//var result = pointsTo.Analyze();
