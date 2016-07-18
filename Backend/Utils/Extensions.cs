@@ -205,7 +205,7 @@ namespace Backend.Utils
 			return result;
 		}
 
-		public static bool IsCopy(this Instruction instruction, out IVariable left, out IVariable right)
+		public static bool IsCopy(this IInstruction instruction, out IVariable left, out IVariable right)
 		{
 			var result = false;
 			left = null;
