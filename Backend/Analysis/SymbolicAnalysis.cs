@@ -11,6 +11,7 @@ using Backend.ThreeAddressCode.Instructions;
 
 namespace Backend.Analysis
 {
+	[Obsolete("The analysis implementation could have some bugs!")]
 	public class SymbolicAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IExpression>>
 	{
 		private DataFlowAnalysisResult<IDictionary<IVariable, IExpression>>[] result;

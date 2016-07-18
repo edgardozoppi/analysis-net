@@ -67,8 +67,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analysis\BackwardCopyPropagationAnalysis.cs" />
     <Compile Include="Analysis\ControlFlowGraph.cs" />
-    <Compile Include="Analysis\CopyPropagationAnalysis.cs" />
+    <Compile Include="Analysis\ForwardCopyPropagationAnalysis.cs" />
     <Compile Include="Analysis\DataFlowAnalysis.cs" />
     <Compile Include="Analysis\LoopBoundAnalysis.cs" />
     <Compile Include="Analysis\LoopInvariant.cs" />
