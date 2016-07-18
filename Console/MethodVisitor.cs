@@ -55,9 +55,9 @@ namespace Console
 			forwardCopyAnalysis.Analyze();
 			forwardCopyAnalysis.Transform(methodBody);
 
-			//var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
-			//backwardCopyAnalysis.Analyze();
-			//backwardCopyAnalysis.Transform(methodBody);
+			var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
+			backwardCopyAnalysis.Analyze();
+			backwardCopyAnalysis.Transform(methodBody);
 
 			//var pointsTo = new PointsToAnalysis(cfg);
 			//var result = pointsTo.Analyze();
