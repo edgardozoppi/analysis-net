@@ -47,8 +47,6 @@
     <Compile Include="Analyses\DataFlowAnalysis.cs" />
     <Compile Include="Analyses\DominanceAnalysis.cs" />
     <Compile Include="Analyses\DominanceFrontierAnalysis.cs" />
-    <Compile Include="Analyses\LoopBoundAnalysis.cs" />
-    <Compile Include="Model\LoopInvariant.cs" />
     <Compile Include="Analyses\NaturalLoopAnalysis.cs" />
     <Compile Include="Analyses\PointsToAnalysis.cs" />
     <Compile Include="Analyses\ReachingDefinitionsAnalysis.cs" />
