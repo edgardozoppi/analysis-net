@@ -1,4 +1,6 @@
-﻿using Model.ThreeAddressCode;
+﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+
+using Model.ThreeAddressCode;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
 using System;

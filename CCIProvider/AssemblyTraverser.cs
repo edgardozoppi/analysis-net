@@ -1,4 +1,6 @@
-﻿using Model;
+﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+
+using Model;
 using Model.Types;
 using System;
 using System.Collections.Generic;
