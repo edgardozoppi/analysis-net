@@ -1,4 +1,6 @@
-﻿using Backend.Analysis;
+﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+
+using Backend.Analysis;
 using Backend.ThreeAddressCode;
 using System;
 using System.Collections.Generic;

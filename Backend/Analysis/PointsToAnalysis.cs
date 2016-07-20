@@ -1,4 +1,6 @@
-﻿using Backend.ThreeAddressCode.Instructions;
+﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+
+using Backend.ThreeAddressCode.Instructions;
 using Backend.ThreeAddressCode.Values;
 using Backend.Utils;
 using Microsoft.Cci;

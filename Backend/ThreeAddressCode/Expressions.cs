@@ -1,4 +1,6 @@
-﻿using Microsoft.Cci;
+﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+
+using Microsoft.Cci;
 using Microsoft.Cci.Immutable;
 using System;
 using System.Collections.Generic;

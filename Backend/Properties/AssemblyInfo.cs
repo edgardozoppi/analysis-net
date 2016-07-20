@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -8,9 +10,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Backend")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
+[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Backend")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2013")]
+[assembly: AssemblyCopyright("Copyright © Edgardo Zoppi")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
