@@ -16,7 +16,7 @@ namespace Test
 		}
 	}
 
-	class Examples
+	class ExamplesPointsTo
 	{
 		public void Example1()
 		{

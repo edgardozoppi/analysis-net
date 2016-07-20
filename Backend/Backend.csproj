@@ -71,8 +71,6 @@
     <Compile Include="Analysis\ControlFlowGraph.cs" />
     <Compile Include="Analysis\ForwardCopyPropagationAnalysis.cs" />
     <Compile Include="Analysis\DataFlowAnalysis.cs" />
-    <Compile Include="Analysis\LoopBoundAnalysis.cs" />
-    <Compile Include="Analysis\LoopInvariant.cs" />
     <Compile Include="Analysis\PointsToAnalysis.cs" />
     <Compile Include="Analysis\ReachingDefinitionsAnalysis.cs" />
     <Compile Include="Analysis\StaticSingleAssignmentAnalysis.cs" />

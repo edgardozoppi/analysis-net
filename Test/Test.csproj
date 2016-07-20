@@ -40,11 +40,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Examples.cs" />
-    <None Include="LinkedList.cs" />
-    <None Include="ExamplesPointsTo.cs" />
-    <None Include="ExamplesLazyInit.cs" />
-    <Compile Include="ExamplesLoops.cs" />
+    <Compile Include="Examples.cs" />
+    <Compile Include="ExamplesPointsTo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

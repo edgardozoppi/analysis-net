@@ -21,9 +21,6 @@ namespace Console
 			this.sourceLocationProvider = sourceLocationProvider;
 		}
 
-		public int TotalLoops { get; private set; }
-		public int RecognizedLoops { get; private set; }
-
 		public override IMethodDefinition Rewrite(IMethodDefinition methodDefinition)
 		{
 			var signature = MemberHelper.GetMethodSignature(methodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.ParameterName); 
@@ -69,12 +66,6 @@ namespace Console
 
 			////var dot = DOTSerializer.Serialize(cfg);
 			var dgml = DGMLSerializer.Serialize(cfg);
-
-			var bounds = new LoopBoundAnalysis(cfg);
-			bounds.Analyze();
-
-			this.TotalLoops += bounds.TotalLoops;
-			this.RecognizedLoops += bounds.RecognizedLoops;
 			
 			return base.Rewrite(methodDefinition);
 		}

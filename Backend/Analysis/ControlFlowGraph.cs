@@ -18,29 +18,10 @@ namespace Backend.Analysis
 		BasicBlock
 	}
 
-	public enum CFGLoopKind
-	{
-		Unknown,
-		While,
-		DoWhile,
-		Foreach,
-		For = While
-	}
-
-	public enum CFGLoopIterationKind
-	{
-		Unknown,
-		Forward,
-		Backward
-	}
-
 	public class CFGLoop
 	{
 		public CFGNode Header { get; set; }
 		public ISet<CFGNode> Body { get; private set; }
-		public LoopInvariant Invariant { get; set; }
-		public CFGLoopKind Kind { get; set; }
-		public CFGLoopIterationKind IterationKind { get; set; }
 		//public IExpression Condition { get; set; }
 
 		public CFGLoop(CFGNode header)
@@ -48,11 +29,6 @@ namespace Backend.Analysis
 			this.Header = header;
 			this.Body = new HashSet<CFGNode>();
 			this.Body.Add(header);
-		}
-
-		public bool HasInvariant
-		{
-			get { return this.Invariant != null; }
 		}
 
 		public override string ToString()
