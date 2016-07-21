@@ -13,6 +13,7 @@ using Backend.Transformations;
 using Backend.Utils;
 using Model.ThreeAddressCode.Values;
 using Backend.Model;
+using Model.ThreeAddressCode.Instructions;
 
 namespace Console
 {
@@ -119,7 +120,7 @@ namespace Console
 			loader.LoadAssembly(input);
 			//loader.LoadCoreAssembly();
 
-			var type = new BasicType("Examples")
+			var type = new BasicType("ExamplesPointsTo")
 			{
 				Assembly = new AssemblyReference("Test"),
 				Namespace = "Test"
@@ -127,16 +128,27 @@ namespace Console
 
 			var typeDefinition = host.ResolveReference(type);
 
-			var method = new MethodReference("ExampleLoopEnumerator", null)
+			var method = new MethodReference("Example1", PlatformTypes.Void)
 			{
 				ContainingType = type,
-				ReturnType = PlatformTypes.Void
 			};
 
-			var methodDefinition = host.ResolveReference(method) as MethodDefinition;
+			//var methodDefinition = host.ResolveReference(method) as MethodDefinition;
 
 			var program = new Program(host);
 			program.VisitMethods();
+
+			// Testing method calls inlining
+			var methodDefinition = host.ResolveReference(method) as MethodDefinition;
+			var methodCalls = methodDefinition.Body.Instructions.OfType<MethodCallInstruction>().ToList();
+
+			foreach (var methodCall in methodCalls)
+			{
+				var callee = host.ResolveReference(methodCall.Method) as MethodDefinition;
+				methodDefinition.Body.Inline(methodCall, callee.Body);
+			}
+
+			methodDefinition.Body.UpdateVariables();
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();

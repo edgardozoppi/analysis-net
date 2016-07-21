@@ -275,5 +275,66 @@ namespace Backend.Utils
 
 			return result;
 		}
+
+		public static void Inline(this MethodBody callerBody, MethodCallInstruction methodCall, MethodBody calleeBody)
+		{
+			// TODO: Fix local variables (and parameters) name clashing
+			// TODO: Fix instruction labels clashing
+
+			var index = callerBody.Instructions.IndexOf(methodCall);
+			callerBody.Instructions.RemoveAt(index);
+
+			IInstruction nextInstruction = null;
+
+			if (callerBody.Instructions.Count > index)
+			{
+				// The caller method has more instructions after the method call
+				nextInstruction = callerBody.Instructions[index];
+			}			
+
+			for (var i = 0; i < calleeBody.Parameters.Count; ++i, ++index)
+			{
+				var parameter = calleeBody.Parameters[i];
+				var argument = methodCall.Arguments[i];
+				var copy = new LoadInstruction(methodCall.Offset, parameter, argument);
+
+				callerBody.Instructions.Insert(index, copy);
+			}
+
+			var lastCalleeInstructionIndex = calleeBody.Instructions.Count - 1;
+
+			for (var i = 0; i < calleeBody.Instructions.Count; ++i)
+			{
+				var instruction = calleeBody.Instructions[i];
+
+				if (instruction is ReturnInstruction)
+				{
+					var ret = instruction as ReturnInstruction;
+
+					if (ret.HasOperand && methodCall.HasResult)
+					{
+						// Copy the return value of the callee to the result variable of the method call
+						var copy = new LoadInstruction(ret.Offset, methodCall.Result, ret.Operand);
+
+						callerBody.Instructions.Insert(index, copy);
+						index++;
+					}
+
+					if (nextInstruction != null && i < lastCalleeInstructionIndex)
+					{
+						// Jump to the instruction after the method call
+						var branch = new UnconditionalBranchInstruction(ret.Offset, nextInstruction.Offset);
+
+						callerBody.Instructions.Insert(index, branch);
+						index++;
+					}
+				}
+				else
+				{
+					callerBody.Instructions.Insert(index, instruction);
+					index++;
+				}
+			}
+		}
 	}
 }
