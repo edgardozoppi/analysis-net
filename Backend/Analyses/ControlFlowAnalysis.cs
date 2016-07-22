@@ -16,15 +16,19 @@ namespace Backend.Analyses
 	public class ControlFlowAnalysis
 	{
 		private MethodBody methodBody;
+		private ISet<string> exceptionHandlersStart;
 
 		public ControlFlowAnalysis(MethodBody methodBody)
 		{
 			this.methodBody = methodBody;
+			this.exceptionHandlersStart = new HashSet<string>();
 		}
 
 		public ControlFlowGraph GenerateNormalControlFlow()
 		{
-			var instructions = this.FilterExceptionHandlers();
+			FillExceptionHandlersStart();
+
+			var instructions = FilterExceptionHandlers();
 			var leaders = CreateNodes(instructions);
 			var cfg = ConnectNodes(instructions, leaders);
 
@@ -33,34 +37,46 @@ namespace Backend.Analyses
 
 		public ControlFlowGraph GenerateExceptionalControlFlow()
 		{
+			FillExceptionHandlersStart();
+
 			var instructions = methodBody.Instructions;
 			var leaders = CreateNodes(instructions);
 			var cfg = ConnectNodes(instructions, leaders);
-			this.ConnectNodesWithExceptionHandlers(cfg, leaders);
+
+			ConnectNodesWithExceptionHandlers(cfg, leaders);
 
 			return cfg;
+		}
+
+		private void FillExceptionHandlersStart()
+		{
+			var protectedBlocksStart = methodBody.ExceptionInformation.Select(pb => pb.Start);
+			var handlersStart = methodBody.ExceptionInformation.Select(pb => pb.Handler.Start);
+
+			exceptionHandlersStart.UnionWith(protectedBlocksStart);
+			exceptionHandlersStart.UnionWith(handlersStart);
 		}
 
 		private IList<IInstruction> FilterExceptionHandlers()
 		{
 			var instructions = new List<IInstruction>();
-			var handlers = methodBody.ExceptionInformation.ToDictionary(h => h.Handler.Start, h => h.Handler);
+			var handlersRange = methodBody.ExceptionInformation.ToDictionary(pb => pb.Handler.Start, h => h.Handler.End);
 			var i = 0;
 
 			while (i < methodBody.Instructions.Count)
 			{
 				var instruction = methodBody.Instructions[i];
 
-				if (handlers.ContainsKey(instruction.Label))
+				if (handlersRange.ContainsKey(instruction.Label))
 				{
-					var handler = handlers[instruction.Label];
+					var handlerEnd = handlersRange[instruction.Label];
 
 					do
 					{
 						i++;
 						instruction = methodBody.Instructions[i];
 					}
-					while (!instruction.Label.Equals(handler.End));
+					while (!instruction.Label.Equals(handlerEnd));
 				}
 				else
 				{
@@ -72,7 +88,7 @@ namespace Backend.Analyses
 			return instructions;
 		}
 
-		private static IDictionary<string, CFGNode> CreateNodes(IEnumerable<IInstruction> instructions)
+		private IDictionary<string, CFGNode> CreateNodes(IEnumerable<IInstruction> instructions)
 		{
 			var leaders = new Dictionary<string, CFGNode>();
 			var nextIsLeader = true;
@@ -198,11 +214,22 @@ namespace Backend.Analyses
 			}
 		}
 
-		private static bool IsLeader(IInstruction instruction)
+		private bool IsLeader(IInstruction instruction)
 		{
-			var result = instruction is Tac.TryInstruction ||
+			var result = false;
+
+			// Bytecode
+			if (instruction is Bytecode.Instruction)
+			{
+				result = exceptionHandlersStart.Contains(instruction.Label);
+			}
+			// TAC
+			else
+			{
+				result = instruction is Tac.TryInstruction ||
 						 instruction is Tac.CatchInstruction ||
 						 instruction is Tac.FinallyInstruction;
+			}
 
 			return result;
 		}

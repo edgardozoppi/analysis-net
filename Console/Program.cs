@@ -48,7 +48,13 @@ namespace Console
 			method.Body = methodBody;
 
 			var cfAnalysis = new ControlFlowAnalysis(method.Body);
-			var cfg = cfAnalysis.GenerateNormalControlFlow();
+			//var cfg = cfAnalysis.GenerateNormalControlFlow();
+			var cfg = cfAnalysis.GenerateExceptionalControlFlow();
+
+			var dgml = DGMLSerializer.Serialize(cfg);
+
+			if (method.Name == "ExampleTryCatchFinally")
+				;
 
 			var domAnalysis = new DominanceAnalysis(cfg);
 			domAnalysis.Analyze();
@@ -86,7 +92,7 @@ namespace Console
 			methodBody.UpdateVariables();
 
 			//var dot = DOTSerializer.Serialize(cfg);
-			var dgml = DGMLSerializer.Serialize(cfg);
+			//var dgml = DGMLSerializer.Serialize(cfg);
 
 			//dgml = DGMLSerializer.Serialize(host, typeDefinition);
 		}

@@ -889,15 +889,14 @@ namespace Backend.Transformations
 
 			if (method.Body.Instructions.Count > 0)
 			{
-				foreach (var protectedBlock in method.Body.ExceptionInformation)
-				{
-					exceptionHandlersStart.Add(protectedBlock.Start, protectedBlock);
-					//exceptionHandlersEnd.Add(protectedBlock.End, protectedBlock);
-				}
+				FillExceptionHandlersStart();
 
 				var translator = new InstructionTranslator(stack, body, method.ReturnType);
 				var cfanalysis = new ControlFlowAnalysis(method.Body);
-				var cfg = cfanalysis.GenerateNormalControlFlow();
+				//var cfg = cfanalysis.GenerateNormalControlFlow();
+				var cfg = cfanalysis.GenerateExceptionalControlFlow();
+
+				var dgml = Serialization.DGMLSerializer.Serialize(cfg);
 
 				var stackSizeAtEntry = new ushort?[cfg.Nodes.Count];
 				var sorted_nodes = cfg.ForwardOrder;
@@ -933,6 +932,17 @@ namespace Backend.Transformations
 			}
 
 			return body;
+		}
+
+		private void FillExceptionHandlersStart()
+		{
+			foreach (var protectedBlock in method.Body.ExceptionInformation)
+			{
+				exceptionHandlersStart.Add(protectedBlock.Start, protectedBlock);
+				exceptionHandlersStart.Add(protectedBlock.Handler.Start, protectedBlock.Handler);
+				//exceptionHandlersEnd.Add(protectedBlock.End, protectedBlock);
+				//exceptionHandlersEnd.Add(protectedBlock.Handler.End, protectedBlock.Handler);
+			}
 		}
 
 		private void ProcessBasicBlock(MethodBody body, CFGNode node, InstructionTranslator translator)
