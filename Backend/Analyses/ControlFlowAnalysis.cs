@@ -10,6 +10,7 @@ using Model.ThreeAddressCode;
 using Bytecode = Model.Bytecode;
 using Tac = Model.ThreeAddressCode.Instructions;
 using Backend.Model;
+using Backend.Utils;
 
 namespace Backend.Analyses
 {
@@ -188,7 +189,11 @@ namespace Backend.Analyses
 			var protectedBlocksStart = methodBody.ExceptionInformation.ToLookup(pb => pb.Start);
 			var protectedBlocksEnd = methodBody.ExceptionInformation.ToLookup(pb => pb.End);
 
-			foreach (var entry in leaders)
+			var orderedLeaders = from entry in leaders
+								 orderby entry.Value.StartOffset()
+								 select entry;
+
+			foreach (var entry in orderedLeaders)
 			{
 				var label = entry.Key;
 				var node = entry.Value;

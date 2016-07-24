@@ -87,6 +87,18 @@ namespace Backend.Utils
 			return new Subset<T>(universe, true);
 		}
 
+		public static uint StartOffset(this IInstructionContainer block)
+		{
+			var instruction = block.Instructions.First();
+			return instruction.Offset;
+		}
+
+		public static uint EndOffset(this IInstructionContainer block)
+		{
+			var instruction = block.Instructions.Last();
+			return instruction.Offset;
+		}
+
 		public static ISet<IVariable> GetVariables(this IInstructionContainer block)
 		{
 			var result = from i in block.Instructions
@@ -256,11 +268,12 @@ namespace Backend.Utils
 
 		public static void RemoveTemporalVariables(this PointsToGraph ptg)
 		{
-			var temporals = ptg.Variables.OfType<TemporalVariable>().ToArray();
-
-			foreach (var temporal in temporals)
+			foreach (var variable in ptg.Variables)
 			{
-				ptg.Remove(temporal);
+				if (variable.IsTemporal())
+				{
+					ptg.Remove(variable);
+				}
 			}
 		}
 

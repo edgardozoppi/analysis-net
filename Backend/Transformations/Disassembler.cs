@@ -895,9 +895,6 @@ namespace Backend.Transformations
 				var cfanalysis = new ControlFlowAnalysis(method.Body);
 				//var cfg = cfanalysis.GenerateNormalControlFlow();
 				var cfg = cfanalysis.GenerateExceptionalControlFlow();
-
-				var dgml = Serialization.DGMLSerializer.Serialize(cfg);
-
 				var stackSizeAtEntry = new ushort?[cfg.Nodes.Count];
 				var sorted_nodes = cfg.ForwardOrder;
 
