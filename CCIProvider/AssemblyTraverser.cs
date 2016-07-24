@@ -110,6 +110,11 @@ namespace CCIProvider
 			}
 
 			base.TraverseChildren(typedef);
+
+			if (result != null)
+			{
+				currentType = result.ContainingType;
+			}
 		}
 	}
 }
