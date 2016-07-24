@@ -84,31 +84,32 @@ namespace CCIProvider
 		{
 			foreach (var cciExceptionInfo in cciExceptionInformation)
 			{
-				var tryHandler = new ProtectedBlock(cciExceptionInfo.TryStartOffset, cciExceptionInfo.TryEndOffset);
+				ExceptionHandler handler;
+				var protectedBlock = new ProtectedBlock(cciExceptionInfo.TryStartOffset, cciExceptionInfo.TryEndOffset);
 
 				switch (cciExceptionInfo.HandlerKind)
 				{
 					case Cci.HandlerKind.Catch:
 						var exceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
-						var catchHandler = new CatchExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, exceptionType);
-						tryHandler.Handler = catchHandler;
+						handler = new CatchExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, exceptionType);
 						break;
 
 					case Cci.HandlerKind.Fault:
-						var faultHandler = new FaultExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset);
-						tryHandler.Handler = faultHandler;
+						handler = new ExceptionHandler(ExceptionHandlerBlockKind.Fault, cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset);
 						break;
 
 					case Cci.HandlerKind.Finally:
-						var finallyHandler = new FinallyExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset);
-						tryHandler.Handler = finallyHandler;
+						handler = new ExceptionHandler(ExceptionHandlerBlockKind.Finally, cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset);
 						break;
 
 					default:
 						throw new Exception("Unknown exception handler block kind");
 				}
 
-				ourExceptionInformation.Add(tryHandler);
+				handler.ProtectedBlock = protectedBlock;
+				protectedBlock.Handler = handler;
+
+				ourExceptionInformation.Add(protectedBlock);
 			}
 		}
 

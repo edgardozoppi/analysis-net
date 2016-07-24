@@ -17,17 +17,16 @@ namespace Backend.Analyses
 	public class ControlFlowAnalysis
 	{
 		private MethodBody methodBody;
-		private ISet<string> exceptionHandlersStart;
+		private MapSet<string, ExceptionHandlerBlock> exceptionHandlersStart;
 
 		public ControlFlowAnalysis(MethodBody methodBody)
 		{
 			this.methodBody = methodBody;
-			this.exceptionHandlersStart = new HashSet<string>();
 		}
 
 		public ControlFlowGraph GenerateNormalControlFlow()
 		{
-			FillExceptionHandlersStart();
+			exceptionHandlersStart = GetExceptionHandlersStart();
 
 			var instructions = FilterExceptionHandlers();
 			var leaders = CreateNodes(instructions);
@@ -38,24 +37,42 @@ namespace Backend.Analyses
 
 		public ControlFlowGraph GenerateExceptionalControlFlow()
 		{
-			FillExceptionHandlersStart();
+			exceptionHandlersStart = GetExceptionHandlersStart();
 
 			var instructions = methodBody.Instructions;
 			var leaders = CreateNodes(instructions);
 			var cfg = ConnectNodes(instructions, leaders);
 
-			ConnectNodesWithExceptionHandlers(cfg, leaders);
+			CreateExceptionHandlerRegions(cfg, leaders);
+			ConnectNodesWithExceptionHandlers(cfg);
 
 			return cfg;
 		}
 
-		private void FillExceptionHandlersStart()
+		private MapSet<string, ExceptionHandlerBlock> GetExceptionHandlersStart()
 		{
-			var protectedBlocksStart = methodBody.ExceptionInformation.Select(pb => pb.Start);
-			var handlersStart = methodBody.ExceptionInformation.Select(pb => pb.Handler.Start);
+			var result = new MapSet<string, ExceptionHandlerBlock>();
 
-			exceptionHandlersStart.UnionWith(protectedBlocksStart);
-			exceptionHandlersStart.UnionWith(handlersStart);
+			foreach (var protectedBlock in methodBody.ExceptionInformation)
+			{
+				result.Add(protectedBlock.Start, protectedBlock);
+				result.Add(protectedBlock.Handler.Start, protectedBlock.Handler);
+			}
+
+			return result;
+		}
+
+		private MapSet<string, ExceptionHandlerBlock> GetExceptionHandlersEnd()
+		{
+			var result = new MapSet<string, ExceptionHandlerBlock>();
+
+			foreach (var protectedBlock in methodBody.ExceptionInformation)
+			{
+				result.Add(protectedBlock.End, protectedBlock);
+				result.Add(protectedBlock.Handler.End, protectedBlock.Handler);
+			}
+
+			return result;
 		}
 
 		private IList<IInstruction> FilterExceptionHandlers()
@@ -93,7 +110,7 @@ namespace Backend.Analyses
 		{
 			var leaders = new Dictionary<string, CFGNode>();
 			var nextIsLeader = true;
-			var nodeId = 2;
+			var nodeId = CFGNode.FirstAvailableId;
 
 			foreach (var instruction in instructions)
 			{
@@ -175,49 +192,137 @@ namespace Backend.Analyses
 				else if (isExitingMethod)
 				{
 					//TODO: not always connect to exit, could exists a catch or finally block
-					cfg.ConnectNodes(current, cfg.Exit);
+					cfg.ConnectNodes(current, cfg.NormalExit);
 				}
 			}
 
-			cfg.ConnectNodes(current, cfg.Exit);
+			cfg.ConnectNodes(current, cfg.NormalExit);
 			return cfg;
 		}
 
-		private void ConnectNodesWithExceptionHandlers(ControlFlowGraph cfg, IDictionary<string, CFGNode> leaders)
+		private void CreateExceptionHandlerRegions(ControlFlowGraph cfg, IDictionary<string, CFGNode> leaders)
 		{
-			var activeProtectedBlocks = new HashSet<ProtectedBlock>();
-			var protectedBlocksStart = methodBody.ExceptionInformation.ToLookup(pb => pb.Start);
-			var protectedBlocksEnd = methodBody.ExceptionInformation.ToLookup(pb => pb.End);
+			var activeRegions = new List<CFGRegion>();
+			var exceptionHandlerRegions = new Dictionary<ExceptionHandlerBlock, CFGRegion>();
 
+			var exceptionHandlersEnd = GetExceptionHandlersEnd();
 			var orderedLeaders = from entry in leaders
 								 orderby entry.Value.StartOffset()
 								 select entry;
 
+			foreach (var protectedBlock in methodBody.ExceptionInformation)
+			{
+				CFGExceptionHandlerRegion handler;
+				var protectedRegion = new CFGProtectedRegion();
+
+				switch (protectedBlock.Handler.Kind)
+				{
+					case ExceptionHandlerBlockKind.Catch:
+						handler = new CFGExceptionHandlerRegion(CFGRegionKind.Catch);
+						break;
+
+					case ExceptionHandlerBlockKind.Fault:
+						handler = new CFGExceptionHandlerRegion(CFGRegionKind.Fault);
+						break;
+
+					case ExceptionHandlerBlockKind.Finally:
+						handler = new CFGExceptionHandlerRegion(CFGRegionKind.Finally);
+						break;
+
+					default:
+						throw new NotImplementedException();
+				}
+
+				handler.ProtectedRegion = protectedRegion;
+				protectedRegion.Handler = handler;
+
+				cfg.Regions.Add(protectedRegion);
+				cfg.Regions.Add(protectedRegion.Handler);
+
+				exceptionHandlerRegions.Add(protectedBlock, protectedRegion);
+				exceptionHandlerRegions.Add(protectedBlock.Handler, protectedRegion.Handler);
+			}
+
 			foreach (var entry in orderedLeaders)
 			{
+				HashSet<ExceptionHandlerBlock> exceptionHandlers;
 				var label = entry.Key;
 				var node = entry.Value;
 
-				if (protectedBlocksStart.Contains(label))
+				if (exceptionHandlersStart.TryGetValue(label, out exceptionHandlers))
 				{
-					var startingProtectedBlocks = protectedBlocksStart[label];
-					activeProtectedBlocks.UnionWith(startingProtectedBlocks);
+					foreach (var exceptionHandler in exceptionHandlers)
+					{
+						var region = exceptionHandlerRegions[exceptionHandler];
+						activeRegions.Add(region);
+						region.Header = node;
+					}
 				}
 
-				if (protectedBlocksEnd.Contains(label))
+				if (exceptionHandlersEnd.TryGetValue(label, out exceptionHandlers))
 				{
-					var endingProtectedBlocks = protectedBlocksEnd[label];
-					activeProtectedBlocks.ExceptWith(endingProtectedBlocks);
+					foreach (var exceptionHandler in exceptionHandlers)
+					{
+						var region = exceptionHandlerRegions[exceptionHandler];
+						activeRegions.Remove(region);
+					}
 				}
 
-				// Connect each node inside a try block to the first corresponding handler block
-				foreach (var block in activeProtectedBlocks)
+				foreach (var region in activeRegions)
 				{
-					var target = leaders[block.Handler.Start];
-					cfg.ConnectNodes(node, target);
+					region.Nodes.Add(node);
 				}
 			}
 		}
+
+		private void ConnectNodesWithExceptionHandlers(ControlFlowGraph cfg)
+		{
+			var protectedRegions = cfg.GetProtectedRegions();
+
+			foreach (var protectedRegion in protectedRegions)
+			{
+				foreach (var node in protectedRegion.Nodes)
+				{
+					cfg.ConnectNodes(node, protectedRegion.Handler.Header);
+				}
+			}
+		}
+
+		//private void ConnectNodesWithExceptionHandlers(ControlFlowGraph cfg, IDictionary<string, CFGNode> leaders)
+		//{
+		//	var activeProtectedBlocks = new HashSet<ProtectedBlock>();
+		//	var protectedBlocksStart = methodBody.ExceptionInformation.ToLookup(pb => pb.Start);
+		//	var protectedBlocksEnd = methodBody.ExceptionInformation.ToLookup(pb => pb.End);
+
+		//	var orderedLeaders = from entry in leaders
+		//						 orderby entry.Value.StartOffset()
+		//						 select entry;
+
+		//	foreach (var entry in orderedLeaders)
+		//	{
+		//		var label = entry.Key;
+		//		var node = entry.Value;
+
+		//		if (protectedBlocksStart.Contains(label))
+		//		{
+		//			var startingProtectedBlocks = protectedBlocksStart[label];
+		//			activeProtectedBlocks.UnionWith(startingProtectedBlocks);
+		//		}
+
+		//		if (protectedBlocksEnd.Contains(label))
+		//		{
+		//			var endingProtectedBlocks = protectedBlocksEnd[label];
+		//			activeProtectedBlocks.ExceptWith(endingProtectedBlocks);
+		//		}
+
+		//		// Connect each node inside a try block to the first corresponding handler block
+		//		foreach (var block in activeProtectedBlocks)
+		//		{
+		//			var target = leaders[block.Handler.Start];
+		//			cfg.ConnectNodes(node, target);
+		//		}
+		//	}
+		//}
 
 		private bool IsLeader(IInstruction instruction)
 		{
@@ -226,7 +331,7 @@ namespace Backend.Analyses
 			// Bytecode
 			if (instruction is Bytecode.Instruction)
 			{
-				result = exceptionHandlersStart.Contains(instruction.Label);
+				result = exceptionHandlersStart.ContainsKey(instruction.Label);
 			}
 			// TAC
 			else

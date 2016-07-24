@@ -17,32 +17,98 @@ namespace Backend.Model
 	{
 		Entry,
 		Exit,
+		NormalExit,
+		ExceptionalExit,
 		BasicBlock
 	}
 
-	public class CFGLoop
+	public enum CFGRegionKind
 	{
-		public CFGNode Header { get; set; }
-		public ISet<CFGNode> Body { get; private set; }
-		//public IExpression Condition { get; set; }
+		Try,
+		Catch,
+		Fault,
+		Finally,
+		Loop
+	}
 
-		public CFGLoop(CFGNode header)
+	public abstract class CFGRegion
+	{
+		public abstract CFGRegionKind Kind { get; }
+		public CFGNode Header { get; set; }
+		public ISet<CFGNode> Nodes { get; private set; }
+
+		public CFGRegion()
+		{
+			this.Nodes = new HashSet<CFGNode>();
+		}
+
+		public CFGRegion(CFGNode header)
+			: this()
 		{
 			this.Header = header;
-			this.Body = new HashSet<CFGNode>();
-			this.Body.Add(header);
+			this.Nodes.Add(header);
 		}
 
 		public override string ToString()
 		{
-			var sb = new StringBuilder(" ");
+			var sb = new StringBuilder();
 
-			foreach (var node in this.Body)
+			sb.AppendFormat("{0} ", this.Kind);
+
+			foreach (var node in this.Nodes)
 			{
 				sb.AppendFormat("B{0} ", node.Id);
 			}
 
 			return sb.ToString();
+		}
+	}
+
+	public class CFGProtectedRegion : CFGRegion
+	{
+		public CFGExceptionHandlerRegion Handler { get; set; }
+
+		public override CFGRegionKind Kind
+		{
+			get { return CFGRegionKind.Try; }
+		}
+
+		public override string ToString()
+		{
+			var self = base.ToString();
+			return string.Format("{0} {1}", self, this.Handler);
+		}
+	}
+
+	public class CFGExceptionHandlerRegion : CFGRegion
+	{
+		private CFGRegionKind kind;
+
+		public CFGProtectedRegion ProtectedRegion { get; set; }
+
+		public CFGExceptionHandlerRegion(CFGRegionKind kind)
+		{
+			this.kind = kind;
+		}
+
+		public override CFGRegionKind Kind
+		{
+			get { return kind; }
+		}
+	}
+
+	public class CFGLoop : CFGRegion
+	{
+		//public IExpression Condition { get; set; }
+
+		public CFGLoop(CFGNode header)
+			: base(header)
+		{
+		}
+
+		public override CFGRegionKind Kind
+		{
+			get { return CFGRegionKind.Loop; }
 		}
 	}
 
@@ -66,6 +132,8 @@ namespace Backend.Model
 	public class CFGNode : IInstructionContainer
 	{
 		private ISet<CFGNode> dominators;
+
+		public const int FirstAvailableId = 4;
 
 		public int Id { get; private set; }
 		public int ForwardIndex { get; set; }
@@ -112,6 +180,8 @@ namespace Backend.Model
 			{
 				case CFGNodeKind.Entry: result = "entry"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
+				case CFGNodeKind.NormalExit: result = "normal exit"; break;
+				case CFGNodeKind.ExceptionalExit: result = "exceptional exit"; break;
 				default: result = string.Join("\n", this.Instructions); break;
 			}
 
@@ -140,15 +210,28 @@ namespace Backend.Model
 
 		public CFGNode Entry { get; private set; }
 		public CFGNode Exit { get; private set; }
+		public CFGNode NormalExit { get; private set; }
+		public CFGNode ExceptionalExit { get; private set; }
 		public ISet<CFGNode> Nodes { get; private set; }
-		public ISet<CFGLoop> Loops { get; private set; }
+		public ISet<CFGRegion> Regions { get; private set; }
 
 		public ControlFlowGraph()
 		{
 			this.Entry = new CFGNode(0, CFGNodeKind.Entry);
 			this.Exit = new CFGNode(1, CFGNodeKind.Exit);
-			this.Nodes = new HashSet<CFGNode>() { this.Entry, this.Exit };
-			this.Loops = new HashSet<CFGLoop>();
+			this.NormalExit = new CFGNode(2, CFGNodeKind.NormalExit);
+			this.ExceptionalExit = new CFGNode(3, CFGNodeKind.ExceptionalExit);
+			this.Regions = new HashSet<CFGRegion>();
+			this.Nodes = new HashSet<CFGNode>()
+			{
+				this.Entry,
+				this.Exit,
+				this.NormalExit,
+				this.ExceptionalExit
+			};
+
+			this.ConnectNodes(this.NormalExit, this.Exit);
+			this.ConnectNodes(this.ExceptionalExit, this.Exit);
 		}
 
 		public CFGNode[] ForwardOrder
@@ -187,41 +270,53 @@ namespace Backend.Model
 
 		#region Topological Sort
 
-		//private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
+		//private CFGNode[] ComputeForwardTopologicalSort()
 		//{
-		//    var result = new CFGNode[cfg.Nodes.Count];
-		//    var visited = new bool[cfg.Nodes.Count];
-		//    var index = cfg.Nodes.Count - 1;
+		//	var result = new CFGNode[this.Nodes.Count];
+		//	var visited = new bool[this.Nodes.Count];
+		//	var index = this.Nodes.Count - 1;
 
-		//    ControlFlowGraph.DepthFirstSearch(result, visited, cfg.Entry, ref index);
+		//	ControlFlowGraph.DepthFirstSearch(result, visited, this.Entry, ref index);
 
-		//    //if (result.Any(n => n == null))
-		//    //{
-		//    //    var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
+		//	//if (result.Any(n => n == null))
+		//	//{
+		//	//    var nodes = this.Nodes.Where(n => n.Predecessors.Count == 0);
 
-		//    //    throw new Exception("Error");
-		//    //}
+		//	//    throw new Exception("Error");
+		//	//}
 
-		//    return result;
+		//	foreach (var node in this.Nodes)
+		//	{
+		//		var alreadyVisited = visited[node.Id];
+
+		//		if (!alreadyVisited)
+		//		{
+		//			node.ForwardIndex = index;
+		//			result[index] = node;
+		//			index--;
+		//		}
+		//	}
+
+		//	return result;
 		//}
 
 		//private static void DepthFirstSearch(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
 		//{
-		//    var alreadyVisited = visited[node.Id];
+		//	var alreadyVisited = visited[node.Id];
 
-		//    if (!alreadyVisited)
-		//    {
-		//        visited[node.Id] = true;
+		//	if (!alreadyVisited)
+		//	{
+		//		visited[node.Id] = true;
 
-		//        foreach (var succ in node.Successors)
-		//        {
-		//            ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
-		//        }
+		//		foreach (var succ in node.Successors)
+		//		{
+		//			ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
+		//		}
 
-		//        node.ForwardIndex = index;
-		//        result[index] = node;
-		//        index--;
-		//    }
+		//		node.ForwardIndex = index;
+		//		result[index] = node;
+		//		index--;
+		//	}
 		//}
 
 		private enum TopologicalSortNodeStatus
@@ -253,7 +348,9 @@ namespace Backend.Model
 
 					foreach (var succ in node.Successors)
 					{
-						if (status[succ.Id] == 0)
+						var succ_status = status[succ.Id];
+
+						if (succ_status == TopologicalSortNodeStatus.NeverVisited)
 						{
 							stack.Push(succ);
 							status[succ.Id] = TopologicalSortNodeStatus.FirstVisit;
@@ -276,6 +373,18 @@ namespace Backend.Model
 
 			//    throw new Exception("Error");
 			//}
+
+			foreach (var node in this.Nodes)
+			{
+				var node_status = status[node.Id];
+
+				if (node_status == TopologicalSortNodeStatus.NeverVisited)
+				{
+					node.ForwardIndex = index;
+					result[index] = node;
+					index--;
+				}
+			}
 
 			return result;
 		}
@@ -302,7 +411,9 @@ namespace Backend.Model
 
 					foreach (var pred in node.Predecessors)
 					{
-						if (status[pred.Id] == 0)
+						var pred_status = status[pred.Id];
+
+						if (pred_status == TopologicalSortNodeStatus.NeverVisited)
 						{
 							stack.Push(pred);
 							status[pred.Id] = TopologicalSortNodeStatus.FirstVisit;
@@ -325,6 +436,18 @@ namespace Backend.Model
 
 			//    throw new Exception("Error");
 			//}
+
+			foreach (var node in this.Nodes)
+			{
+				var node_status = status[node.Id];
+
+				if (node_status == TopologicalSortNodeStatus.NeverVisited)
+				{
+					node.BackwardIndex = index;
+					result[index] = node;
+					index--;
+				}
+			}
 
 			return result;
 		}

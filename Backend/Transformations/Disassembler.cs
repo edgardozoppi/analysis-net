@@ -867,14 +867,14 @@ namespace Backend.Transformations
 
 		private MethodDefinition method;
 		private OperandStack stack;
-		private MapList<string, IExceptionHandlerBlock> exceptionHandlersStart;
+		private MapList<string, ExceptionHandlerBlock> exceptionHandlersStart;
 		//private MapList<string, IExceptionHandlerBlock> exceptionHandlersEnd;
 
 		public Disassembler(MethodDefinition methodDefinition)
 		{
 			this.method = methodDefinition;
 			this.stack = new OperandStack(method.Body.MaxStack);
-			this.exceptionHandlersStart = new MapList<string, IExceptionHandlerBlock>();
+			this.exceptionHandlersStart = new MapList<string, ExceptionHandlerBlock>();
 			//this.exceptionHandlersEnd = new MapList<string, IExceptionHandlerBlock>();
 		}
 
@@ -898,16 +898,21 @@ namespace Backend.Transformations
 				var stackSizeAtEntry = new ushort?[cfg.Nodes.Count];
 				var sorted_nodes = cfg.ForwardOrder;
 
-				stackSizeAtEntry[0] = 0;
-
 				foreach (var node in sorted_nodes)
 				{
+					var stackSize = stackSizeAtEntry[node.Id];
+
+					if (!stackSize.HasValue)
+					{
+						stackSizeAtEntry[node.Id] = 0;
+					}
+
 					stack.Size = stackSizeAtEntry[node.Id].Value;
 					this.ProcessBasicBlock(body, node, translator);
 
 					foreach (var successor in node.Successors)
 					{
-						var stackSize = stackSizeAtEntry[successor.Id];
+						stackSize = stackSizeAtEntry[successor.Id];
 
 						if (!stackSize.HasValue)
 						{

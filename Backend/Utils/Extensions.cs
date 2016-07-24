@@ -152,9 +152,21 @@ namespace Backend.Utils
 			//return result;
 		}
 
+		public static ISet<CFGProtectedRegion> GetProtectedRegions(this ControlFlowGraph cfg)
+		{
+			var result = cfg.Regions.OfType<CFGProtectedRegion>();
+			return new HashSet<CFGProtectedRegion>(result);
+		}
+
+		public static ISet<CFGLoop> GetLoops(this ControlFlowGraph cfg)
+		{
+			var result = cfg.Regions.OfType<CFGLoop>();
+			return new HashSet<CFGLoop>(result);
+		}
+
 		public static ISet<IVariable> GetModifiedVariables(this CFGLoop loop)
 		{
-			var result = from n in loop.Body
+			var result = from n in loop.Nodes
 						 from v in n.GetModifiedVariables()
 						 select v;
 
@@ -174,9 +186,9 @@ namespace Backend.Utils
 
 		public static ISet<CFGNode> GetExitNodes(this CFGLoop loop)
 		{
-			var result = from n in loop.Body
+			var result = from n in loop.Nodes
 						 from m in n.Successors
-						 where !loop.Body.Contains(m)
+						 where !loop.Nodes.Contains(m)
 						 select n;
 
 			//var result = loop.Body.Where(n => n.Successors.Any(m => !loop.Body.Contains(m)));
