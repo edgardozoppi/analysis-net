@@ -382,16 +382,22 @@ namespace Model.Types
 			var method = member as IMethodReference;
 
 			var result = method != null &&
-						 this.Name == method.Name &&
+						 this.ContainingType.MatchReference(method.ContainingType) &&
+						 this.MatchSignature(method);
+			return result;
+		}
+
+		public bool MatchSignature(IMethodReference method)
+		{
+			var result = this.Name == method.Name &&
 						 this.IsStatic == method.IsStatic &&
 						 this.GenericParameters.Count == method.GenericParameterCount &&
-						 this.ContainingType.MatchReference(method.ContainingType) &&
 						 this.ReturnType.Equals(method.ReturnType) &&
 						 this.MatchParameters(method);
 			return result;
 		}
 
-		private bool MatchParameters(IMethodReference method)
+		public bool MatchParameters(IMethodReference method)
 		{
 			var result = false;
 

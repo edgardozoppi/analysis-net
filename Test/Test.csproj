@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Examples.cs" />
+    <Compile Include="ExamplesCallGraph.cs" />
     <Compile Include="ExamplesPointsTo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

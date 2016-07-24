@@ -156,6 +156,22 @@ namespace Console
 
 			methodDefinition.Body.UpdateVariables();
 
+			type = new BasicType("ExamplesCallGraph")
+			{
+				Assembly = new AssemblyReference("Test"),
+				Namespace = "Test"
+			};
+
+			method = new MethodReference("Example1", PlatformTypes.Void)
+			{
+				ContainingType = type,
+			};
+
+			methodDefinition = host.ResolveReference(method) as MethodDefinition;
+
+			var cha = new ClassHierarchyAnalysis(host);
+			cha.Analyze(methodDefinition);
+
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();
 		}
