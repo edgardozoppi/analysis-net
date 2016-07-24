@@ -134,7 +134,7 @@ namespace Backend.Analyses
 			{
 				if (node.ImmediateDominator == null) continue;
 
-				node.ImmediateDominator.Childs.Add(node);
+				node.ImmediateDominator.ImmediateDominated.Add(node);
 			}
 
 			return cfg;
