@@ -40,7 +40,10 @@ namespace Backend.Serialization
 			{
 				case CFGNodeKind.Entry: result = "entry"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
-				default: result = string.Join("\\l", node.Instructions) + "\\l"; break;
+				case CFGNodeKind.NormalExit: result = "normal exit"; break;
+				case CFGNodeKind.ExceptionalExit: result = "exceptional exit"; break;
+				case CFGNodeKind.BasicBlock: result = string.Join("\\l", node.Instructions) + "\\l"; break;
+				default: throw new NotImplementedException();
 			}
 
 			return result;

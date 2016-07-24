@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
 using Backend.Model;
+using Backend.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,16 +20,18 @@ namespace Backend.Analyses
 
 		public ISet<CFGLoop> Analyze()
 		{
-			cfg.Loops.Clear();
+			var result = new HashSet<CFGLoop>();
 			var back_edges = this.IdentifyBackEdges();
 
 			foreach (var edge in back_edges)
 			{
 				var loop = IdentifyLoop(edge);
-				cfg.Loops.Add(loop);
+				result.Add(loop);
 			}
 
-			return cfg.Loops;
+			cfg.Regions.ExceptWith(cfg.GetLoops());
+			cfg.Regions.UnionWith(result);
+			return result;
 		}
 
 		private ISet<CFGEdge> IdentifyBackEdges()
@@ -60,7 +63,7 @@ namespace Backend.Analyses
 			do
 			{
 				var node = nodes.Pop();
-				var new_node = loop.Body.Add(node);
+				var new_node = loop.Nodes.Add(node);
 
 				if (new_node)
 				{

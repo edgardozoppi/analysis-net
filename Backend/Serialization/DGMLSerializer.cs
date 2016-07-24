@@ -26,6 +26,21 @@ namespace Backend.Serialization
 				xmlWriter.WriteAttributeString("xmlns", "http://schemas.microsoft.com/vs/2009/dgml");
 				xmlWriter.WriteStartElement("Nodes");
 
+				//var regions = cfg.Regions.ToArray();
+
+				//for (var i = 0; i < regions.Length; ++i)
+				//{
+				//	var region = regions[i];
+				//	var regionId = string.Format("r{0}", i);
+				//	var label = Convert.ToString(region.Kind);
+
+				//	xmlWriter.WriteStartElement("Node");
+				//	xmlWriter.WriteAttributeString("Id", regionId);
+				//	xmlWriter.WriteAttributeString("Label", label);
+				//	xmlWriter.WriteAttributeString("Group", "Expanded");
+				//	xmlWriter.WriteEndElement();
+				//}
+
 				foreach (var node in cfg.Nodes)
 				{
 					var nodeId = Convert.ToString(node.Id);
@@ -35,10 +50,20 @@ namespace Backend.Serialization
 					xmlWriter.WriteAttributeString("Id", nodeId);
 					xmlWriter.WriteAttributeString("Label", label);
 
-					if (node.Kind == CFGNodeKind.Entry ||
-						node.Kind == CFGNodeKind.Exit)
+					switch (node.Kind)
 					{
-						xmlWriter.WriteAttributeString("Background", "Yellow");
+						case CFGNodeKind.Entry:
+						case CFGNodeKind.Exit:
+							xmlWriter.WriteAttributeString("Background", "Yellow");
+							break;
+
+						case CFGNodeKind.NormalExit:
+							xmlWriter.WriteAttributeString("Background", "Green");
+							break;
+
+						case CFGNodeKind.ExceptionalExit:
+							xmlWriter.WriteAttributeString("Background", "Red");
+							break;
 					}
 
 					xmlWriter.WriteEndElement();
@@ -46,6 +71,23 @@ namespace Backend.Serialization
 
 				xmlWriter.WriteEndElement();
 				xmlWriter.WriteStartElement("Links");
+
+				//for (var i = 0; i < regions.Length; ++i)
+				//{
+				//	var region = regions[i];
+				//	var regionId = string.Format("r{0}", i);
+
+				//	foreach (var node in region.Nodes)
+				//	{
+				//		var nodeId = Convert.ToString(node.Id);
+
+				//		xmlWriter.WriteStartElement("Link");
+				//		xmlWriter.WriteAttributeString("Source", regionId);
+				//		xmlWriter.WriteAttributeString("Target", nodeId);
+				//		xmlWriter.WriteAttributeString("Category", "Contains");
+				//		xmlWriter.WriteEndElement();
+				//	}
+				//}
 
 				foreach (var node in cfg.Nodes)
 				{
@@ -98,10 +140,14 @@ namespace Backend.Serialization
 			{
 				case CFGNodeKind.Entry: result = "entry"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
-				default:
+				case CFGNodeKind.NormalExit: result = "normal exit"; break;
+				case CFGNodeKind.ExceptionalExit: result = "exceptional exit"; break;
+				case CFGNodeKind.BasicBlock:
 					result = string.Join(Environment.NewLine, node.Instructions);
 					result = string.Format("Node ID: {0}{1}{2}", node.Id, Environment.NewLine, result);
 					break;
+
+				default: throw new NotImplementedException();
 			}
 
 			return result;

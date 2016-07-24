@@ -17,32 +17,98 @@ namespace Backend.Model
 	{
 		Entry,
 		Exit,
+		NormalExit,
+		ExceptionalExit,
 		BasicBlock
 	}
 
-	public class CFGLoop
+	public enum CFGRegionKind
 	{
-		public CFGNode Header { get; set; }
-		public ISet<CFGNode> Body { get; private set; }
-		//public IExpression Condition { get; set; }
+		Try,
+		Catch,
+		Fault,
+		Finally,
+		Loop
+	}
 
-		public CFGLoop(CFGNode header)
+	public abstract class CFGRegion
+	{
+		public abstract CFGRegionKind Kind { get; }
+		public CFGNode Header { get; set; }
+		public ISet<CFGNode> Nodes { get; private set; }
+
+		public CFGRegion()
+		{
+			this.Nodes = new HashSet<CFGNode>();
+		}
+
+		public CFGRegion(CFGNode header)
+			: this()
 		{
 			this.Header = header;
-			this.Body = new HashSet<CFGNode>();
-			this.Body.Add(header);
+			this.Nodes.Add(header);
 		}
 
 		public override string ToString()
 		{
-			var sb = new StringBuilder(" ");
+			var sb = new StringBuilder();
 
-			foreach (var node in this.Body)
+			sb.AppendFormat("{0} ", this.Kind);
+
+			foreach (var node in this.Nodes)
 			{
 				sb.AppendFormat("B{0} ", node.Id);
 			}
 
 			return sb.ToString();
+		}
+	}
+
+	public class CFGProtectedRegion : CFGRegion
+	{
+		public CFGExceptionHandlerRegion Handler { get; set; }
+
+		public override CFGRegionKind Kind
+		{
+			get { return CFGRegionKind.Try; }
+		}
+
+		public override string ToString()
+		{
+			var self = base.ToString();
+			return string.Format("{0} {1}", self, this.Handler);
+		}
+	}
+
+	public class CFGExceptionHandlerRegion : CFGRegion
+	{
+		private CFGRegionKind kind;
+
+		public CFGProtectedRegion ProtectedRegion { get; set; }
+
+		public CFGExceptionHandlerRegion(CFGRegionKind kind)
+		{
+			this.kind = kind;
+		}
+
+		public override CFGRegionKind Kind
+		{
+			get { return kind; }
+		}
+	}
+
+	public class CFGLoop : CFGRegion
+	{
+		//public IExpression Condition { get; set; }
+
+		public CFGLoop(CFGNode header)
+			: base(header)
+		{
+		}
+
+		public override CFGRegionKind Kind
+		{
+			get { return CFGRegionKind.Loop; }
 		}
 	}
 
@@ -66,6 +132,8 @@ namespace Backend.Model
 	public class CFGNode : IInstructionContainer
 	{
 		private ISet<CFGNode> dominators;
+
+		public const int FirstAvailableId = 4;
 
 		public int Id { get; private set; }
 		public int ForwardIndex { get; set; }
@@ -112,6 +180,8 @@ namespace Backend.Model
 			{
 				case CFGNodeKind.Entry: result = "entry"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
+				case CFGNodeKind.NormalExit: result = "normal exit"; break;
+				case CFGNodeKind.ExceptionalExit: result = "exceptional exit"; break;
 				default: result = string.Join("\n", this.Instructions); break;
 			}
 
@@ -140,15 +210,28 @@ namespace Backend.Model
 
 		public CFGNode Entry { get; private set; }
 		public CFGNode Exit { get; private set; }
+		public CFGNode NormalExit { get; private set; }
+		public CFGNode ExceptionalExit { get; private set; }
 		public ISet<CFGNode> Nodes { get; private set; }
-		public ISet<CFGLoop> Loops { get; private set; }
+		public ISet<CFGRegion> Regions { get; private set; }
 
 		public ControlFlowGraph()
 		{
 			this.Entry = new CFGNode(0, CFGNodeKind.Entry);
 			this.Exit = new CFGNode(1, CFGNodeKind.Exit);
-			this.Nodes = new HashSet<CFGNode>() { this.Entry, this.Exit };
-			this.Loops = new HashSet<CFGLoop>();
+			this.NormalExit = new CFGNode(2, CFGNodeKind.NormalExit);
+			this.ExceptionalExit = new CFGNode(3, CFGNodeKind.ExceptionalExit);
+			this.Regions = new HashSet<CFGRegion>();
+			this.Nodes = new HashSet<CFGNode>()
+			{
+				this.Entry,
+				this.Exit,
+				this.NormalExit,
+				this.ExceptionalExit
+			};
+
+			this.ConnectNodes(this.NormalExit, this.Exit);
+			this.ConnectNodes(this.ExceptionalExit, this.Exit);
 		}
 
 		public IEnumerable<CFGNode> Entries
@@ -211,12 +294,14 @@ namespace Backend.Model
 
 		#region Topological Sort
 
-		//private CFGNode[] ComputeForwardTopologicalSort()
+		//private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
 		//{
 		//	var result = new CFGNode[this.Nodes.Count];
 		//	var visited = new bool[this.Nodes.Count];
 		//	var index = this.Nodes.Count - 1;
 
+		//	//    throw new Exception("Error");
+		//	//}
 		//	foreach (var node in this.Entries)
 		//	{
 		//		ControlFlowGraph.DepthFirstSearch(result, visited, node, ref index);

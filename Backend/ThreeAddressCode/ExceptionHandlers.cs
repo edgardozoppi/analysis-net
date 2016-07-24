@@ -16,94 +16,72 @@ namespace Backend.ThreeAddressCode
 		Finally
 	}
 
-	public interface IExceptionHandlerBlock
+	public abstract class ExceptionHandlerBlock
 	{
-		ExceptionHandlerBlockKind Kind { get; }
-		string Start { get; }
-		string End { get; }
-	}
-
-	public interface IExceptionHandler : IExceptionHandlerBlock
-	{
-	}
-
-	public class ProtectedBlock : IExceptionHandlerBlock
-	{
-		public ExceptionHandlerBlockKind Kind { get; private set; }
+		public abstract ExceptionHandlerBlockKind Kind { get; }
 		public string Start { get; set; }
 		public string End { get; set; }
-		public IExceptionHandler Handler { get; set; }
 
-		public ProtectedBlock(uint start, uint end)
+		public ExceptionHandlerBlock(uint start, uint end)
 		{
-			this.Kind = ExceptionHandlerBlockKind.Try;
 			this.Start = string.Format("L_{0:X4}", start);
 			this.End = string.Format("L_{0:X4}", end);
 		}
 
 		public override string ToString()
 		{
-			return string.Format("try {0} to {1} {2}", this.Start, this.End, this.Handler);
+			var kind = this.Kind.ToString().ToLower();
+			return string.Format("{0} {1} to {2}", kind, this.Start, this.End);
 		}
 	}
 
-	public class CatchExceptionHandler : IExceptionHandler
+	public class ProtectedBlock : ExceptionHandlerBlock
 	{
-		public ExceptionHandlerBlockKind Kind { get; private set; }
-		public string Start { get; set; }
-		public string End { get; set; }
+		public ExceptionHandler Handler { get; set; }
+
+		public ProtectedBlock(uint start, uint end)
+			: base(start, end)
+		{
+		}
+
+		public override ExceptionHandlerBlockKind Kind
+		{
+			get { return ExceptionHandlerBlockKind.Try; }
+		}
+
+		public override string ToString()
+		{
+			var self = base.ToString();
+			return string.Format("{0} {1}", self, this.Handler);
+		}
+	}
+
+	public class ExceptionHandler : ExceptionHandlerBlock
+	{
+		private ExceptionHandlerBlockKind kind;
+
+		public ProtectedBlock ProtectedBlock { get; set; }
+
+		public ExceptionHandler(ExceptionHandlerBlockKind kind, uint start, uint end)
+			: base(start, end)
+		{
+			this.kind = kind;
+		}
+
+		public override ExceptionHandlerBlockKind Kind
+		{
+			get { return kind; }
+		}
+	}
+
+	public class CatchExceptionHandler : ExceptionHandler
+	{
 		public ITypeReference ExceptionType { get; set; }
 
 		public CatchExceptionHandler(uint start, uint end, ITypeReference exceptionType)
+			: base(ExceptionHandlerBlockKind.Catch, start, end)
 		{
-			this.Kind = ExceptionHandlerBlockKind.Catch;
-			this.Start = string.Format("L_{0:X4}", start);
-			this.End = string.Format("L_{0:X4}", end);
 			this.ExceptionType = exceptionType;
-		}
-
-		public override string ToString()
-		{
-			var type = TypeHelper.GetTypeName(this.ExceptionType);
-			return string.Format("catch {0} handler {1} to {2}", type, this.Start, this.End);
-		}
-	}
-
-	public class FaultExceptionHandler : IExceptionHandler
-	{
-		public ExceptionHandlerBlockKind Kind { get; private set; }
-		public string Start { get; set; }
-		public string End { get; set; }
-
-		public FaultExceptionHandler(uint start, uint end)
-		{
-			this.Kind = ExceptionHandlerBlockKind.Fault;
-			this.Start = string.Format("L_{0:X4}", start);
-			this.End = string.Format("L_{0:X4}", end);
-		}
-
-		public override string ToString()
-		{
-			return string.Format("fault handler {0} to {1}", this.Start, this.End);
-		}
-	}
-
-	public class FinallyExceptionHandler : IExceptionHandler
-	{
-		public ExceptionHandlerBlockKind Kind { get; private set; }
-		public string Start { get; set; }
-		public string End { get; set; }
-
-		public FinallyExceptionHandler(uint start, uint end)
-		{
-			this.Kind = ExceptionHandlerBlockKind.Finally;
-			this.Start = string.Format("L_{0:X4}", start);
-			this.End = string.Format("L_{0:X4}", end);
-		}
-
-		public override string ToString()
-		{
-			return string.Format("finally handler {0} to {1}", this.Start, this.End);
 		}
 	}
 }
