@@ -1,4 +1,6 @@
-﻿using Model;
+﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+
+using Model;
 using Model.Types;
 using System;
 using System.Collections.Generic;
@@ -7,29 +9,33 @@ using System.Text;
 
 namespace Backend.Model
 {
-	internal class ClassHierarchyInfo
-	{
-		public ITypeDefinition Type { get; private set; }
-		public ISet<ClassHierarchyInfo> Subtypes { get; private set; }
-
-		public ClassHierarchyInfo(ITypeDefinition type)
-		{
-			this.Type = type;
-			this.Subtypes = new HashSet<ClassHierarchyInfo>();
-		}
-
-		public void FillWithAllSubtypes(ICollection<ITypeDefinition> result)
-		{
-			foreach (var info in this.Subtypes)
-			{
-				result.Add(info.Type);
-				info.FillWithAllSubtypes(result);
-			}
-		}
-	}
-
 	public class ClassHierarchyAnalysis
 	{
+		#region class ClassHierarchyInfo
+
+		private class ClassHierarchyInfo
+		{
+			public ITypeDefinition Type { get; private set; }
+			public ISet<ClassHierarchyInfo> Subtypes { get; private set; }
+
+			public ClassHierarchyInfo(ITypeDefinition type)
+			{
+				this.Type = type;
+				this.Subtypes = new HashSet<ClassHierarchyInfo>();
+			}
+
+			public void FillWithAllSubtypes(ICollection<ITypeDefinition> result)
+			{
+				foreach (var info in this.Subtypes)
+				{
+					result.Add(info.Type);
+					info.FillWithAllSubtypes(result);
+				}
+			}
+		}
+
+		#endregion
+
 		private Host host;
 		private IDictionary<ITypeDefinition, ClassHierarchyInfo> types;
 		private bool analyzed;

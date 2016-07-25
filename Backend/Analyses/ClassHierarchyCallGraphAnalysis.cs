@@ -27,16 +27,19 @@ namespace Backend.Analyses
 		{
 		}
 
-		public void Analyze(IEnumerable<MethodDefinition> roots)
+		public CallGraph Analyze(IEnumerable<MethodDefinition> roots)
 		{
-			classHierarchy.Analyze();
+			var result = new CallGraph();
 			var visitedMethods = new HashSet<MethodDefinition>();
 			var worklist = new Queue<MethodDefinition>();
+
+			classHierarchy.Analyze();
 
 			foreach (var root in roots)
 			{
 				worklist.Enqueue(root);
 				visitedMethods.Add(root);
+				result.Add(root);
 			}
 
 			while (worklist.Count > 0)
@@ -48,6 +51,9 @@ namespace Backend.Analyses
 				{
 					var possibleCallees = ResolveCallees(methodCall.Method);
 
+					result.Add(method, methodCall.Label, methodCall.Method);
+					result.Add(method, methodCall.Label, possibleCallees);
+
 					foreach (var callee in possibleCallees)
 					{
 						if (!visitedMethods.Contains(callee))
@@ -58,6 +64,8 @@ namespace Backend.Analyses
 					}
 				}
 			}
+
+			return result;
 		}
 
 		private IEnumerable<MethodDefinition> ResolveCallees(IMethodReference methodref)

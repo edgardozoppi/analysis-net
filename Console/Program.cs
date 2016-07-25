@@ -174,8 +174,10 @@ namespace Console
 
 			var dgml = DGMLSerializer.Serialize(ch);
 
-			var cha = new ClassHierarchyCallGraphAnalysis(host, ch);
-			cha.Analyze(methodDefinition.ToEnumerable());
+			var chcga = new ClassHierarchyCallGraphAnalysis(host, ch);
+			var cg = chcga.Analyze(methodDefinition.ToEnumerable());
+
+			dgml = DGMLSerializer.Serialize(cg);
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();
