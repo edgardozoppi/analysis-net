@@ -7,16 +7,46 @@ using System.Text;
 
 namespace Test
 {
-	abstract class Shape
+	interface IPrintable
 	{
+		void Print();
+	}
+
+	abstract class Shape : IPrintable
+	{
+		public virtual void Draw()
+		{
+		}
+
 		public virtual void Print()
 		{
 		}
 	}
 
-	class Circle : Shape
+	class Ellipse : Shape
+	{
+		public override void Draw()
+		{
+		}
+	}
+
+	class Circle : Ellipse
 	{
 		public override void Print()
+		{
+		}
+	}
+
+	class Rectangle : Shape
+	{
+		public override void Print()
+		{
+		}
+	}
+
+	class Square : Rectangle
+	{
+		public override void Draw()
 		{
 		}
 	}
@@ -26,7 +56,12 @@ namespace Test
 		public void Example1()
 		{
 			Shape circle = new Circle();
+			circle.Draw();
 			circle.Print();
+
+			Rectangle rectangle = new Square();
+			rectangle.Draw();
+			rectangle.Print();
 		}
 	}
 }

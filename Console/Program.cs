@@ -169,8 +169,13 @@ namespace Console
 
 			methodDefinition = host.ResolveReference(method) as MethodDefinition;
 
-			var cha = new ClassHierarchyAnalysis(host);
-			cha.Analyze(methodDefinition);
+			var ch = new ClassHierarchyAnalysis(host);
+			ch.Analyze();
+
+			var dgml = DGMLSerializer.Serialize(ch);
+
+			var cha = new ClassHierarchyCallGraphAnalysis(host, ch);
+			cha.Analyze(methodDefinition.ToEnumerable());
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();
