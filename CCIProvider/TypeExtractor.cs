@@ -444,6 +444,8 @@ namespace CCIProvider
 				ExtractBody(method.Body, methoddef.Body, sourceLocationProvider);
 
 				method.IsStatic = methoddef.IsStatic;
+				method.IsAbstract = methoddef.IsAbstract;
+				method.IsVirtual = methoddef.IsVirtual;
 				method.IsConstructor = methoddef.IsConstructor;
 				method.ContainingType = containingType;
 				dest.Add(method);

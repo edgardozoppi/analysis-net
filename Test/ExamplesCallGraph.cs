@@ -14,6 +14,10 @@ namespace Test
 
 	abstract class Shape : IPrintable
 	{
+		public void Show()
+		{
+		}
+
 		public virtual void Draw()
 		{
 		}
@@ -56,12 +60,14 @@ namespace Test
 		public void Example1()
 		{
 			Shape circle = new Circle();
-			circle.Draw();
-			circle.Print();
+			circle.Show(); // Shape.Show
+			circle.Draw(); // Ellipse.Draw
+			circle.Print(); // Circle.Print
 
 			Rectangle rectangle = new Square();
-			rectangle.Draw();
-			rectangle.Print();
+			rectangle.Show(); // Shape.Show
+			rectangle.Draw(); // Square.Draw
+			rectangle.Print(); // Rectangle.Print
 		}
 	}
 }

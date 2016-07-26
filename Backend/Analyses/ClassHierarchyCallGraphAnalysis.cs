@@ -49,9 +49,10 @@ namespace Backend.Analyses
 
 				foreach (var methodCall in methodCalls)
 				{
-					var possibleCallees = ResolveCallees(methodCall.Method);
+					var staticCallee = ResolveStaticCallee(methodCall);
+					var possibleCallees = ResolvePossibleCallees(staticCallee);
 
-					result.Add(method, methodCall.Label, methodCall.Method);
+					result.Add(method, methodCall.Label, staticCallee);
 					result.Add(method, methodCall.Label, possibleCallees);
 
 					foreach (var callee in possibleCallees)
@@ -68,7 +69,70 @@ namespace Backend.Analyses
 			return result;
 		}
 
-		private IEnumerable<MethodDefinition> ResolveCallees(IMethodReference methodref)
+		private IMethodReference ResolveStaticCallee(MethodCallInstruction methodCall)
+		{
+			var staticCallee = methodCall.Method;
+
+			if (!staticCallee.IsStatic)
+			{
+				// Instance method
+				var method = host.ResolveReference(staticCallee) as MethodDefinition;
+
+				if (method != null && (method.IsVirtual || method.IsAbstract))
+				{
+					// Overridable instance method
+					var receiver = methodCall.Arguments.First();
+					var receiverType = receiver.Type as BasicType;
+
+					staticCallee = FindMethodImplementation(receiverType, staticCallee);
+				}
+			}
+
+			return staticCallee;
+		}
+
+		private IMethodReference FindMethodImplementation(BasicType receiverType, IMethodReference method)
+		{
+			var result = method;
+
+			if (!method.ContainingType.Equals(receiverType))
+			{
+				while (receiverType != null)
+				{
+					var receiverTypeDef = host.ResolveReference(receiverType) as ClassDefinition;
+
+					if (receiverTypeDef != null)
+					{
+						var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.MatchSignature(method));
+
+						if (matchingMethod != null)
+						{
+							var matchingMethodRef = new MethodReference(method.Name, method.ReturnType)
+							{
+								Name = method.Name,
+								IsStatic = method.IsStatic,
+								GenericParameterCount = method.GenericParameterCount,
+								ContainingType = receiverType
+							};
+
+							matchingMethodRef.Attributes.UnionWith(method.Attributes);
+							matchingMethodRef.Parameters.AddRange(method.Parameters);
+
+							result = matchingMethodRef;
+							break;
+						}
+						else
+						{
+							receiverType = receiverTypeDef.Base;
+						}
+					}
+				}
+			}
+
+			return result;
+		}
+
+		private IEnumerable<MethodDefinition> ResolvePossibleCallees(IMethodReference methodref)
 		{
 			var result = new HashSet<MethodDefinition>();
 			var method = host.ResolveReference(methodref) as MethodDefinition;
@@ -77,7 +141,7 @@ namespace Backend.Analyses
 			{
 				result.Add(method);
 
-				if (!method.IsStatic)
+				if (!method.IsStatic && (method.IsVirtual || method.IsAbstract))
 				{
 					var subtypes = classHierarchy.GetAllSubtypes(method.ContainingType);
 					var compatibleMethods = from t in subtypes
