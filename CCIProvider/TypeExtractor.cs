@@ -117,7 +117,7 @@ namespace CCIProvider
 			else if (typeref is Cci.IFunctionPointerTypeReference)
 			{
 				var fptyperef = typeref as Cci.IFunctionPointerTypeReference;
-				result = ExtractType((Cci.ITypeReference)fptyperef);
+				result = ExtractType(fptyperef);
 			}
 			else if (typeref is Cci.INamedTypeReference)
 			{
