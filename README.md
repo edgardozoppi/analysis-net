@@ -11,18 +11,25 @@ Features:
     * Simplified bytecode
     * Three address code
     * Static single assignment
-    * Visitor pattern
+	* Aggregated expressions
 + Control-flow analysis
+    * Normal
+    * Exceptional
     * Dominance
     * Dominance frontier
     * Natural loops
 + Data-flow analysis
-    * Def-Use and Use-Def chains
     * Reaching definitions
+    * Def-use and use-def chains
+	* Live variables
     * Copy propagation
-    * Points-to analysis
+    * Points-to
++ Call-graph analysis
+    * Class hierarchy
++ Transformations
+    * Webs
+    * Inlining
 * Type inference
-* Web analysis
 + Serialization
     * DOT
     * DGML
