@@ -86,8 +86,12 @@ namespace Console
 			//var pointsTo = new PointsToAnalysis(cfg);
 			//var result = pointsTo.Analyze();
 
+			var liveVariables = new LiveVariablesAnalysis(cfg);
+			liveVariables.Analyze();
+
 			var ssa = new StaticSingleAssignment(methodBody, cfg);
 			ssa.Transform();
+			ssa.Prune(liveVariables);
 
 			methodBody.UpdateVariables();
 

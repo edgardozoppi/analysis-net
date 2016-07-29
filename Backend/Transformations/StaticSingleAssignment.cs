@@ -39,6 +39,33 @@ namespace Backend.Transformations
 			//this.method.UpdateVariables();
 		}
 
+		public void Prune(LiveVariablesAnalysis liveVariables)
+		{
+			foreach (var node in cfg.Nodes)
+			{
+				var result = liveVariables.Result[node.Id];
+				var input = result.Input.ToSet();
+				var phiInstructions = node.Instructions.OfType<PhiInstruction>().ToArray();
+
+				foreach (var phi in phiInstructions)
+				{
+					var isLive = input.Contains(phi.Result);
+
+					if (!isLive && phi.Result is DerivedVariable)
+					{
+						var derived = phi.Result as DerivedVariable;
+						isLive = input.Contains(derived.Original);
+					}
+
+					if (!isLive)
+					{
+						// TODO: Also remove phi instructions from method's body instructions collection.
+						node.Instructions.Remove(phi);
+					}
+				}
+			}
+		}
+
 		private void InsertPhiInstructions()
 		{
 			var defining_nodes = new Dictionary<IVariable, ISet<CFGNode>>();

@@ -30,7 +30,7 @@ namespace Backend.Utils
 			get { return this.universe; }
 		}
 
-		public bool IsMember(int index)
+		public bool Contains(int index)
 		{
 			return this.data[index];
 		}
