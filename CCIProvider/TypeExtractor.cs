@@ -58,7 +58,7 @@ namespace CCIProvider
 		{
 			var name = typedef.Name.Value;
 			var type = new ClassDefinition(name);
-			Cci.ITypeReference basedef = Cci.TypeHelper.BaseClass(typedef);
+			var basedef = typedef.BaseClasses.SingleOrDefault();
 
 			if (basedef == null)
 			{
