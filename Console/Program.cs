@@ -122,7 +122,7 @@ namespace Console
 			var host = new Host();
 			//host.Assemblies.Add(assembly);
 
-			host.ResolvePlatformTypes();
+			PlatformTypes.Resolve(host);
 
 			var loader = new Loader(host);
 			loader.LoadAssembly(input);

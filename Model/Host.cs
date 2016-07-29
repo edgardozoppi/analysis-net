@@ -17,21 +17,6 @@ namespace Model
 			this.Assemblies = new List<Assembly>();
 		}
 
-		public void ResolvePlatformTypes()
-		{
-			var basicTypeInfo = typeof(BasicType);
-			var typeInfo = typeof(PlatformTypes);
-			var fieldsInfo = from f in typeInfo.GetFields()
-							 where f.FieldType.Equals(basicTypeInfo)
-							 select f;
-
-			foreach (var fieldInfo in fieldsInfo)
-			{
-				var value = fieldInfo.GetValue(null) as BasicType;
-				value.Resolve(this);
-			}			
-		}
-
 		public ITypeDefinition ResolveReference(BasicType type)
 		{
 			var assembly = this.Assemblies.SingleOrDefault(a => a.MatchReference(type.Assembly));

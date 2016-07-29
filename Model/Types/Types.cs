@@ -37,6 +37,8 @@ namespace Model.Types
 
 	public static class PlatformTypes
 	{
+		private static readonly ICollection<BasicType> platformTypes = new List<BasicType>();
+
 		public static readonly UnknownType Unknown = UnknownType.Value;
 		public static readonly BasicType Void = New("mscorlib", "System", "Void", TypeKind.ValueType);
 		public static readonly BasicType Boolean = New("mscorlib", "System", "Boolean", TypeKind.ValueType);
@@ -70,6 +72,14 @@ namespace Model.Types
 		public static readonly BasicType ICollection = New("mscorlib", "System.Collections", "ICollection", TypeKind.ReferenceType);
 		public static readonly BasicType GenericICollection = New("mscorlib", "System.Collections.Generic", "ICollection", TypeKind.ReferenceType, "T");
 
+		public static void Resolve(Host host)
+		{
+			foreach (var type in platformTypes)
+			{
+				type.Resolve(host);
+			}
+		}
+
 		private static BasicType New(string containingAssembly, string containingNamespace, string name, TypeKind kind, params string[] genericArguments)
 		{
 			var result = new BasicType(name, kind)
@@ -84,6 +94,7 @@ namespace Model.Types
 				result.GenericArguments.Add(typevar);
 			}
 
+			platformTypes.Add(result);
 			return result;
 		}
 	}
@@ -138,6 +149,14 @@ namespace Model.Types
 			this.TypeKind = kind;
 			this.GenericArguments = new List<IType>();
 			this.Attributes = new HashSet<CustomAttribute>();
+
+			this.ResolveType = () =>
+			{
+				var msg = "Use BasicType.Resolve method to bind this type with same host. " +
+						  "To bind all platform types use PlatformTypes.Resolve method.";
+
+				throw new InvalidOperationException(msg);
+			};
 		}
 
 		public string FullName

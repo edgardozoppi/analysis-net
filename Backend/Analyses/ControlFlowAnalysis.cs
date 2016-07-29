@@ -61,7 +61,7 @@ namespace Backend.Analyses
 		private IList<IInstruction> FilterExceptionHandlers()
 		{
 			var instructions = new List<IInstruction>();
-			var handlersRange = methodBody.ExceptionInformation.ToDictionary(pb => pb.Handler.Start, h => h.Handler.End);
+			var handlersRange = methodBody.ExceptionInformation.ToDictionary(pb => pb.Handler.Start, pb => pb.Handler.End);
 			var i = 0;
 
 			while (i < methodBody.Instructions.Count)
