@@ -406,7 +406,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  load address of <{2}>;", this.Label, this.Method);
+			return string.Format("{0}:  load address of <{1}>;", this.Label, this.Method);
 		}
 	}
 
