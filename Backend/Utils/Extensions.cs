@@ -43,6 +43,93 @@ namespace Backend.Utils
 			return true;
 		}
 
+		public static IDictionary<K, V> Union<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> other, Func<V, V, V> valueUnion)
+		{
+			var result = new Dictionary<K, V>(self);
+			result.UnionWith(other, valueUnion);
+			return result;
+		}
+
+		public static void UnionWith<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> other, Func<V, V, V> valueUnion)
+		{
+			foreach (var entry in other)
+			{
+				V value;
+
+				if (self.TryGetValue(entry.Key, out value))
+				{
+					value = valueUnion(value, entry.Value);
+
+					if (value != null)
+					{
+						self[entry.Key] = value;
+					}
+					else
+					{
+						self.Remove(entry.Key);
+					}
+				}
+				else
+				{
+					self.Add(entry.Key, entry.Value);
+				}
+			}
+		}
+
+		public static IDictionary<K, V> Intersect<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> other, Func<V, V, V> valueIntersect)
+		{
+			var result = new Dictionary<K, V>();
+
+			foreach (var entry in other)
+			{
+				V value;
+
+				if (self.TryGetValue(entry.Key, out value))
+				{
+					value = valueIntersect(value, entry.Value);
+
+					if (value != null)
+					{
+						result.Add(entry.Key, value);
+					}
+				}
+			}
+
+			return result;
+		}
+
+		public static void IntersectWith<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> other, Func<V, V, V> valueIntersect)
+		{
+			var keys = new HashSet<K>();
+
+			foreach (var entry in other)
+			{
+				V value;
+
+				if (self.TryGetValue(entry.Key, out value))
+				{
+					value = valueIntersect(value, entry.Value);
+
+					if (value != null)
+					{
+						self[entry.Key] = value;
+						keys.Add(entry.Key);
+					}
+					else
+					{
+						self.Remove(entry.Key);
+					}
+				}
+			}
+
+			var keysToRemove = self.Keys.Except(keys).ToArray();
+
+			foreach (var key in keysToRemove)
+			{
+				self.Remove(key);
+			}
+		}
+
 		//public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> elements)
 		//{
 		//	foreach (var element in elements)

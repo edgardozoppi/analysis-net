@@ -122,25 +122,8 @@ namespace Backend.Analyses
 
 		protected override IDictionary<IVariable, IVariable> Join(IDictionary<IVariable, IVariable> left, IDictionary<IVariable, IVariable> right)
 		{
-			// result = intersection(left, right)
-			var result = new Dictionary<IVariable, IVariable>();
-
-			foreach (var copy in left)
-			{
-				var variable = copy.Key;
-				var leftOperand = copy.Value;
-
-				if (right.ContainsKey(variable))
-				{
-					var rightOperand = right[variable];
-
-					if (leftOperand.Equals(rightOperand))
-					{
-						result.Add(variable, leftOperand);
-					}
-				}
-			}
-
+			Func<IVariable, IVariable, IVariable> intersectVariables = (a, b) => a.Equals(b) ? a : null;
+			var result = left.Intersect(right, intersectVariables);
 			return result;
 		}
 

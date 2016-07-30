@@ -39,6 +39,8 @@ namespace Backend.Analyses
 			var result = base.Analyze();
 
 			this.result = result;
+			this.variables = null;
+			this.variablesIndex = null;
 			this.GEN = null;
 			this.KILL = null;
 
