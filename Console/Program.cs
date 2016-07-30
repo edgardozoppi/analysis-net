@@ -28,11 +28,13 @@ namespace Console
 		
 		public void VisitMethods()
 		{
-			var methods = host.Assemblies.SelectMany(a => a.RootNamespace.GetAllTypes())
-										 .SelectMany(t => t.Members.OfType<MethodDefinition>())
-										 .Where(md => md.Body != null);
+			var allDefinedMethods = from a in host.Assemblies
+									from t in a.RootNamespace.GetAllTypes()
+									from m in t.Members.OfType<MethodDefinition>()
+									where m.Body != null
+									select m;
 
-			foreach (var method in methods)
+			foreach (var method in allDefinedMethods)
 			{
 				VisitMethod(method);
 			}

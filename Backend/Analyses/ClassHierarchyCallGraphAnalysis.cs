@@ -27,6 +27,18 @@ namespace Backend.Analyses
 		{
 		}
 
+		public CallGraph Analyze()
+		{
+			var allDefinedMethods = from a in host.Assemblies
+									from t in a.RootNamespace.GetAllTypes()
+									from m in t.Members.OfType<MethodDefinition>()
+									where m.Body != null
+									select m;
+
+			var result = Analyze(allDefinedMethods);
+			return result;
+		}
+
 		public CallGraph Analyze(IEnumerable<MethodDefinition> roots)
 		{
 			var result = new CallGraph();
