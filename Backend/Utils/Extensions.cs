@@ -379,7 +379,6 @@ namespace Backend.Utils
 		public static void Inline(this MethodBody callerBody, MethodCallInstruction methodCall, MethodBody calleeBody)
 		{
 			// TODO: Fix local variables (and parameters) name clashing
-			// TODO: Fix instruction labels clashing
 
 			var index = callerBody.Instructions.IndexOf(methodCall);
 			callerBody.Instructions.RemoveAt(index);
@@ -392,13 +391,15 @@ namespace Backend.Utils
 				nextInstruction = callerBody.Instructions[index];
 			}			
 
-			for (var i = 0; i < calleeBody.Parameters.Count; ++i, ++index)
+			for (var i = 0; i < calleeBody.Parameters.Count; ++i)
 			{
 				var parameter = calleeBody.Parameters[i];
 				var argument = methodCall.Arguments[i];
 				var copy = new LoadInstruction(methodCall.Offset, parameter, argument);
 
+				copy.Label = string.Format("{0}_{1}", methodCall.Label, copy.Label);
 				callerBody.Instructions.Insert(index, copy);
+				index++;
 			}
 
 			var lastCalleeInstructionIndex = calleeBody.Instructions.Count - 1;
@@ -416,6 +417,7 @@ namespace Backend.Utils
 						// Copy the return value of the callee to the result variable of the method call
 						var copy = new LoadInstruction(ret.Offset, methodCall.Result, ret.Operand);
 
+						copy.Label = string.Format("{0}_{1}", methodCall.Label, copy.Label);
 						callerBody.Instructions.Insert(index, copy);
 						index++;
 					}
@@ -425,12 +427,34 @@ namespace Backend.Utils
 						// Jump to the instruction after the method call
 						var branch = new UnconditionalBranchInstruction(ret.Offset, nextInstruction.Offset);
 
+						branch.Label = string.Format("{0}_{1}", methodCall.Label, branch.Label);
 						callerBody.Instructions.Insert(index, branch);
 						index++;
 					}
 				}
 				else
 				{
+					// TODO: Fix! We should clone the instruction
+					// so the original is not modified
+					// and calleeBody remain intacted
+
+					if (instruction is BranchInstruction)
+					{
+						var branch = instruction as BranchInstruction;
+						branch.Target = string.Format("{0}_{1}", methodCall.Label, branch.Target);
+					}
+					else if (instruction is SwitchInstruction)
+					{
+						var branch = instruction as SwitchInstruction;
+
+						for (var j = 0; j < branch.Targets.Count; ++j)
+						{
+							var target = branch.Targets[j];
+							branch.Targets[j] = string.Format("{0}_{1}", methodCall.Label, target);
+						}
+					}
+
+					instruction.Label = string.Format("{0}_{1}", methodCall.Label, instruction.Label);
 					callerBody.Instructions.Insert(index, instruction);
 					index++;
 				}
