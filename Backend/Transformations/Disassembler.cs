@@ -764,8 +764,29 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.LoadMethodAddressInstruction op)
 			{
+				if (op.Method.IsStatic)
+				{
+					ProcessLoadStaticMethodAddress(op);
+				}
+				else
+				{
+					ProcessLoadInstanceMethodAddress(op);
+				}
+			}
+
+			public void ProcessLoadStaticMethodAddress(Bytecode.LoadMethodAddressInstruction op)
+			{
 				var dest = stack.Push();
 				var source = new StaticMethodReference(op.Method);
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
+			}
+
+			public void ProcessLoadInstanceMethodAddress(Bytecode.LoadMethodAddressInstruction op)
+			{
+				var obj = stack.Pop();
+				var dest = stack.Push();
+				var source = new VirtualMethodReference(obj, op.Method);
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
