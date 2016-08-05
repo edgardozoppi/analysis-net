@@ -404,10 +404,25 @@ namespace CCIProvider
 			var name = namedTyperef.Name.Value;
 			Cci.ITypeReference typeref = namedTyperef;
 
-			while (typeref is Cci.INestedTypeReference)
+			while (typeref is Cci.INestedTypeReference ||
+				   typeref is Cci.IGenericTypeInstanceReference ||
+				   typeref is Cci.IGenericTypeParameterReference)
 			{
-				var nestedTyperef = typeref as Cci.INestedTypeReference;
-				typeref = nestedTyperef.ContainingType;
+				if (typeref is Cci.INestedTypeReference)
+				{
+					var nestedTyperef = typeref as Cci.INestedTypeReference;
+					typeref = nestedTyperef.ContainingType;
+				}
+				else if (typeref is Cci.IGenericTypeInstanceReference)
+				{
+					var genericInstanceTyperef = typeref as Cci.IGenericTypeInstanceReference;
+					typeref = genericInstanceTyperef.GenericType;
+				}
+				else if (typeref is Cci.IGenericTypeParameterReference)
+				{
+					var genericParameterTyperef = typeref as Cci.IGenericTypeParameterReference;
+					typeref = genericParameterTyperef.DefiningType;
+				}
 			}
 
 			var namespaceTyperef = typeref as Cci.INamespaceTypeReference;
