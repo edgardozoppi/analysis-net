@@ -618,6 +618,9 @@ namespace Model.Types
 		public IList<MethodDefinition> Methods { get; private set; }
 		public IList<ITypeDefinition> Types { get; private set; }
 
+		// TODO: Fix! Remove this property when creating a specific DelegateDefinition model class.
+		public bool IsDelegate { get; set; }
+
 		public ClassDefinition(string name)
 		{
 			this.Name = name;

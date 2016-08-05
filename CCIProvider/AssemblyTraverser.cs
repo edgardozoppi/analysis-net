@@ -92,6 +92,11 @@ namespace CCIProvider
 			{
 				result = typeExtractor.ExtractEnum(typedef);
 			}
+			else if (typedef.IsDelegate)
+			{
+				// TODO: Fix! Create a specific DelegateDefinition model class instead of reusing ClassDefinition.
+				result = typeExtractor.ExtractClass(typedef, pdbReader);
+			}
 
 			if (result != null)
 			{

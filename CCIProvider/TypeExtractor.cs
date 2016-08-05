@@ -66,6 +66,7 @@ namespace CCIProvider
 			}
 
 			type.Base = ExtractType(basedef) as BasicType;
+			type.IsDelegate = typedef.IsDelegate;
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);

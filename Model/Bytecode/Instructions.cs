@@ -92,6 +92,12 @@ namespace Model.Bytecode
 		Address
 	}
 
+	public enum LoadMethodAddressOperation
+	{
+		Static,
+		Virtual
+	}
+
 	public abstract class Instruction : IInstruction
 	{
 		public uint Offset { get; set; }
@@ -390,11 +396,13 @@ namespace Model.Bytecode
 
 	public class LoadMethodAddressInstruction : Instruction
 	{
+		public LoadMethodAddressOperation Operation { get; set; }
 		public IMethodReference Method { get; set; }
 
-		public LoadMethodAddressInstruction(uint label, IMethodReference method)
+		public LoadMethodAddressInstruction(uint label, LoadMethodAddressOperation operation, IMethodReference method)
 			: base(label)
 		{
+			this.Operation = operation;
 			this.Method = method;
 		}
 
@@ -406,7 +414,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  load address of <{2}>;", this.Label, this.Method);
+			return string.Format("{0}:  load address of {1} method <{2}>;", this.Label, this.Operation, this.Method);
 		}
 	}
 
