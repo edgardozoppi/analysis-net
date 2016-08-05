@@ -76,6 +76,20 @@ namespace Model.Types
 			return result;
 		}
 
+		public static bool IsDelegate(IType type)
+		{
+			var result = false;
+			var basicType = type as BasicType;
+
+			if (basicType != null && basicType.ResolvedType != null)
+			{
+				result = Type1ImplementsType2(basicType.ResolvedType, PlatformTypes.MulticastDelegate);
+				result = result || Type1ImplementsType2(basicType.ResolvedType, PlatformTypes.Delegate);
+			}
+
+			return result;
+		}
+
 		public static IType MergedType(IType type1, IType type2)
 		{
 			IType result = PlatformTypes.Object;

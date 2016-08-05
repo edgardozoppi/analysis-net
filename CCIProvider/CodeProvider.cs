@@ -682,10 +682,11 @@ namespace CCIProvider
 
 		private IInstruction ProcessLoadMethodAddress(Cci.IOperation op)
 		{
+			var operation = OperationHelper.ToLoadMethodAddressOperation(op.OperationCode);
 			var cciMethod = op.Value as Cci.IMethodReference;
 			var ourMethod = typeExtractor.ExtractReference(cciMethod);
 
-			var instruction = new LoadMethodAddressInstruction(op.Offset, ourMethod);
+			var instruction = new LoadMethodAddressInstruction(op.Offset, operation, ourMethod);
 			return instruction;
 		}
 

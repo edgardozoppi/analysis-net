@@ -68,6 +68,9 @@ namespace Model.Types
 		public static readonly BasicType Float32 = Single;
 		public static readonly BasicType Float64 = Double;
 
+		public static readonly BasicType MulticastDelegate = New("mscorlib", "System", "MulticastDelegate", TypeKind.ReferenceType);
+		public static readonly BasicType Delegate = New("mscorlib", "System", "Delegate", TypeKind.ReferenceType);
+
 		public static readonly BasicType PureAttribute = New("mscorlib", "System.Diagnostics.Contracts", "PureAttribute", TypeKind.ReferenceType);
 		public static readonly BasicType ICollection = New("mscorlib", "System.Collections", "ICollection", TypeKind.ReferenceType);
 		public static readonly BasicType GenericICollection = New("mscorlib", "System.Collections.Generic", "ICollection", TypeKind.ReferenceType, "T");

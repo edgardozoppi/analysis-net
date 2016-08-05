@@ -258,6 +258,17 @@ namespace CCIProvider
 			}
 		}
 
+		public static LoadMethodAddressOperation ToLoadMethodAddressOperation(Cci.OperationCode opcode)
+		{
+			switch (opcode)
+			{
+				case Cci.OperationCode.Ldftn: return LoadMethodAddressOperation.Static;
+				case Cci.OperationCode.Ldvirtftn: return LoadMethodAddressOperation.Virtual;
+
+				default: throw opcode.ToUnknownValueException();
+			}
+		}
+
 		public static object GetOperationConstant(Cci.IOperation op)
 		{
 			switch (op.OperationCode)

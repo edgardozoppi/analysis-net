@@ -764,13 +764,17 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.LoadMethodAddressInstruction op)
 			{
-				if (op.Method.IsStatic)
+				switch (op.Operation)
 				{
-					ProcessLoadStaticMethodAddress(op);
-				}
-				else
-				{
-					ProcessLoadInstanceMethodAddress(op);
+					case Bytecode.LoadMethodAddressOperation.Static:
+						ProcessLoadStaticMethodAddress(op);
+						break;
+
+					case Bytecode.LoadMethodAddressOperation.Virtual:
+						ProcessLoadVirtualMethodAddress(op);
+						break;
+
+					default: throw op.Operation.ToUnknownValueException();
 				}
 			}
 
@@ -782,7 +786,7 @@ namespace Backend.Transformations
 				body.Instructions.Add(instruction);
 			}
 
-			public void ProcessLoadInstanceMethodAddress(Bytecode.LoadMethodAddressInstruction op)
+			public void ProcessLoadVirtualMethodAddress(Bytecode.LoadMethodAddressInstruction op)
 			{
 				var obj = stack.Pop();
 				var dest = stack.Push();
