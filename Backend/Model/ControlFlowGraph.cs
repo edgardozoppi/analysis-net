@@ -234,6 +234,30 @@ namespace Backend.Model
 			this.ConnectNodes(this.ExceptionalExit, this.Exit);
 		}
 
+		public IEnumerable<CFGNode> Entries
+		{
+			get
+			{
+				var result = from node in this.Nodes
+							 where node.Predecessors.Count == 0
+							 select node;
+
+				return result;
+			}
+		}
+
+		public IEnumerable<CFGNode> Exits
+		{
+			get
+			{
+				var result = from node in this.Nodes
+							 where node.Successors.Count == 0
+							 select node;
+
+				return result;
+			}
+		}
+
 		public CFGNode[] ForwardOrder
 		{
 			get
@@ -276,25 +300,9 @@ namespace Backend.Model
 		//	var visited = new bool[this.Nodes.Count];
 		//	var index = this.Nodes.Count - 1;
 
-		//	ControlFlowGraph.DepthFirstSearch(result, visited, this.Entry, ref index);
-
-		//	//if (result.Any(n => n == null))
-		//	//{
-		//	//    var nodes = this.Nodes.Where(n => n.Predecessors.Count == 0);
-
-		//	//    throw new Exception("Error");
-		//	//}
-
-		//	foreach (var node in this.Nodes)
+		//	foreach (var node in this.Entries)
 		//	{
-		//		var alreadyVisited = visited[node.Id];
-
-		//		if (!alreadyVisited)
-		//		{
-		//			node.ForwardIndex = index;
-		//			result[index] = node;
-		//			index--;
-		//		}
+		//		ControlFlowGraph.DepthFirstSearch(result, visited, node, ref index);
 		//	}
 
 		//	return result;
@@ -334,8 +342,11 @@ namespace Backend.Model
 			var status = new TopologicalSortNodeStatus[this.Nodes.Count];
 			var index = this.Nodes.Count - 1;
 
-			stack.Push(this.Entry);
-			status[this.Entry.Id] = TopologicalSortNodeStatus.FirstVisit;
+			foreach (var node in this.Entries)
+			{
+				stack.Push(node);
+				status[node.Id] = TopologicalSortNodeStatus.FirstVisit;
+			}
 
 			do
 			{
@@ -367,25 +378,6 @@ namespace Backend.Model
 			}
 			while (stack.Count > 0);
 
-			//if (result.Any(n => n == null))
-			//{
-			//    var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
-
-			//    throw new Exception("Error");
-			//}
-
-			foreach (var node in this.Nodes)
-			{
-				var node_status = status[node.Id];
-
-				if (node_status == TopologicalSortNodeStatus.NeverVisited)
-				{
-					node.ForwardIndex = index;
-					result[index] = node;
-					index--;
-				}
-			}
-
 			return result;
 		}
 
@@ -397,8 +389,11 @@ namespace Backend.Model
 			var status = new TopologicalSortNodeStatus[this.Nodes.Count];
 			var index = this.Nodes.Count - 1;
 
-			stack.Push(this.Exit);
-			status[this.Exit.Id] = TopologicalSortNodeStatus.FirstVisit;
+			foreach (var node in this.Exits)
+			{
+				stack.Push(node);
+				status[node.Id] = TopologicalSortNodeStatus.FirstVisit;
+			}
 
 			do
 			{
@@ -429,25 +424,6 @@ namespace Backend.Model
 				}
 			}
 			while (stack.Count > 0);
-
-			//if (result.Any(n => n == null))
-			//{
-			//    var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
-
-			//    throw new Exception("Error");
-			//}
-
-			foreach (var node in this.Nodes)
-			{
-				var node_status = status[node.Id];
-
-				if (node_status == TopologicalSortNodeStatus.NeverVisited)
-				{
-					node.BackwardIndex = index;
-					result[index] = node;
-					index--;
-				}
-			}
 
 			return result;
 		}
