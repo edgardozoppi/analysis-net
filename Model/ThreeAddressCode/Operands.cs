@@ -714,8 +714,20 @@ namespace Model.ThreeAddressCode.Values
 		{
 			get
 			{
-				var arrayType = this.Array.Type as ArrayType;
-				return arrayType.ElementsType;
+				IType result;
+
+				if (this.Array.Type is ArrayType)
+				{
+					var arrayType = this.Array.Type as ArrayType;
+					result = arrayType.ElementsType;
+				}
+				else
+				{
+					// TODO: Check why the type of the array is not ArrayType!
+					result = this.Array.Type;
+				}
+
+				return result;
 			}
 		}
 
@@ -785,8 +797,20 @@ namespace Model.ThreeAddressCode.Values
 		{
 			get
 			{
-				var pointerType = this.Reference.Type as PointerType;
-				return pointerType.TargetType;
+				IType result;
+
+				if (this.Reference.Type is PointerType)
+				{
+					var pointerType = this.Reference.Type as PointerType;
+					result = pointerType.TargetType;
+				}
+				else
+				{
+					// TODO: Check why the type of the reference is not PointerType!
+					result = this.Reference.Type;
+				}
+
+				return result;
 			}
 		}
 
