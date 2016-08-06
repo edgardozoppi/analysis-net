@@ -75,7 +75,7 @@ namespace Backend.Analysis
 		public ISet<CFGNode> Successors { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
 		public CFGNode ImmediateDominator { get; set; }
-		public ISet<CFGNode> Childs { get; private set; }
+		public ISet<CFGNode> ImmediateDominated { get; private set; }
 		public ISet<CFGNode> DominanceFrontier { get; private set; }
 
 		public CFGNode(int id, CFGNodeKind kind = CFGNodeKind.BasicBlock)
@@ -87,7 +87,7 @@ namespace Backend.Analysis
 			this.Predecessors = new HashSet<CFGNode>();
 			this.Successors = new HashSet<CFGNode>();
 			this.Instructions = new List<Instruction>();
-			this.Childs = new HashSet<CFGNode>();
+			this.ImmediateDominated = new HashSet<CFGNode>();
 			this.DominanceFrontier = new HashSet<CFGNode>();
 		}
 
@@ -148,6 +148,31 @@ namespace Backend.Analysis
 			this.Entry = new CFGNode(0, CFGNodeKind.Entry);
 			this.Exit = new CFGNode(1, CFGNodeKind.Exit);
 			this.Nodes = new HashSet<CFGNode>() { this.Entry, this.Exit };
+			this.Loops = new HashSet<CFGLoop>();
+		}
+
+		public IEnumerable<CFGNode> Entries
+		{
+			get
+			{
+				var result = from node in this.Nodes
+							 where node.Predecessors.Count == 0
+							 select node;
+
+				return result;
+			}
+		}
+
+		public IEnumerable<CFGNode> Exits
+		{
+			get
+			{
+				var result = from node in this.Nodes
+							 where node.Successors.Count == 0
+							 select node;
+
+				return result;
+			}
 		}
 
 		public CFGNode[] ForwardOrder
@@ -388,74 +413,79 @@ namespace Backend.Analysis
 
 		//private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
 		//{
-		//    var result = new CFGNode[cfg.Nodes.Count];
-		//    var visited = new bool[cfg.Nodes.Count];
-		//    var index = cfg.Nodes.Count - 1;
+		//	var result = new CFGNode[cfg.Nodes.Count];
+		//	var visited = new bool[cfg.Nodes.Count];
+		//	var index = cfg.Nodes.Count - 1;
 
-		//    ControlFlowGraph.DepthFirstSearch(result, visited, cfg.Entry, ref index);
+		//	foreach (var node in cfg.Entries)
+		//	{
+		//		ControlFlowGraph.DepthFirstSearch(result, visited, node, ref index);
+		//	}
 
-		//    //if (result.Any(n => n == null))
-		//    //{
-		//    //    var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
-
-		//    //    throw new Exception("Error");
-		//    //}
-
-		//    return result;
+		//	return result;
 		//}
 
 		//private static void DepthFirstSearch(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
 		//{
-		//    var alreadyVisited = visited[node.Id];
+		//	var alreadyVisited = visited[node.Id];
 
-		//    if (!alreadyVisited)
-		//    {
-		//        visited[node.Id] = true;
+		//	if (!alreadyVisited)
+		//	{
+		//		visited[node.Id] = true;
 
-		//        foreach (var succ in node.Successors)
-		//        {
-		//            ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
-		//        }
+		//		foreach (var succ in node.Successors)
+		//		{
+		//			ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
+		//		}
 
-		//        node.ForwardIndex = index;
-		//        result[index] = node;
-		//        index--;
-		//    }
+		//		node.ForwardIndex = index;
+		//		result[index] = node;
+		//		index--;
+		//	}
 		//}
+
+		private enum TopologicalSortNodeStatus
+		{
+			NeverVisited, // never pushed into stack
+			FirstVisit, // pushed into stack for the first time
+			SecondVisit // pushed into stack for the second time
+		}
 
 		private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
 		{
 			// reverse postorder traversal from entry node
-			// status == 0: never pushed into stack
-			// status == 1: pushed into stack
-			// status == 2: visited once
 			var stack = new Stack<CFGNode>();
 			var result = new CFGNode[cfg.Nodes.Count];
-			var status = new byte[cfg.Nodes.Count];
+			var status = new TopologicalSortNodeStatus[cfg.Nodes.Count];
 			var index = cfg.Nodes.Count - 1;
 
-			stack.Push(cfg.Entry);
-			status[cfg.Entry.Id] = 1;
+			foreach (var node in cfg.Entries)
+			{
+				stack.Push(node);
+				status[node.Id] = TopologicalSortNodeStatus.FirstVisit;
+			}
 
 			do
 			{
 				var node = stack.Peek();
 				var node_status = status[node.Id];
 
-				if (node_status == 1)
+				if (node_status == TopologicalSortNodeStatus.FirstVisit)
 				{
-					status[node.Id] = 2;
+					status[node.Id] = TopologicalSortNodeStatus.SecondVisit;
 
 					foreach (var succ in node.Successors)
 					{
-						if (status[succ.Id] == 0)
+						var succ_status = status[succ.Id];
+
+						if (succ_status == TopologicalSortNodeStatus.NeverVisited)
 						{
 							stack.Push(succ);
-							status[succ.Id] = 1;
+							status[succ.Id] = TopologicalSortNodeStatus.FirstVisit;
 						}
 					}
 				}
-				else if (node_status == 2)
+				else if (node_status == TopologicalSortNodeStatus.SecondVisit)
 				{
 					stack.Pop();
 					node.ForwardIndex = index;
@@ -465,49 +495,44 @@ namespace Backend.Analysis
 			}
 			while (stack.Count > 0);
 
-			//if (result.Any(n => n == null))
-			//{
-			//    var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
-
-			//    throw new Exception("Error");
-			//}
-
 			return result;
 		}
 
 		private static CFGNode[] ComputeBackwardTopologicalSort(ControlFlowGraph cfg)
 		{
 			// reverse postorder traversal from exit node
-			// status == 0: never pushed into stack
-			// status == 1: pushed into stack
-			// status == 2: visited once
 			var stack = new Stack<CFGNode>();
 			var result = new CFGNode[cfg.Nodes.Count];
-			var status = new byte[cfg.Nodes.Count];
+			var status = new TopologicalSortNodeStatus[cfg.Nodes.Count];
 			var index = cfg.Nodes.Count - 1;
 
-			stack.Push(cfg.Exit);
-			status[cfg.Exit.Id] = 1;
+			foreach (var node in cfg.Exits)
+			{
+				stack.Push(node);
+				status[node.Id] = TopologicalSortNodeStatus.FirstVisit;
+			}
 
 			do
 			{
 				var node = stack.Peek();
 				var node_status = status[node.Id];
 
-				if (node_status == 1)
+				if (node_status == TopologicalSortNodeStatus.FirstVisit)
 				{
-					status[node.Id] = 2;
+					status[node.Id] = TopologicalSortNodeStatus.SecondVisit;
 
 					foreach (var pred in node.Predecessors)
 					{
-						if (status[pred.Id] == 0)
+						var pred_status = status[pred.Id];
+
+						if (pred_status == TopologicalSortNodeStatus.NeverVisited)
 						{
 							stack.Push(pred);
-							status[pred.Id] = 1;
+							status[pred.Id] = TopologicalSortNodeStatus.FirstVisit;
 						}
 					}
 				}
-				else if (node_status == 2)
+				else if (node_status == TopologicalSortNodeStatus.SecondVisit)
 				{
 					stack.Pop();
 					node.BackwardIndex = index;
@@ -516,13 +541,6 @@ namespace Backend.Analysis
 				}
 			}
 			while (stack.Count > 0);
-
-			//if (result.Any(n => n == null))
-			//{
-			//    var nodes = cfg.Nodes.Where(n => n.Predecessors.Count == 0);
-
-			//    throw new Exception("Error");
-			//}
 
 			return result;
 		}
@@ -648,7 +666,7 @@ namespace Backend.Analysis
 			{
 				if (node.ImmediateDominator == null) continue;
 
-				node.ImmediateDominator.Childs.Add(node);
+				node.ImmediateDominator.ImmediateDominated.Add(node);
 			}
 		}
 

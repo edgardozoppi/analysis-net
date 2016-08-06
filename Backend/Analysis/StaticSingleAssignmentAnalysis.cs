@@ -196,7 +196,7 @@ namespace Backend.Analysis
 				}
 			}
 
-			foreach (var child in node.Childs)
+			foreach (var child in node.ImmediateDominated)
 			{
 				this.RenameVariables(child, derived_variables, indices);
 			}
