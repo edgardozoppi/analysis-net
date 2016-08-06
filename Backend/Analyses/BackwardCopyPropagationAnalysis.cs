@@ -155,7 +155,7 @@ namespace Backend.Analyses
 				this.RemoveCopiesWithVariable(input, variable);
 			}
 
-			input.AddRange(gen);
+			input.SetRange(gen);
 			return input;
 		}
 

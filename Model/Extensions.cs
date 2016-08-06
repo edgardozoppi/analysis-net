@@ -27,11 +27,11 @@ namespace Model
 			}
 		}
 
-		public static void RemoveRange<K, V>(this IDictionary<K, V> self, IEnumerable<K> elements)
+		public static void SetRange<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> elements)
 		{
 			foreach (var element in elements)
 			{
-				self.Remove(element);
+				self[element.Key] = element.Value;
 			}
 		}
 
