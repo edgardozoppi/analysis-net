@@ -280,7 +280,10 @@ namespace Backend.Analyses
 			{
 				foreach (var node in protectedRegion.Nodes)
 				{
-					cfg.ConnectNodes(node, protectedRegion.Handler.Header);
+					if (protectedRegion.Handler.Header != null)
+					{
+						cfg.ConnectNodes(node, protectedRegion.Handler.Header);
+					}
 				}
 			}
 		}
