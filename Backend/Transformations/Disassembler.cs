@@ -569,9 +569,9 @@ namespace Backend.Transformations
 						this.ProcessDup(bb, op);
 						break;
 
-					//case OperationCode.Endfilter:
-					//    statement = this.ParseEndfilter();
-					//    break;
+					case OperationCode.Endfilter:
+						this.ProcessEndFilter(bb, op);
+						break;
 
 					case OperationCode.Endfinally:
 						this.ProcessEndFinally(bb, op);
@@ -1118,9 +1118,42 @@ namespace Backend.Transformations
 			this.AddToPendingBasicBlocks(target, true);
 		}
 
+		private void ProcessEndFilter(BasicBlockInfo bb, IOperation op)
+		{
+			stack.Clear();
+
+			// Quick fix to preserve the offset in case it is a target location of some jump
+			// Otherwise it will break the control-flow analysis later.
+			var instruction = new NopInstruction(op.Offset);
+			bb.Instructions.Add(instruction);
+
+			//// TODO: Maybe we don't need to add this branch instruction
+			//// since it is jumping to the next one,
+			//// so it is the same as falling through
+			//if (exceptionHandlersEnd.ContainsKey(op.Offset))
+			//{
+			//	var handlers = exceptionHandlersEnd[op.Offset];
+
+			//	foreach (var handler in handlers)
+			//	{
+			//		if (handler.Kind == ExceptionHandlerBlockKind.Finally ||
+			//			handler.Kind == ExceptionHandlerBlockKind.Fault)
+			//		{
+			//			var branch = new UnconditionalBranchInstruction(op.Offset, op.Offset + 1);
+			//			bb.Instructions.Add(branch);
+			//		}
+			//	}
+			//}
+		}
+
 		private void ProcessEndFinally(BasicBlockInfo bb, IOperation op)
 		{
 			stack.Clear();
+
+			// Quick fix to preserve the offset in case it is a target location of some jump
+			// Otherwise it will break the control-flow analysis later.
+			var instruction = new NopInstruction(op.Offset);
+			bb.Instructions.Add(instruction);
 
 			//// TODO: Maybe we don't need to add this branch instruction
 			//// since it is jumping to the next one,
