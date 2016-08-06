@@ -219,6 +219,7 @@ namespace Backend.Analyses
 
 			if (isCopy)
 			{
+				this.RemoveCopiesWithVariable(copies, left);
 				copies.Add(left, right);
 			}
 
