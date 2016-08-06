@@ -19,6 +19,22 @@ namespace Model
 			}
 		}
 
+		public static void RemoveAll<T>(this ICollection<T> self, IEnumerable<T> elements)
+		{
+			foreach (var element in elements)
+			{
+				self.Remove(element);
+			}
+		}
+
+		public static void SetRange<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> elements)
+		{
+			foreach (var element in elements)
+			{
+				self[element.Key] = element.Value;
+			}
+		}
+
 		public static IEnumerable<T> ToEnumerable<T>(this T item)
 		{
 			yield return item;

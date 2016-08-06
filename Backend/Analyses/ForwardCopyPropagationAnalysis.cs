@@ -126,7 +126,7 @@ namespace Backend.Analyses
 				this.RemoveCopiesWithVariable(output, variable);
 			}
 
-			output.AddRange(gen);
+			output.SetRange(gen);
 			return output;
 		}
 
