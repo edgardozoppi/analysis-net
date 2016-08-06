@@ -294,14 +294,12 @@ namespace Backend.Model
 
 		#region Topological Sort
 
-		//private static CFGNode[] ComputeForwardTopologicalSort(ControlFlowGraph cfg)
+		//private CFGNode[] ComputeForwardTopologicalSort()
 		//{
 		//	var result = new CFGNode[this.Nodes.Count];
 		//	var visited = new bool[this.Nodes.Count];
 		//	var index = this.Nodes.Count - 1;
 
-		//	//    throw new Exception("Error");
-		//	//}
 		//	foreach (var node in this.Entries)
 		//	{
 		//		ControlFlowGraph.DepthFirstSearch(result, visited, node, ref index);
