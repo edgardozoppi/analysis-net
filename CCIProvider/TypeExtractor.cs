@@ -19,14 +19,14 @@ namespace CCIProvider
 		// The problem is related with type references (IType) having attributes.
 		// We cannot only add them to type definitions because the user may need
 		// to know the attributes of a type defined in an external library.
-		private static IDictionary<Cci.ITypeReference, BasicType> attributesCache;
+		private static IDictionary<Cci.ITypeReference, IBasicType> attributesCache;
 
 		private Host host;
 
 		public TypeExtractor(Host host)
 		{
 			this.host = host;
-			attributesCache = new Dictionary<Cci.ITypeReference, BasicType>();
+			attributesCache = new Dictionary<Cci.ITypeReference, IBasicType>();
 		}
 
 		public EnumDefinition ExtractEnum(Cci.INamedTypeDefinition typedef)
@@ -34,7 +34,7 @@ namespace CCIProvider
 			var name = typedef.Name.Value;
 			var type = new EnumDefinition(name);
 
-			type.UnderlayingType = ExtractType(typedef.UnderlyingType) as BasicType;
+			type.UnderlayingType = ExtractType(typedef.UnderlyingType) as IBasicType;
 			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractConstants(type, type.Constants, typedef.Fields);
 
@@ -65,7 +65,7 @@ namespace CCIProvider
 				basedef = typedef.PlatformType.SystemObject;
 			}
 
-			type.Base = ExtractType(basedef) as BasicType;
+			type.Base = ExtractType(basedef) as IBasicType;
 			type.IsDelegate = typedef.IsDelegate;
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
@@ -165,7 +165,7 @@ namespace CCIProvider
 			return type;
 		}
 
-		public BasicType ExtractType(Cci.IGenericTypeInstanceReference typeref)
+		public IBasicType ExtractType(Cci.IGenericTypeInstanceReference typeref)
 		{
 			var type = ExtractType(typeref.GenericType, false);
 			ExtractGenericType(type, typeref);
@@ -173,20 +173,20 @@ namespace CCIProvider
 			return type;
 		}
 
-		public BasicType ExtractType(Cci.INamedTypeReference typeref)
+		public IBasicType ExtractType(Cci.INamedTypeReference typeref)
 		{
 			return ExtractType(typeref, true);
 		}
 
-		private BasicType ExtractType(Cci.INamedTypeReference typeref, bool canReturnFromCache)
+		private IBasicType ExtractType(Cci.INamedTypeReference typeref, bool canReturnFromCache)
 		{
 			//string containingAssembly;
 			//string containingNamespace;
 			//var name = GetTypeName(typeref, out containingAssembly, out containingNamespace);
 			//var kind = GetTypeKind(typeref);
-			//var type = new BasicType(name, kind);
+			//var type = new IBasicType(name, kind);
 
-			BasicType type = null;
+			IBasicType type = null;
 
 			if (!attributesCache.TryGetValue(typeref, out type) || !canReturnFromCache)
 			{
@@ -196,8 +196,8 @@ namespace CCIProvider
 				var kind = GetTypeKind(typeref);
 				var newType = new BasicType(name, kind);
 
-				newType.Assembly = new AssemblyReference(containingAssembly);
-				newType.Namespace = containingNamespace;
+				newType.ContainingAssembly = new AssemblyReference(containingAssembly);
+				newType.ContainingNamespace = containingNamespace;
 
 				if (type == null)
 				{
@@ -239,11 +239,11 @@ namespace CCIProvider
 
 		#endregion
 
-		#region Extract GenericType and BasicType
+		#region Extract GenericType and IBasicType
 
-		//public BasicType ExtractType(Cci.INamedTypeReference typeref)
+		//public IBasicType ExtractType(Cci.INamedTypeReference typeref)
 		//{
-		//	BasicType type;
+		//	IBasicType type;
 		//	string containingAssembly;
 		//	string containingNamespace;
 		//	var name = GetTypeName(typeref, out containingAssembly, out containingNamespace);
@@ -255,7 +255,7 @@ namespace CCIProvider
 		//	}
 		//	else
 		//	{
-		//		type = new BasicType(name, kind);
+		//		type = new IBasicType(name, kind);
 		//	}
 
 		//	ExtractAttributes(type.Attributes, typeref.Attributes);
@@ -311,7 +311,7 @@ namespace CCIProvider
 
 			ExtractAttributes(field.Attributes, fieldref.Attributes);
 
-			field.ContainingType = (BasicType)ExtractType(fieldref.ContainingType);
+			field.ContainingType = (IBasicType)ExtractType(fieldref.ContainingType);
 			//field.IsStatic = fieldref.IsStatic;
 			field.IsStatic = fieldref.ResolvedField.IsStatic;
 
@@ -327,7 +327,7 @@ namespace CCIProvider
 			ExtractParameters(method.Parameters, methodref.Parameters);
 
 			method.GenericParameterCount = methodref.GenericParameterCount;
-			method.ContainingType = (BasicType)ExtractType(methodref.ContainingType);
+			method.ContainingType = (IBasicType)ExtractType(methodref.ContainingType);
 			method.IsStatic = methodref.IsStatic;
 
 			return method;
@@ -383,7 +383,7 @@ namespace CCIProvider
 			}
 		}
 
-		private void ExtractGenericType(BasicType type, Cci.IGenericTypeInstanceReference typeref)
+		private void ExtractGenericType(IBasicType type, Cci.IGenericTypeInstanceReference typeref)
 		{
 			foreach (var argumentref in typeref.GenericArguments)
 			{
@@ -509,11 +509,11 @@ namespace CCIProvider
 			codeProvider.ExtractBody(ourBody, cciBody);
 		}
 
-		private void ExtractInterfaces(IList<BasicType> dest, IEnumerable<Cci.ITypeReference> source)
+		private void ExtractInterfaces(IList<IBasicType> dest, IEnumerable<Cci.ITypeReference> source)
 		{
 			foreach (var interfaceref in source)
 			{
-				var type = ExtractType(interfaceref) as BasicType;
+				var type = ExtractType(interfaceref) as IBasicType;
 
 				dest.Add(type);
 			}

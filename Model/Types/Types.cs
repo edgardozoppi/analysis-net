@@ -87,8 +87,8 @@ namespace Model.Types
 		{
 			var result = new BasicType(name, kind)
 			{
-				Assembly = new AssemblyReference(containingAssembly),
-				Namespace = containingNamespace
+				ContainingAssembly = new AssemblyReference(containingAssembly),
+				ContainingNamespace = containingNamespace
 			};
 
 			foreach (var arg in genericArguments)
@@ -133,18 +133,27 @@ namespace Model.Types
 		}
 	}
 
-	public class BasicType : IType
+	public interface IBasicType : IType
+	{
+		IAssemblyReference ContainingAssembly { get; }
+		string ContainingNamespace { get; }
+		string Name { get; }
+		string GenericName { get; }
+		IList<IType> GenericArguments { get; }
+		ITypeDefinition ResolvedType { get; }
+	}
+
+	public class BasicType : IBasicType
 	{
 		private Func<ITypeDefinition> ResolveType;
 		private ITypeDefinition resolvedType;
 
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeKind TypeKind { get; set; }
-		public IAssemblyReference Assembly { get; set; }
-		public string Namespace { get; set; }
+		public IAssemblyReference ContainingAssembly { get; set; }
+		public string ContainingNamespace { get; set; }
 		public string Name { get; set; }
 		public IList<IType> GenericArguments { get; private set; }
-		//blic ITypeDefinition ResolvedType { get; private set; }
 
 		public BasicType(string name, TypeKind kind = TypeKind.Unknown)
 		{
@@ -155,30 +164,18 @@ namespace Model.Types
 
 			this.ResolveType = () =>
 			{
-				var msg = "Use BasicType.Resolve method to bind this type with same host. " +
+				var msg = "Use IBasicType.Resolve method to bind this type with some host. " +
 						  "To bind all platform types use PlatformTypes.Resolve method.";
 
 				throw new InvalidOperationException(msg);
 			};
 		}
 
-		public string FullName
+		public string GenericName
 		{
 			get
 			{
-				var containingAssembly = string.Empty;
-				var containingNamespace = string.Empty;
 				var arguments = string.Empty;
-
-				//if (this.Assembly != null)
-				//{
-				//	containingAssembly = string.Format("[{0}]", this.Assembly.Name);
-				//}
-
-				//if (!string.IsNullOrEmpty(this.Namespace))
-				//{
-				//	containingNamespace = string.Format("{0}.", this.Namespace);
-				//}
 
 				if (this.GenericArguments.Count > 0)
 				{
@@ -186,7 +183,7 @@ namespace Model.Types
 					arguments = string.Format("<{0}>", arguments);
 				}
 
-				return string.Format("{0}{1}{2}{3}", containingAssembly, containingNamespace, this.Name, arguments);
+				return string.Format("{0}{1}", this.Name, arguments);
 			}
 		}
 
@@ -216,15 +213,7 @@ namespace Model.Types
 
 		public override string ToString()
 		{
-			var arguments = string.Empty;
-
-			if (this.GenericArguments.Count > 0)
-			{
-				arguments = string.Join(", ", this.GenericArguments);
-				arguments = string.Format("<{0}>", arguments);
-			}
-
-			return string.Format("{0}{1}", this.Name, arguments);
+			return this.GenericName;
 		}
 
 		public override int GetHashCode()
@@ -234,11 +223,11 @@ namespace Model.Types
 
 		public override bool Equals(object obj)
 		{
-			var other = obj as BasicType;
+			var other = obj as IBasicType;
 			// TODO: Maybe we should also compare the TypeKind?
 			var result = other != null &&
-						 this.Assembly.Equals(other.Assembly) &&
-						 this.Namespace == other.Namespace &&
+						 this.ContainingAssembly.Equals(other.ContainingAssembly) &&
+						 this.ContainingNamespace == other.ContainingNamespace &&
 						 this.Name == other.Name &&
 						 this.GenericArguments.SequenceEqual(other.GenericArguments);
 
@@ -246,9 +235,9 @@ namespace Model.Types
 		}
 	}
 
-	#region class BasicType
+	#region class IBasicType
 
-	//public class BasicType : IType
+	//public class IBasicType : IType
 	//{
 	//	public ISet<Attribute> Attributes { get; private set; }
 	//	public TypeKind TypeKind { get; set; }
@@ -256,7 +245,7 @@ namespace Model.Types
 	//	public string Namespace { get; set; }
 	//	public string Name { get; set; }
 
-	//	public BasicType(string name, TypeKind kind = TypeKind.Unknown)
+	//	public IBasicType(string name, TypeKind kind = TypeKind.Unknown)
 	//	{
 	//		this.Name = name;
 	//		this.TypeKind = kind;
@@ -296,7 +285,7 @@ namespace Model.Types
 
 	//	public override bool Equals(object obj)
 	//	{
-	//		var other = obj as BasicType;
+	//		var other = obj as IBasicType;
 	//		// TODO: Maybe we should also compare the TypeKind?
 	//		var result = other != null &&
 	//					 this.Assembly.Equals(other.Assembly) &&
@@ -311,7 +300,7 @@ namespace Model.Types
 
 	#region class GenericType
 
-	//public class GenericType : BasicType
+	//public class GenericType : IBasicType
 	//{
 	//	public int GenericParameterCount { get; set; }
 

@@ -67,12 +67,18 @@ namespace Backend.Analyses
 					result.Add(method, methodCall.Label, staticCallee);
 					result.Add(method, methodCall.Label, possibleCallees);
 
-					foreach (var callee in possibleCallees)
+					foreach (var calleeref in possibleCallees)
 					{
-						if (!visitedMethods.Contains(callee))
+						var calleedef = host.ResolveReference(calleeref) as MethodDefinition;
+
+						if (calleedef != null)
 						{
-							worklist.Enqueue(callee);
-							visitedMethods.Add(callee);
+							var isNewMethod = visitedMethods.Add(calleedef);
+
+							if (isNewMethod)
+							{
+								worklist.Enqueue(calleedef);
+							}
 						}
 					}
 				}
@@ -87,81 +93,76 @@ namespace Backend.Analyses
 
 			if (!staticCallee.IsStatic)
 			{
-				// Instance method
-				var method = host.ResolveReference(staticCallee) as MethodDefinition;
+				var receiver = methodCall.Arguments.First();
+				var receiverType = receiver.Type as IBasicType;
 
-				if (method != null && (method.IsVirtual || method.IsAbstract))
+				staticCallee = FindMethodImplementation(receiverType, staticCallee);
+
+				// For debugging purposes only
+				if (staticCallee != methodCall.Method)
 				{
-					// Overridable instance method
-					var receiver = methodCall.Arguments.First();
-					var receiverType = receiver.Type as BasicType;
+					var method = host.ResolveReference(staticCallee) as MethodDefinition;
 
-					staticCallee = FindMethodImplementation(receiverType, staticCallee);
+					if (method != null)
+					{
+						// Make sure it is an overridable instance method
+						var isPolymorphic = method.IsAbstract || method.IsVirtual || method.IsConstructor;
+						System.Diagnostics.Debug.Assert(isPolymorphic);
+					}
 				}
 			}
 
 			return staticCallee;
 		}
 
-		private IMethodReference FindMethodImplementation(BasicType receiverType, IMethodReference method)
+		private IMethodReference FindMethodImplementation(IBasicType receiverType, IMethodReference method)
 		{
 			var result = method;
 
-			if (!method.ContainingType.Equals(receiverType))
+			while (receiverType != null && !method.ContainingType.Equals(receiverType))
 			{
-				while (receiverType != null)
+				var receiverTypeDef = receiverType.ResolvedType as ClassDefinition;
+				if (receiverTypeDef == null) break;
+
+				var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.MatchSignature(method));
+
+				if (matchingMethod != null)
 				{
-					var receiverTypeDef = host.ResolveReference(receiverType) as ClassDefinition;
-
-					if (receiverTypeDef != null)
-					{
-						var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.MatchSignature(method));
-
-						if (matchingMethod != null)
-						{
-							var matchingMethodRef = new MethodReference(method.Name, method.ReturnType)
-							{
-								Name = method.Name,
-								IsStatic = method.IsStatic,
-								GenericParameterCount = method.GenericParameterCount,
-								ContainingType = receiverType
-							};
-
-							matchingMethodRef.Attributes.UnionWith(method.Attributes);
-							matchingMethodRef.Parameters.AddRange(method.Parameters);
-
-							result = matchingMethodRef;
-							break;
-						}
-						else
-						{
-							receiverType = receiverTypeDef.Base;
-						}
-					}
+					result = matchingMethod;
+					break;
 				}
+				else
+				{
+					receiverType = receiverTypeDef.Base;
+				}
+
 			}
 
 			return result;
 		}
 
-		private IEnumerable<MethodDefinition> ResolvePossibleCallees(IMethodReference methodref)
+		private IEnumerable<IMethodReference> ResolvePossibleCallees(IMethodReference methodref)
 		{
-			var result = new HashSet<MethodDefinition>();
-			var method = host.ResolveReference(methodref) as MethodDefinition;
+			var result = new HashSet<IMethodReference>();
 
-			if (method != null)
+			result.Add(methodref);
+
+			if (!methodref.IsStatic)
 			{
-				result.Add(method);
+				var subtypes = classHierarchy.GetAllSubtypes(methodref.ContainingType);
+				var compatibleMethods = from t in subtypes
+										from m in t.Members.OfType<MethodDefinition>()
+										where m.MatchSignature(methodref)
+										select m;
 
-				if (!method.IsStatic && (method.IsVirtual || method.IsAbstract))
+				result.UnionWith(compatibleMethods);
+
+				// For debugging purposes only
+				foreach (var method in compatibleMethods)
 				{
-					var subtypes = classHierarchy.GetAllSubtypes(method.ContainingType);
-					var compatibleMethods = from t in subtypes
-											from m in t.Members.OfType<MethodDefinition>()
-											where m.MatchSignature(methodref)
-											select m;
-
-					result.UnionWith(compatibleMethods);
+					// Make sure it is an overridable instance method
+					var isPolymorphic = method.IsAbstract || method.IsVirtual || method.IsConstructor;
+					System.Diagnostics.Debug.Assert(isPolymorphic);
 				}
 			}
 

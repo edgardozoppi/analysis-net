@@ -45,5 +45,23 @@ namespace Model
 		{
 			return new UnknownValueException<T>(self);
 		}
+
+		public static string GetFullName(this IBasicType type)
+		{
+			var containingAssembly = string.Empty;
+			var containingNamespace = string.Empty;
+
+			if (type.ContainingAssembly != null)
+			{
+				containingAssembly = string.Format("[{0}]", type.ContainingAssembly.Name);
+			}
+
+			if (type.ContainingNamespace != null)
+			{
+				containingNamespace = string.Format("{0}.", type.ContainingNamespace);
+			}
+
+			return string.Format("{0}{1}{2}", containingAssembly, containingNamespace, type.GenericName);
+		}
 	}
 }

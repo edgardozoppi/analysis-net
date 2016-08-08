@@ -237,7 +237,7 @@ namespace Backend.Serialization
 			using (var stringWriter = new StringWriter())
 			using (var xmlWriter = new XmlTextWriter(stringWriter))
 			{
-				var reachableMethods = new Dictionary<MethodDefinition, int>();
+				var reachableMethods = new Dictionary<IMethodReference, int>();
 
 				xmlWriter.Formatting = Formatting.Indented;
 				xmlWriter.WriteStartElement("DirectedGraph");
@@ -338,7 +338,7 @@ namespace Backend.Serialization
 			using (var stringWriter = new StringWriter())
 			using (var xmlWriter = new XmlTextWriter(stringWriter))
 			{
-				var allDefinedTypes = new Dictionary<ITypeDefinition, int>();
+				var allDefinedTypes = new Dictionary<IBasicType, int>();
 
 				xmlWriter.Formatting = Formatting.Indented;
 				xmlWriter.WriteStartElement("DirectedGraph");
@@ -353,7 +353,7 @@ namespace Backend.Serialization
 				foreach (var entry in allDefinedTypes)
 				{
 					var nodeId = Convert.ToString(entry.Value);
-					var label = entry.Key.FullName;
+					var label = entry.Key.GenericName;
 
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", nodeId);
@@ -429,7 +429,7 @@ namespace Backend.Serialization
 			using (var stringWriter = new StringWriter())
 			using (var xmlWriter = new XmlTextWriter(stringWriter))
 			{
-				var allReferencedTypes = new Dictionary<BasicType, int>();
+				var allReferencedTypes = new Dictionary<IBasicType, int>();
 				var allDefinedTypes = new Dictionary<ITypeDefinition, int>();
 				var visitedTypes = new HashSet<ITypeDefinition>();
 				var newTypes = new HashSet<ITypeDefinition>();
@@ -457,8 +457,8 @@ namespace Backend.Serialization
 
 					var fieldsByType = from m in type.Members
 									   let f = m as FieldDefinition
-									   where f != null && f.Type is BasicType
-									   let ftype = f.Type as BasicType
+									   where f != null && f.Type is IBasicType
+									   let ftype = f.Type as IBasicType
 									   group f by ftype into g
 									   select g;
 
@@ -509,7 +509,7 @@ namespace Backend.Serialization
 				foreach (var entry in allReferencedTypes)
 				{
 					var typeId = string.Format("r{0}", entry.Value);
-					var label = entry.Key.FullName;
+					var label = entry.Key.GenericName;
 
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", typeId);
@@ -520,7 +520,7 @@ namespace Backend.Serialization
 				foreach (var entry in allDefinedTypes)
 				{
 					var typeId = string.Format("d{0}", entry.Value);
-					var label = entry.Key.FullName;
+					var label = entry.Key.GenericName;
 
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", typeId);

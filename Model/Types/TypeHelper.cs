@@ -65,7 +65,7 @@ namespace Model.Types
 
 			//var typedef = TypeHelper.Resolve(type, host);
 
-			var basicType = type as BasicType;
+			var basicType = type as IBasicType;
 
 			if (basicType != null && basicType.ResolvedType != null)
 			{
@@ -79,7 +79,7 @@ namespace Model.Types
 		public static bool IsDelegate(IType type)
 		{
 			var result = false;
-			var basicType = type as BasicType;
+			var basicType = type as IBasicType;
 
 			if (basicType != null && basicType.ResolvedType != null)
 			{
@@ -118,10 +118,10 @@ namespace Model.Types
 					result = new ArrayType(elementsType, arrayType1.Rank);
 				}
 			}
-			else if (type1 is BasicType && type2 is BasicType)
+			else if (type1 is IBasicType && type2 is IBasicType)
 			{
-				var basicType1 = type1 as BasicType;
-				var basicType2 = type2 as BasicType;
+				var basicType1 = type1 as IBasicType;
+				var basicType2 = type2 as IBasicType;
 
 				result = MergedType(basicType1, basicType2);
 			}
@@ -133,7 +133,7 @@ namespace Model.Types
 		/// If both type references can be resolved, this returns the merged type of two types as per the verification algorithm in CLR.
 		/// Otherwise it returns either type1, or type2 or System.Object, depending on how much is known about either type.
 		/// </summary>
-		public static IType MergedType(BasicType type1, BasicType type2)
+		public static IType MergedType(IBasicType type1, IBasicType type2)
 		{
 			if (TypesAreEquivalent(type1, type2)) return type1;
 			if (StackTypesAreEquivalent(type1, type2)) return StackType(type1);
@@ -184,7 +184,7 @@ namespace Model.Types
 		public static bool TypesAreEquivalent(ITypeDefinition type1, IType type2)
 		{
 			if (type1 == null || type2 == null) return false;
-			if (type2 is BasicType && type1.MatchReference(type2 as BasicType)) return true;
+			if (type2 is IBasicType && type1.MatchReference(type2 as IBasicType)) return true;
 			return false;
 		}
 
@@ -195,7 +195,7 @@ namespace Model.Types
 		/// </summary>
 		public static IType StackType(IType type)
 		{
-			var basicType = type as BasicType;
+			var basicType = type as IBasicType;
 			if (basicType == null) return type;
 
 			// TODO: Improve these comparisons (optimize for performance)!!
@@ -284,8 +284,8 @@ namespace Model.Types
 		/// </summary>
 		public static bool Type1ImplementsType2(ITypeDefinition type1, IType type2)
 		{
-			IEnumerable<BasicType> interfaces = null;
-			BasicType baseType = null;
+			IEnumerable<IBasicType> interfaces = null;
+			IBasicType baseType = null;
 
 			if (type1 is ClassDefinition)
 			{
@@ -353,16 +353,16 @@ namespace Model.Types
 					result = TypesAreAssignmentCompatible(sourceType, targetType);
 				}
 			}
-			else if (sourceType is BasicType && targetType is BasicType)
+			else if (sourceType is IBasicType && targetType is IBasicType)
 			{
-				var sourceBasicType = sourceType as BasicType;
+				var sourceBasicType = sourceType as IBasicType;
 
 				if (sourceBasicType.ResolvedType != null)
 				{
 					result = TypesAreAssignmentCompatible(sourceBasicType.ResolvedType, targetType);
 				}
 			}
-			else if (targetType is BasicType)
+			else if (targetType is IBasicType)
 			{
 				result = TypesAreEquivalent(targetType, PlatformTypes.Object);
 			}
@@ -451,10 +451,10 @@ namespace Model.Types
 			return result;
 		}
 
-		public static IEnumerable<BasicType> GetClassHierarchy(IType type)
+		public static IEnumerable<IBasicType> GetClassHierarchy(IType type)
 		{
-			var result = new List<BasicType>();
-			var basicType = type as BasicType;
+			var result = new List<IBasicType>();
+			var basicType = type as IBasicType;
 
 			while (basicType != null)
 			{

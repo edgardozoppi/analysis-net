@@ -44,7 +44,7 @@ namespace Model
 		}
 	}
 
-	public class Assembly //: IAssemblyReference
+	public class Assembly : IAssemblyReference
 	{
 		public string Name { get; private set; }
 		public IList<IAssemblyReference> References { get; private set; }

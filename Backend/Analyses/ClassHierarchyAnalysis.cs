@@ -15,65 +15,66 @@ namespace Backend.Model
 
 		private class ClassHierarchyInfo
 		{
-			public ITypeDefinition Type { get; private set; }
-			public ISet<ClassHierarchyInfo> Subtypes { get; private set; }
+			public IBasicType Type { get; private set; }
+			public ISet<ITypeDefinition> Subtypes { get; private set; }
 
-			public ClassHierarchyInfo(ITypeDefinition type)
+			public ClassHierarchyInfo(IBasicType type)
 			{
 				this.Type = type;
-				this.Subtypes = new HashSet<ClassHierarchyInfo>();
-			}
-
-			public void FillWithAllSubtypes(ICollection<ITypeDefinition> result)
-			{
-				foreach (var info in this.Subtypes)
-				{
-					result.Add(info.Type);
-					info.FillWithAllSubtypes(result);
-				}
+				this.Subtypes = new HashSet<ITypeDefinition>();
 			}
 		}
 
 		#endregion
 
 		private Host host;
-		private IDictionary<ITypeDefinition, ClassHierarchyInfo> types;
+		private IDictionary<IBasicType, ClassHierarchyInfo> types;
 		private bool analyzed;
 
 		public ClassHierarchyAnalysis(Host host)
 		{
 			this.host = host;
-			this.types = new Dictionary<ITypeDefinition, ClassHierarchyInfo>();
+			this.types = new Dictionary<IBasicType, ClassHierarchyInfo>();
 		}
 
-		public IEnumerable<ITypeDefinition> Types
+		public IEnumerable<IBasicType> Types
 		{
 			get { return types.Keys; }
 		}
 
-		public IEnumerable<ITypeDefinition> GetSubtypes(ITypeDefinition type)
+		public IEnumerable<ITypeDefinition> GetSubtypes(IBasicType type)
 		{
 			ClassHierarchyInfo info;
 			var result = Enumerable.Empty<ITypeDefinition>();
 
 			if (types.TryGetValue(type, out info))
 			{
-				result = info.Subtypes.Select(x => x.Type);
+				result = info.Subtypes;
 			}
 
 			return result;
 		}
 
-		public IEnumerable<ITypeDefinition> GetAllSubtypes(ITypeDefinition type)
+		public IEnumerable<ITypeDefinition> GetAllSubtypes(IBasicType type)
 		{
-			ClassHierarchyInfo info;
-			var result = Enumerable.Empty<ITypeDefinition>();
+			var result = new HashSet<ITypeDefinition>();
+			var worklist = new HashSet<ITypeDefinition>();
 
-			if (types.TryGetValue(type, out info))
+			var subtypes = GetSubtypes(type);
+			worklist.UnionWith(subtypes);
+
+			while (worklist.Count > 0)
 			{
-				var subtypes = new List<ITypeDefinition>();
-				info.FillWithAllSubtypes(subtypes);
-				result = subtypes;
+				var subtype = worklist.First();
+				worklist.Remove(subtype);
+
+				var isNewSubtype = result.Add(subtype);
+
+				if (isNewSubtype)
+				{
+					subtypes = GetSubtypes(subtype);
+					worklist.UnionWith(subtypes);
+				}
 			}
 
 			return result;
@@ -100,72 +101,57 @@ namespace Backend.Model
 		{
 			if (type is ClassDefinition)
 			{
-				var typeDef = type as ClassDefinition;
-				Analyze(typeDef);
+				var typedef = type as ClassDefinition;
+				Analyze(typedef);
 			}
 			else if (type is StructDefinition)
 			{
-				var typeDef = type as StructDefinition;
-				Analyze(typeDef);
+				var typedef = type as StructDefinition;
+				Analyze(typedef);
 			}
 			else if (type is InterfaceDefinition)
 			{
-				var typeDef = type as InterfaceDefinition;
-				Analyze(typeDef);
+				var typedef = type as InterfaceDefinition;
+				Analyze(typedef);
 			}
 		}
 
-		private void Analyze(ClassDefinition typeDef)
+		private void Analyze(ClassDefinition type)
 		{
-			var typeInfo = GetInfo(typeDef);
+			GetOrAddInfo(type);
+			var baseInfo = GetOrAddInfo(type.Base);
+			baseInfo.Subtypes.Add(type);
 
-			var baseDef = host.ResolveReference(typeDef.Base);
-
-			if (baseDef != null)
+			foreach (var interfaceref in type.Interfaces)
 			{
-				var baseInfo = GetInfo(baseDef);
-				baseInfo.Subtypes.Add(typeInfo);
-			}
-
-			foreach (var interfaceref in typeDef.Interfaces)
-			{
-				var interfaceDef = host.ResolveReference(interfaceref);
-				if (interfaceDef == null) continue;
-
-				var interfaceInfo = GetInfo(interfaceDef);
-				interfaceInfo.Subtypes.Add(typeInfo);
+				var interfaceInfo = GetOrAddInfo(interfaceref);
+				interfaceInfo.Subtypes.Add(type);
 			}
 		}
 
-		private void Analyze(StructDefinition typeDef)
+		private void Analyze(StructDefinition type)
 		{
-			var typeInfo = GetInfo(typeDef);
+			GetOrAddInfo(type);
 
-			foreach (var interfaceRef in typeDef.Interfaces)
+			foreach (var interfaceref in type.Interfaces)
 			{
-				var interfaceDef = host.ResolveReference(interfaceRef);
-				if (interfaceDef == null) continue;
-
-				var interfaceInfo = GetInfo(interfaceDef);
-				interfaceInfo.Subtypes.Add(typeInfo);
+				var interfaceInfo = GetOrAddInfo(interfaceref);
+				interfaceInfo.Subtypes.Add(type);
 			}
 		}
 
-		private void Analyze(InterfaceDefinition typeDef)
+		private void Analyze(InterfaceDefinition type)
 		{
-			var typeInfo = GetInfo(typeDef);
+			GetOrAddInfo(type);
 
-			foreach (var interfaceRef in typeDef.Interfaces)
+			foreach (var interfaceref in type.Interfaces)
 			{
-				var interfaceDef = host.ResolveReference(interfaceRef);
-				if (interfaceDef == null) continue;
-
-				var interfaceInfo = GetInfo(interfaceDef);
-				interfaceInfo.Subtypes.Add(interfaceInfo);
+				var interfaceInfo = GetOrAddInfo(interfaceref);
+				interfaceInfo.Subtypes.Add(type);
 			}
 		}
 
-		private ClassHierarchyInfo GetInfo(ITypeDefinition type)
+		private ClassHierarchyInfo GetOrAddInfo(IBasicType type)
 		{
 			ClassHierarchyInfo result;
 

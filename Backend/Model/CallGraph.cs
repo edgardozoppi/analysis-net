@@ -8,10 +8,10 @@ namespace Backend.Model
 {
 	public class CallSite
 	{
-		public MethodDefinition Caller { get; private set; }
+		public IMethodReference Caller { get; private set; }
 		public string Label { get; private set; }
 
-		public CallSite(MethodDefinition caller, string label)
+		public CallSite(IMethodReference caller, string label)
 		{
 			this.Caller = caller;
 			this.Label = label;
@@ -21,14 +21,14 @@ namespace Backend.Model
 	public class InvocationInfo
 	{
 		public IMethodReference StaticCallee { get; private set; }
-		public ISet<MethodDefinition> PossibleCallees { get; private set; }
+		public ISet<IMethodReference> PossibleCallees { get; private set; }
 		public string Label { get; private set; }
 
 		public InvocationInfo(string label, IMethodReference staticCallee)
 		{
-			this.StaticCallee = staticCallee;
 			this.Label = label;
-			this.PossibleCallees = new HashSet<MethodDefinition>();
+			this.StaticCallee = staticCallee;
+			this.PossibleCallees = new HashSet<IMethodReference>();
 		}
 	}
 
@@ -36,12 +36,12 @@ namespace Backend.Model
 	{
 		private class MethodInfo
 		{
-			public MethodDefinition Method { get; private set; }
+			public IMethodReference Method { get; private set; }
 			public ISet<CallSite> CallSites { get; private set; }
 			public IDictionary<string, InvocationInfo> Invocations { get; private set; }
 			public bool IsRoot { get; private set; }
 
-			public MethodInfo(MethodDefinition method, bool isRoot = false)
+			public MethodInfo(IMethodReference method, bool isRoot = false)
 			{
 				this.Method = method;
 				this.IsRoot = isRoot;
@@ -50,19 +50,19 @@ namespace Backend.Model
 			}
 		}
 
-		private IDictionary<MethodDefinition, MethodInfo> methods;
+		private IDictionary<IMethodReference, MethodInfo> methods;
 
 		public CallGraph()
 		{
-			this.methods = new Dictionary<MethodDefinition, MethodInfo>();
+			this.methods = new Dictionary<IMethodReference, MethodInfo>();
 		}
 
-		public IEnumerable<MethodDefinition> Methods
+		public IEnumerable<IMethodReference> Methods
 		{
 			get { return methods.Keys; }
 		}
 
-		public IEnumerable<MethodDefinition> Roots
+		public IEnumerable<IMethodReference> Roots
 		{
 			get
 			{
@@ -73,25 +73,25 @@ namespace Backend.Model
 			}
 		}
 
-		public IEnumerable<CallSite> GetCallSites(MethodDefinition method)
+		public IEnumerable<CallSite> GetCallSites(IMethodReference method)
 		{
 			var methodInfo = GetMethodInfo(method);
 			return methodInfo.CallSites;
 		}
 
-		public IEnumerable<InvocationInfo> GetInvocations(MethodDefinition method)
+		public IEnumerable<InvocationInfo> GetInvocations(IMethodReference method)
 		{
 			var methodInfo = GetMethodInfo(method);
 			return methodInfo.Invocations.Values;
 		}
 
-		public void Add(MethodDefinition root)
+		public void Add(IMethodReference root)
 		{
 			var info = new MethodInfo(root, true);
 			methods.Add(root, info);
 		}
 
-		public void Add(MethodDefinition caller, string label, IMethodReference staticCallee)
+		public void Add(IMethodReference caller, string label, IMethodReference staticCallee)
 		{
 			var callerInfo = GetMethodInfo(caller);
 			var invocationInfo = new InvocationInfo(label, staticCallee);
@@ -99,7 +99,7 @@ namespace Backend.Model
 			callerInfo.Invocations.Add(label, invocationInfo);
 		}
 
-		public void Add(MethodDefinition caller, string label, IEnumerable<MethodDefinition> callees)
+		public void Add(IMethodReference caller, string label, IEnumerable<IMethodReference> callees)
 		{
 			var callerInfo = GetMethodInfo(caller);
 			var invocationInfo = callerInfo.Invocations[label];
@@ -115,7 +115,7 @@ namespace Backend.Model
 			}
 		}
 
-		private MethodInfo GetMethodInfo(MethodDefinition method)
+		private MethodInfo GetMethodInfo(IMethodReference method)
 		{
 			MethodInfo info;
 
