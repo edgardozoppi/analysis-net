@@ -22,7 +22,7 @@ namespace Model
 			var assembly = this.Assemblies.SingleOrDefault(a => a.MatchReference(type.ContainingAssembly));
 			if (assembly == null) return null;
 
-			var namespaces = type.ContainingNamespace.Split('.');
+			var namespaces = type.ContainingNamespace.Split(".".ToArray(), StringSplitOptions.RemoveEmptyEntries);
 			var containingNamespace = assembly.RootNamespace;
 
 			foreach (var name in namespaces)
