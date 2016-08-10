@@ -431,7 +431,7 @@ namespace CCIProvider
 			while (namespaceref is Cci.INestedUnitNamespaceReference)
 			{				
 				var nestedNamespaceref = namespaceref as Cci.INestedUnitNamespaceReference;
-				parts.Add(nestedNamespaceref.Name.Value);
+				parts.Insert(0, nestedNamespaceref.Name.Value);
 				namespaceref = nestedNamespaceref.ContainingUnitNamespace;
 			}
 
