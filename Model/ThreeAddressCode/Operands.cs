@@ -423,7 +423,7 @@ namespace Model.ThreeAddressCode.Values
 
 				if (this.Index > 0)
 				{
-					result = string.Format("{0}{1}", result, this.Index);
+					result = string.Format("{0}_{1}", result, this.Index);
 				}
 
 				return result;
