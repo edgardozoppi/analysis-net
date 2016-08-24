@@ -31,6 +31,12 @@ namespace Test
 		public int F1;
 		private static int F2 = 0;
 
+		public void ExampleBugCopyPropagation()
+		{
+			var i = 1;
+			var r = Math.Abs(i++) + i;
+		}
+
 		public void ExampleComplexTryCatch(int a, int b)
 		{
 			b = 1;

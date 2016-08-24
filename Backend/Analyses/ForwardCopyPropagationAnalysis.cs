@@ -16,6 +16,16 @@ namespace Backend.Analyses
 {
 	public class ForwardCopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IVariable>>
 	{
+		#region struct InstructionLocation
+
+		private struct InstructionLocation
+		{
+			public CFGNode CFGNode;
+			public IInstruction Instruction;
+		}
+
+		#endregion
+
 		private DataFlowAnalysisResult<IDictionary<IVariable, IVariable>>[] result;
 		private IDictionary<IVariable, IVariable>[] GEN;
 		private ISet<IVariable>[] KILL;
@@ -28,6 +38,7 @@ namespace Backend.Analyses
 		public void Transform(MethodBody body)
 		{
 			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
+			var copiesToRemove = new Dictionary<IVariable, InstructionLocation>();
 
 			foreach (var node in this.cfg.Nodes)
 			{
@@ -45,8 +56,17 @@ namespace Backend.Analyses
 
 					foreach (var variable in instruction.UsedVariables)
 					{
+						// If the variable definition is marked to be removed
+						// but it is not a copy reaching this instruction,
+						// then we cannot remove the definition because the
+						// variable cannot be replaced with a copy.
+						if (copiesToRemove.ContainsKey(variable) &&
+							!copies.ContainsKey(variable))
+						{
+							copiesToRemove.Remove(variable);
+						}
 						// Only replace temporal variables
-						if (variable.IsTemporal() &&
+						else if (variable.IsTemporal() &&
 							copies.ContainsKey(variable))
 						{
 							var operand = copies[variable];
@@ -60,24 +80,39 @@ namespace Backend.Analyses
 					// Only replace temporal variables
 					if (isTemporalCopy)
 					{
-						// Remove the copy instruction
-						if (i == 0)
+						var definition = instruction as DefinitionInstruction;
+
+						// Mark the copy instruction to be removed later
+						var location = new InstructionLocation()
 						{
-							// The copy is the first instruction of the basic block
-							// Replace the copy instruction with a nop to preserve branch targets
-							var nop = new NopInstruction(instruction.Offset);
-							var index = body.Instructions.IndexOf(instruction);
-							body.Instructions[index] = nop;
-							node.Instructions[i] = nop;
-						}
-						else
-						{
-							// The copy is not the first instruction of the basic block
-							body.Instructions.Remove(instruction);
-							node.Instructions.RemoveAt(i);
-							--i;
-						}
+							CFGNode = node,
+							Instruction = instruction
+						};
+
+						copiesToRemove.Add(definition.Result, location);
 					}
+				}
+			}
+
+			// Remove unnecessary copy instructions
+			foreach (var location in copiesToRemove.Values)
+			{
+				var bodyIndex = body.Instructions.IndexOf(location.Instruction);
+				var nodeIndex = location.CFGNode.Instructions.IndexOf(location.Instruction);
+
+				if (nodeIndex == 0)
+				{
+					// The copy is the first instruction of the basic block
+					// Replace the copy instruction with a nop to preserve branch targets
+					var nop = new NopInstruction(location.Instruction.Offset);
+					body.Instructions[bodyIndex] = nop;
+					location.CFGNode.Instructions[nodeIndex] = nop;
+				}
+				else
+				{
+					// The copy is not the first instruction of the basic block
+					body.Instructions.RemoveAt(bodyIndex);
+					location.CFGNode.Instructions.RemoveAt(nodeIndex);
 				}
 			}
 
@@ -195,6 +230,7 @@ namespace Backend.Analyses
 				}
 			}
 
+			// Here we are also removing 'left'.
 			foreach (var variable in instruction.ModifiedVariables)
 			{
 				this.RemoveCopiesWithVariable(copies, variable);
@@ -202,7 +238,8 @@ namespace Backend.Analyses
 
 			if (isCopy)
 			{
-				this.RemoveCopiesWithVariable(copies, left);
+				// 'left' should be already removed.
+				//this.RemoveCopiesWithVariable(copies, left);
 				copies.Add(left, right);
 			}
 
