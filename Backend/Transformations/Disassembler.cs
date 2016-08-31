@@ -602,7 +602,7 @@ namespace Backend.Transformations
 				IInstruction instruction = new Tac.CreateObjectInstruction(op.Offset, allocationResult, op.Constructor.ContainingType);
 				body.Instructions.Add(instruction);
 
-				instruction = new Tac.MethodCallInstruction(op.Offset, null, op.Constructor, arguments);
+				instruction = new Tac.MethodCallInstruction(op.Offset, null, Tac.MethodCallOperation.Static, op.Constructor, arguments);
 				body.Instructions.Add(instruction);
 
 				var result = stack.Push();
@@ -804,6 +804,7 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.MethodCallInstruction op)
 			{
+				var operation = OperationHelper.ToMethodCallOperation(op.Operation);
 				var arguments = new List<IVariable>();
 				IVariable result = null;
 
@@ -833,7 +834,7 @@ namespace Backend.Transformations
 					result = stack.Push();
 				}
 
-				var instruction = new Tac.MethodCallInstruction(op.Offset, result, op.Method, arguments);
+				var instruction = new Tac.MethodCallInstruction(op.Offset, result, operation, op.Method, arguments);
 				body.Instructions.Add(instruction);
 			}
 

@@ -61,8 +61,9 @@ namespace Backend.Analyses
 
 				foreach (var methodCall in methodCalls)
 				{
+					var isVirtual = methodCall.Operation == MethodCallOperation.Virtual;
 					var staticCallee = ResolveStaticCallee(methodCall);
-					var possibleCallees = ResolvePossibleCallees(staticCallee);
+					var possibleCallees = ResolvePossibleCallees(staticCallee, isVirtual);
 
 					result.Add(method, methodCall.Label, staticCallee);
 					result.Add(method, methodCall.Label, possibleCallees);
@@ -91,25 +92,13 @@ namespace Backend.Analyses
 		{
 			var staticCallee = methodCall.Method;
 
-			if (!staticCallee.IsStatic)
+			if (!staticCallee.IsStatic &&
+				methodCall.Operation == MethodCallOperation.Virtual)
 			{
 				var receiver = methodCall.Arguments.First();
 				var receiverType = receiver.Type as IBasicType;
 
 				staticCallee = FindMethodImplementation(receiverType, staticCallee);
-
-				// For debugging purposes only
-				if (staticCallee != methodCall.Method)
-				{
-					var method = host.ResolveReference(staticCallee) as MethodDefinition;
-
-					if (method != null)
-					{
-						// Make sure it is an overridable instance method
-						var isPolymorphic = method.IsAbstract || method.IsVirtual || method.IsConstructor;
-						System.Diagnostics.Debug.Assert(isPolymorphic);
-					}
-				}
 			}
 
 			return staticCallee;
@@ -141,13 +130,13 @@ namespace Backend.Analyses
 			return result;
 		}
 
-		private IEnumerable<IMethodReference> ResolvePossibleCallees(IMethodReference methodref)
+		private IEnumerable<IMethodReference> ResolvePossibleCallees(IMethodReference methodref, bool isVirtualCall)
 		{
 			var result = new HashSet<IMethodReference>();
 
 			result.Add(methodref);
 
-			if (!methodref.IsStatic)
+			if (!methodref.IsStatic && isVirtualCall)
 			{
 				var subtypes = classHierarchy.GetAllSubtypes(methodref.ContainingType);
 				var compatibleMethods = from t in subtypes
@@ -156,14 +145,6 @@ namespace Backend.Analyses
 										select m;
 
 				result.UnionWith(compatibleMethods);
-
-				// For debugging purposes only
-				foreach (var method in compatibleMethods)
-				{
-					// Make sure it is an overridable instance method
-					var isPolymorphic = method.IsAbstract || method.IsVirtual || method.IsConstructor;
-					System.Diagnostics.Debug.Assert(isPolymorphic);
-				}
 			}
 
 			return result;

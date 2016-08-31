@@ -56,6 +56,13 @@ namespace Model.ThreeAddressCode.Instructions
 		UnboxPtr
 	}
 
+	public enum MethodCallOperation
+	{
+		Static,
+		Virtual,
+		Jump
+	}
+
 	public abstract class Instruction : IInstruction
 	{
 		public uint Offset { get; set; }
@@ -846,13 +853,15 @@ namespace Model.ThreeAddressCode.Instructions
 
 	public class MethodCallInstruction : DefinitionInstruction
 	{
+		public MethodCallOperation Operation { get; set; }
 		public IMethodReference Method { get; set; }
 		public IList<IVariable> Arguments { get; private set; }
 
-		public MethodCallInstruction(uint label, IVariable result, IMethodReference method, IEnumerable<IVariable> arguments)
+		public MethodCallInstruction(uint label, IVariable result, MethodCallOperation operation, IMethodReference method, IEnumerable<IVariable> arguments)
 			: base(label, result)
 		{
 			this.Arguments = new List<IVariable>(arguments);
+			this.Operation = operation;
 			this.Method = method;
 		}
 

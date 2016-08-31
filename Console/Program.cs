@@ -55,8 +55,8 @@ namespace Console
 
 			var dgml = DGMLSerializer.Serialize(cfg);
 
-			if (method.Name == "ExampleTryCatchFinally")
-				;
+			//if (method.Name == "ExampleTryCatchFinally")
+			//	;
 
 			var domAnalysis = new DominanceAnalysis(cfg);
 			domAnalysis.Analyze();
@@ -103,7 +103,7 @@ namespace Console
 			//dgml = DGMLSerializer.Serialize(host, typeDefinition);
 		}
 
-		static void Main(string[] args)
+		private static void RunSomeTests()
 		{
 			const string root = @"..\..\..";
 			//const string root = @"C:"; // casa
@@ -186,6 +186,11 @@ namespace Console
 			var cg = chcga.Analyze(methodDefinition.ToEnumerable());
 
 			dgml = DGMLSerializer.Serialize(cg);
+		}
+
+		static void Main(string[] args)
+		{
+			RunSomeTests();
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();
