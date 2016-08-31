@@ -119,8 +119,12 @@ namespace Backend.Model
 		private void Analyze(ClassDefinition type)
 		{
 			GetOrAddInfo(type);
-			var baseInfo = GetOrAddInfo(type.Base);
-			baseInfo.Subtypes.Add(type);
+
+			if (type.Base != null)
+			{
+				var baseInfo = GetOrAddInfo(type.Base);
+				baseInfo.Subtypes.Add(type);
+			}
 
 			foreach (var interfaceref in type.Interfaces)
 			{
