@@ -198,6 +198,11 @@ namespace Model.Types
 			result.AppendLine("}");
 			return result.ToString();
 		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
 	}
 
 	public interface IFieldReference : ITypeMemberReference, IMetadataReference
@@ -305,10 +310,27 @@ namespace Model.Types
 				case MethodParameterKind.In: kind = string.Empty; break;
 				case MethodParameterKind.Out: kind = "out "; break;
 				case MethodParameterKind.Ref: kind = "ref "; break;
-				default: throw new Exception("Unknown MethodParameterKind.");
+				
+				default: throw this.Kind.ToUnknownValueException();
 			}
 
 			return string.Format("{0}{1}", kind, this.Type);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Type.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as IMethodParameterReference;
+
+			var result = other != null &&
+						 this.Kind == other.Kind &&
+						 this.Type.Equals(other.Type);
+
+			return result;
 		}
 	}
 
@@ -343,7 +365,8 @@ namespace Model.Types
 				case MethodParameterKind.In: kind = string.Empty; break;
 				case MethodParameterKind.Out: kind = "out "; break;
 				case MethodParameterKind.Ref: kind = "ref "; break;
-				default: throw new Exception("Unknown MethodParameterKind.");
+				
+				default: throw this.Kind.ToUnknownValueException();
 			}
 
 			return string.Format("{0}{1} {2}", kind, this.Type, this.Name);
@@ -397,6 +420,26 @@ namespace Model.Types
 			var parameters = string.Join(", ", this.Parameters);
 			result.AppendFormat("({0})", parameters);
 			return result.ToString();
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as IMethodReference;
+
+			var result = other != null &&
+						 this.Name == other.Name &&
+						 this.IsStatic == other.IsStatic &&
+						 this.GenericParameterCount == other.GenericParameterCount &&
+						 this.ReturnType.Equals(other.ReturnType) &&
+						 this.ContainingType.Equals(other.ContainingType) &&
+						 this.Parameters.SequenceEqual(other.Parameters);
+
+			return result;
 		}
 	}
 
@@ -625,6 +668,11 @@ namespace Model.Types
 			result.AppendLine("}");
 			return result.ToString();
 		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
 	}
 
 	public class ConstantDefinition : ITypeMemberDefinition
@@ -784,6 +832,11 @@ namespace Model.Types
 			result.AppendLine("}");
 			return result.ToString();
 		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
 	}
 	
 	public class ClassDefinition : IReferenceTypeDefinition, ITypeDefinitionContainer
@@ -934,6 +987,11 @@ namespace Model.Types
 
 			result.AppendLine("}");
 			return result.ToString();
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
 		}
 	}
 

@@ -54,6 +54,8 @@
     <Compile Include="ThreeAddressCode\Expressions.cs" />
     <Compile Include="ThreeAddressCode\Instructions.cs" />
     <Compile Include="ThreeAddressCode\Operands.cs" />
+    <Compile Include="Types\MethodReferenceDefinitionComparer.cs" />
+    <Compile Include="Types\BasicTypeDefinitionComparer.cs" />
     <Compile Include="Types\TypeDefinitions.cs" />
     <Compile Include="Types\TypeHelper.cs" />
     <Compile Include="Types\Types.cs" />

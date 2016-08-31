@@ -34,7 +34,7 @@ namespace Backend.Model
 		public ClassHierarchyAnalysis(Host host)
 		{
 			this.host = host;
-			this.types = new Dictionary<IBasicType, ClassHierarchyInfo>();
+			this.types = new Dictionary<IBasicType, ClassHierarchyInfo>(new BasicTypeDefinitionComparer());
 		}
 
 		public IEnumerable<IBasicType> Types

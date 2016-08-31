@@ -54,7 +54,7 @@ namespace Backend.Model
 
 		public CallGraph()
 		{
-			this.methods = new Dictionary<IMethodReference, MethodInfo>();
+			this.methods = new Dictionary<IMethodReference, MethodInfo>(new MethodReferenceDefinitionComparer());
 		}
 
 		public IEnumerable<IMethodReference> Methods
