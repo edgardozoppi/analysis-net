@@ -32,7 +32,9 @@ namespace Backend.Analyses
 				{
 					var runner = pred;
 
-					while (runner.Id != node.ImmediateDominator.Id)
+					while (runner != null &&
+						   node.ImmediateDominator != null &&
+						   runner.Id != node.ImmediateDominator.Id)
 					{
 						runner.DominanceFrontier.Add(node);
 						runner = runner.ImmediateDominator;

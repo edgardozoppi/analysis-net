@@ -574,6 +574,26 @@ namespace Backend.Transformations
 				body.Instructions.Add(instruction);
 			}
 
+            public override void Visit(Bytecode.GetArrayInstruction op)
+            {
+                var indices = new List<IVariable>();
+
+                for (uint i = 0; i < op.Type.Rank; i++)
+                {
+                    var operand = stack.Pop();
+                    indices.Add(operand);
+                }
+
+                var array = stack.Pop(); 
+
+                indices.Reverse();
+
+                var dest = stack.Push();
+                var source = new ArrayElementAccess(array, indices);
+                var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+                body.Instructions.Add(instruction);
+            }
+
 			public override void Visit(Bytecode.CreateObjectInstruction op)
 			{
 				stack.IncrementCapacity();
@@ -930,6 +950,7 @@ namespace Backend.Transformations
 
 					if (!stackSize.HasValue)
 					{
+                        //Console.WriteLine("{0} -> = {1}", node.Id, 0);
 						stackSizeAtEntry[node.Id] = 0;
 					}
 
@@ -938,13 +959,17 @@ namespace Backend.Transformations
 
 					foreach (var successor in node.Successors)
 					{
+						//var successorIsHandlerHeader = cfg.Regions.OfType<CFGExceptionHandlerRegion>().Where(r => r.Header.Equals(successor)).Any();
+						var successorIsHandlerHeader = false;
+
 						stackSize = stackSizeAtEntry[successor.Id];
 
 						if (!stackSize.HasValue)
 						{
+                            //Console.WriteLine("{0} -> {1} = {2}", node.Id, successor.Id, stack.Size);
 							stackSizeAtEntry[successor.Id] = stack.Size;
 						}
-						else if (stackSize.Value != stack.Size)
+						else if (stackSize.Value != stack.Size && !successorIsHandlerHeader)
 						{
 							// Check that the already saved stack size is the same as the current stack size
 							throw new Exception("Basic block with different stack size at entry!");
@@ -1000,7 +1025,7 @@ namespace Backend.Transformations
 							break;
 
 						case ExceptionHandlerBlockKind.Catch:
-							// push the exception into the stack
+							// Push the exception into the stack
 							var exception = stack.Push();
 							var catchBlock = block as CatchExceptionHandler;
 							instruction = new Tac.CatchInstruction(operation.Offset, exception, catchBlock.ExceptionType);

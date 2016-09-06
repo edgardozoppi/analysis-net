@@ -364,6 +364,147 @@ namespace Backend.Utils
 			}
 		}
 
+		public static ISet<PTGNode> GetTargets(this PointsToGraph ptg, InstanceFieldAccess access)
+		{
+			var result = ptg.GetTargets(access.Instance, access.Field);
+			return result;
+		}
+
+		#region May Alias
+
+		public static bool MayAlias(this PointsToGraph ptg, IVariable variable1, IVariable variable2)
+		{
+			var targets1 = ptg.GetTargets(variable1);
+			var targets2 = ptg.GetTargets(variable2);
+			var alias = targets1.Intersect(targets2);
+			return alias.Any();
+		}
+
+		public static bool MayAlias(this PointsToGraph ptg, InstanceFieldAccess access, IVariable variable)
+		{
+			var targetsAccess = ptg.GetTargets(access);
+			var targetsVariable = ptg.GetTargets(variable);
+			var alias = targetsAccess.Intersect(targetsVariable);
+			return alias.Any();
+		}
+
+		public static bool MayAlias(this PointsToGraph ptg, InstanceFieldAccess access1, InstanceFieldAccess access2)
+		{
+			var targets1 = ptg.GetTargets(access1);
+			var targets2 = ptg.GetTargets(access2);
+			var alias = targets1.Intersect(targets2);
+			return alias.Any();
+		}
+
+		#endregion
+
+		#region Points-to graph reachability
+
+		public static bool IsReachable(this PointsToGraph ptg, IVariable variable, PTGNode target)
+		{
+			var result = false;
+			var visitedNodes = new HashSet<PTGNode>();
+			var worklist = new Queue<PTGNode>();
+			var nodes = ptg.GetTargets(variable);
+
+			foreach (var node in nodes)
+			{
+				worklist.Enqueue(node);
+				visitedNodes.Add(node);
+			}
+
+			while (worklist.Any())
+			{
+				var node = worklist.Dequeue();
+
+				if (node.Equals(ptg.Null))
+				{
+					continue;
+				}
+
+				if (node.Equals(target))
+				{
+					result = true;
+					break;
+				}
+
+				foreach (var targets in node.Targets.Values)
+				{
+					foreach (var nodeTarget in targets)
+					{
+						if (!visitedNodes.Contains(nodeTarget))
+						{
+							worklist.Enqueue(nodeTarget);
+							visitedNodes.Add(nodeTarget);
+						}
+					}
+				}
+			}
+
+			return result;
+		}
+
+		public static IEnumerable<PTGNode> GetReachableNodes(this PointsToGraph ptg, IVariable variable)
+		{
+			var visitedNodes = new HashSet<PTGNode>();
+			var worklist = new Queue<PTGNode>();
+			var nodes = ptg.GetTargets(variable);
+
+			foreach (var node in nodes)
+			{
+				worklist.Enqueue(node);
+				visitedNodes.Add(node);
+			}
+
+			while (worklist.Any())
+			{
+				var node = worklist.Dequeue();
+
+				yield return node;
+
+				if (node.Equals(ptg.Null))
+				{
+					continue;
+				}
+
+				foreach (var targets in node.Targets.Values)
+				{
+					foreach (var nodeTarget in targets)
+					{
+						if (!visitedNodes.Contains(nodeTarget))
+						{
+							worklist.Enqueue(nodeTarget);
+							visitedNodes.Add(nodeTarget);
+						}
+					}
+				}
+			}
+		}
+
+		public static IEnumerable<PTGNode> GetReachableNodes(this PointsToGraph ptg)
+		{
+			var result = ptg.Variables.SelectMany(v => ptg.GetReachableNodes(v))
+							.Distinct();
+			return result;
+		}
+
+		public static ISet<IVariable> GetAliases(this PointsToGraph ptg, IVariable variable)
+		{
+			var result = new HashSet<IVariable>() { variable };
+
+			foreach (var ptgNode in ptg.GetTargets(variable))
+			{
+				if (!ptgNode.Equals(ptg.Null))
+				{
+					result.UnionWith(ptgNode.Variables);
+				}
+			}
+
+			return result;
+		}
+
+		#endregion
+
 		public static bool IsPure(this IMethodReference method)
 		{
 			var result = method.Attributes.Any(a => a.Type.Equals(PlatformTypes.PureAttribute));

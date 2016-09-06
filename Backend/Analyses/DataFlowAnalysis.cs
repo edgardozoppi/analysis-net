@@ -27,7 +27,12 @@ namespace Backend.Analyses
 
 		protected abstract T InitialValue(CFGNode node);
 
-		protected abstract bool Compare(T left, T right);
+		protected abstract bool Compare(T oldValue, T newValue);
+
+		protected virtual T Copy(T value)
+		{
+			return value;
+		}
 
 		protected abstract T Join(T left, T right);
 
@@ -71,7 +76,7 @@ namespace Backend.Analyses
 					var first_pred = node.Predecessors.First();
 					var other_predecessors = node.Predecessors.Skip(1);
 					var pred_result = result[first_pred.Id];
-					var node_input = pred_result.Output;
+					var node_input = this.Copy(pred_result.Output);
 
 					foreach (var pred in other_predecessors)
 					{
@@ -84,7 +89,7 @@ namespace Backend.Analyses
 
 				var old_output = node_result.Output;
 				var new_output = this.Flow(node, node_result.Input);
-				var equals = this.Compare(new_output, old_output);
+				var equals = this.Compare(old_output, new_output);
 
 				if (!equals)
 				{
@@ -139,7 +144,7 @@ namespace Backend.Analyses
 					var first_succ = node.Successors.First();
 					var other_successors = node.Successors.Skip(1);
 					var succ_result = result[first_succ.Id];
-					var node_output = succ_result.Input;
+					var node_output = this.Copy(succ_result.Input);
 
 					foreach (var succ in other_successors)
 					{
@@ -152,7 +157,7 @@ namespace Backend.Analyses
 
 				var old_input = node_result.Input;
 				var new_input = this.Flow(node, node_result.Output);
-				var equals = this.Compare(new_input, old_input);
+				var equals = this.Compare(old_input, new_input);
 
 				if (!equals)
 				{

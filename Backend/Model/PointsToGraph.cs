@@ -211,6 +211,23 @@ namespace Backend.Model
 			return variables[variable];
 		}
 
+		public ISet<PTGNode> GetTargets(IVariable variable, IFieldReference field)
+		{
+			var result = new HashSet<PTGNode>();
+			var targets = this.GetTargets(variable);
+
+			foreach (var node in targets)
+			{
+				if (node.Targets.ContainsKey(field))
+				{
+					var fieldTargets = node.Targets[field];
+					result.AddRange(fieldTargets);
+				}
+			}
+
+			return result;
+		}
+
 		public void Remove(IVariable variable)
 		{
 			this.RemoveEdges(variable);

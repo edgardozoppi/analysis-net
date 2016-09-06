@@ -702,12 +702,18 @@ namespace Model.ThreeAddressCode.Values
 	public class ArrayElementAccess : IAssignableValue, IReferenceable, IExpression
 	{
 		public IVariable Array { get; set; }
-		public IVariable Index { get; set; }
+		public IList<IVariable> Indices { get; set; }
+
+		public ArrayElementAccess(IVariable array, IEnumerable<IVariable> indices)
+		{
+			this.Array = array;
+			this.Indices = new List<IVariable>(indices);
+		}
 
 		public ArrayElementAccess(IVariable array, IVariable index)
 		{
 			this.Array = array;
-			this.Index = index;
+            this.Indices = new List<IVariable>() { index };
 		}
 
 		public IType Type
@@ -721,13 +727,16 @@ namespace Model.ThreeAddressCode.Values
 
 		public ISet<IVariable> Variables
 		{
-			get { return new HashSet<IVariable>() { this.Array, this.Index }; }
+			get { return new HashSet<IVariable>(this.Indices) { this.Array  }; }
 		}
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
 			if (this.Array.Equals(oldvar)) this.Array = newvar;
-			if (this.Index.Equals(oldvar)) this.Index = newvar;
+            for (int i = 0; i < Indices.Count; i++)
+            {
+                if (this.Indices[i].Equals(oldvar)) this.Indices[i] = newvar;
+            }
 		}
 
 		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)
@@ -738,8 +747,16 @@ namespace Model.ThreeAddressCode.Values
 			if (oldexpr is IVariable && newexpr is IVariable)
 			{
 				var array = (this.Array as IExpression).Replace(oldexpr, newexpr) as IVariable;
-				var index = (this.Index as IExpression).Replace(oldexpr, newexpr) as IVariable;
-				result = new ArrayElementAccess(array, index);
+                var indices = new List<IVariable>();
+
+                for (int i = 0; i < Indices.Count; i++)
+                {
+
+                    var index = (this.Indices[i] as IExpression).Replace(oldexpr, newexpr) as IVariable;
+                    indices.Add(index);
+                }
+
+				result = new ArrayElementAccess(array, indices);
 			}
 
 			return result;
@@ -757,18 +774,19 @@ namespace Model.ThreeAddressCode.Values
 
 			return other != null &&
 				this.Array.Equals(other.Array) &&
-				this.Index.Equals(other.Index);
+				this.Indices.SequenceEqual(other.Indices);
 		}
 
 		public override int GetHashCode()
 		{
 			return this.Array.GetHashCode() ^
-				this.Index.GetHashCode();
+				this.Indices.GetHashCode();
 		}
 
 		public override string ToString()
 		{
-			return string.Format("{0}[{1}]", this.Array, this.Index);
+            var indices = string.Join(", ",this.Indices);
+			return string.Format("{0}[{1}]", this.Array, indices);
 		}
 	}
 

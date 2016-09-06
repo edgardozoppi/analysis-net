@@ -34,5 +34,6 @@ namespace Model.Bytecode.Visitor
 		public virtual void Visit(IndirectMethodCallInstruction instruction) { }
 		public virtual void Visit(CreateObjectInstruction instruction) { }
 		public virtual void Visit(CreateArrayInstruction instruction) { }
+        public virtual void Visit(GetArrayInstruction instruction) { }
 	}
 }

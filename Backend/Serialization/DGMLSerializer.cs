@@ -99,7 +99,10 @@ namespace Backend.Serialization
 			{
 				case CFGNodeKind.Entry: result = "entry"; break;
 				case CFGNodeKind.Exit: result = "exit"; break;
-				default: result = string.Join(Environment.NewLine, node.Instructions); break;
+				default:
+					result = string.Join(Environment.NewLine, node.Instructions);
+					result = string.Format("Node ID: {0}{1}{2}", node.Id, Environment.NewLine, result);
+					break;
 			}
 
 			return result;
@@ -222,7 +225,9 @@ namespace Backend.Serialization
 			switch (node.Kind)
 			{
 				case PTGNodeKind.Null: result = "null"; break;
-				default: result = node.Type.ToString(); break;
+				default:
+					result = string.Format("Node ID: {0}{1}{2}", node.Id, Environment.NewLine, node.Type);
+					break;
 			}
 
 			return result;

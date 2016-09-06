@@ -235,6 +235,28 @@ namespace Model.Bytecode
 		}
 	}
 
+    public class GetArrayInstruction : Instruction
+    {
+        public ArrayType Type { get; set; }
+
+        public GetArrayInstruction(uint label, ArrayType type)
+            : base(label)
+        {
+            this.Type = type;
+        }
+
+        public override void Accept(IInstructionVisitor visitor)
+        {
+            base.Accept(visitor);
+            visitor.Visit(this);
+        }
+
+        public override string ToString()
+        {
+            return string.Format("{0}:  get {1};", this.Label, this.Type);
+        }
+    }
+
 	public class CreateObjectInstruction : Instruction
 	{
 		public IMethodReference Constructor { get; set; }
