@@ -109,8 +109,10 @@ namespace CCIProvider
 					var parentType = currentType as ITypeDefinitionContainer;
 					parentType.Types.Add(result);
 				}
-
-				currentNamespace.Types.Add(result);
+                else
+                {
+					currentNamespace.Types.Add(result);
+                }
 				currentType = result;
 			}
 

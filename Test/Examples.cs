@@ -234,6 +234,25 @@ namespace Test
 			return a;
 		}
 
+        public int ExampleLiveVariables(int p)
+        {
+            var a = p;
+            var b = a;
+            var c = b;
+
+            if (p > 0)
+            {
+                b = b + a;
+                c = a;
+            }
+            else
+            {
+                c = b + p;
+            }
+
+            return p;
+        }
+
 		//public void Print(params object[] args)
 		//{
 		//	Console.WriteLine(args);

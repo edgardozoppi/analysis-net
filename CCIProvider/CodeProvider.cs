@@ -177,6 +177,9 @@ namespace CCIProvider
 					break;
 
 				case Cci.OperationCode.Array_Get:
+                    instruction = ProcessGetArray(operation);
+                    break;
+
 				case Cci.OperationCode.Ldelem:
 				case Cci.OperationCode.Ldelem_I:
 				case Cci.OperationCode.Ldelem_I1:
@@ -556,6 +559,16 @@ namespace CCIProvider
 			instruction.WithLowerBound = withLowerBound;
 			return instruction;
 		}
+
+        private IInstruction ProcessGetArray(Cci.IOperation op)
+        {
+            //var getArray = OperationHelper.GetArrayWithLowerBounds(op.OperationCode);
+            var cciArrayType = op.Value as Cci.IArrayTypeReference;
+            var ourArrayType = typeExtractor.ExtractType(cciArrayType);
+            var instruction = new GetArrayInstruction(op.Offset, ourArrayType);
+            //instruction.WithLowerBound = withLowerBound;
+            return instruction;
+        }
 
 		private IInstruction ProcessCreateObject(Cci.IOperation op)
 		{

@@ -73,6 +73,8 @@ namespace Model.Types
 
 		public static readonly BasicType PureAttribute = New("mscorlib", "System.Diagnostics.Contracts", "PureAttribute", TypeKind.ReferenceType);
 		public static readonly BasicType ICollection = New("mscorlib", "System.Collections", "ICollection", TypeKind.ReferenceType);
+        public static readonly BasicType IEnumerable = New("mscorlib", "System.Collections", "IEnumerable", TypeKind.ReferenceType);
+        public static readonly BasicType IEnumerator = New("mscorlib", "System.Collections", "IEnumerator", TypeKind.ReferenceType);
 		public static readonly BasicType GenericICollection = New("mscorlib", "System.Collections.Generic", "ICollection", TypeKind.ReferenceType, "T");
 
 		public static void Resolve(Host host)
@@ -137,9 +139,12 @@ namespace Model.Types
 	{
 		IAssemblyReference ContainingAssembly { get; }
 		string ContainingNamespace { get; }
+        string ContainingTypes { get; }
 		string Name { get; }
 		string GenericName { get; }
+        int GenericParameterCount { get; }
 		IList<IType> GenericArguments { get; }
+        IBasicType GenericType { get; }
 		ITypeDefinition ResolvedType { get; }
 	}
 
@@ -152,13 +157,17 @@ namespace Model.Types
 		public TypeKind TypeKind { get; set; }
 		public IAssemblyReference ContainingAssembly { get; set; }
 		public string ContainingNamespace { get; set; }
+        public string ContainingTypes { get; set; }
 		public string Name { get; set; }
+        public int GenericParameterCount { get; set; }
 		public IList<IType> GenericArguments { get; private set; }
+        public IBasicType GenericType { get; set; }
 
 		public BasicType(string name, TypeKind kind = TypeKind.Unknown)
 		{
 			this.Name = name;
 			this.TypeKind = kind;
+			this.ContainingTypes = string.Empty;
 			this.GenericArguments = new List<IType>();
 			this.Attributes = new HashSet<CustomAttribute>();
 
@@ -182,6 +191,11 @@ namespace Model.Types
 					arguments = string.Join(", ", this.GenericArguments);
 					arguments = string.Format("<{0}>", arguments);
 				}
+                else if (this.GenericParameterCount > 0)
+                {
+                    arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
+                    arguments = string.Format("<T{0}>", arguments);
+                }
 
 				return string.Format("{0}{1}", this.Name, arguments);
 			}
@@ -226,9 +240,10 @@ namespace Model.Types
 			var other = obj as IBasicType;
 			// TODO: Maybe we should also compare the TypeKind?
 			var result = other != null &&
-						 this.ContainingAssembly.Equals(other.ContainingAssembly) &&
 						 this.ContainingNamespace == other.ContainingNamespace &&
 						 this.Name == other.Name &&
+                         this.GenericParameterCount == other.GenericParameterCount &&
+                         this.ContainingAssembly.Equals(other.ContainingAssembly) &&
 						 this.GenericArguments.SequenceEqual(other.GenericArguments);
 
 			return result;

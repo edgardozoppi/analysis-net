@@ -403,10 +403,13 @@ namespace Model.Types
 			{
 				var class1 = type1 as ClassDefinition;
 
-				if (TypesAreEquivalent(class1.Base, type2)) return true;
-
-				if (class1.Base.ResolvedType is ClassDefinition &&
-					Type1DerivesFromType2(class1.Base.ResolvedType as ClassDefinition, type2)) return true;
+                if (class1.Base != null)
+                {
+					if (TypesAreEquivalent(class1.Base, type2)) return true;	
+	
+					if (class1.Base.ResolvedType is ClassDefinition &&
+						Type1DerivesFromType2(class1.Base.ResolvedType as ClassDefinition, type2)) return true;
+                }
 			}
 
 			return false;

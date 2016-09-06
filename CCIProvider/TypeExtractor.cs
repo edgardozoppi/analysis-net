@@ -19,14 +19,14 @@ namespace CCIProvider
 		// The problem is related with type references (IType) having attributes.
 		// We cannot only add them to type definitions because the user may need
 		// to know the attributes of a type defined in an external library.
-		private static IDictionary<Cci.ITypeReference, IBasicType> attributesCache;
+		private static IDictionary<Cci.ITypeReference, BasicType> attributesCache;
 
 		private Host host;
 
 		public TypeExtractor(Host host)
 		{
 			this.host = host;
-			attributesCache = new Dictionary<Cci.ITypeReference, IBasicType>();
+			attributesCache = new Dictionary<Cci.ITypeReference, BasicType>();
 		}
 
 		public EnumDefinition ExtractEnum(Cci.INamedTypeDefinition typedef)
@@ -60,10 +60,10 @@ namespace CCIProvider
 			var type = new ClassDefinition(name);
 			var basedef = typedef.BaseClasses.SingleOrDefault();
 
-			if (basedef == null)
-			{
-				basedef = typedef.PlatformType.SystemObject;
-			}
+			//if (basedef == null)
+			//{
+			//	basedef = typedef.PlatformType.SystemObject;
+			//}
 
 			type.Base = ExtractType(basedef) as IBasicType;
 			type.IsDelegate = typedef.IsDelegate;
@@ -168,6 +168,7 @@ namespace CCIProvider
 		public IBasicType ExtractType(Cci.IGenericTypeInstanceReference typeref)
 		{
 			var type = ExtractType(typeref.GenericType, false);
+            type.GenericType = ExtractType(typeref.GenericType, false);
 			ExtractGenericType(type, typeref);
 
 			return type;
@@ -178,7 +179,7 @@ namespace CCIProvider
 			return ExtractType(typeref, true);
 		}
 
-		private IBasicType ExtractType(Cci.INamedTypeReference typeref, bool canReturnFromCache)
+		private BasicType ExtractType(Cci.INamedTypeReference typeref, bool canReturnFromCache)
 		{
 			//string containingAssembly;
 			//string containingNamespace;
@@ -186,18 +187,21 @@ namespace CCIProvider
 			//var kind = GetTypeKind(typeref);
 			//var type = new IBasicType(name, kind);
 
-			IBasicType type = null;
+			BasicType type = null;
 
 			if (!attributesCache.TryGetValue(typeref, out type) || !canReturnFromCache)
 			{
 				string containingAssembly;
 				string containingNamespace;
-				var name = GetTypeName(typeref, out containingAssembly, out containingNamespace);
+                string containingTypes;
+				var name = GetTypeName(typeref, out containingAssembly, out containingNamespace, out containingTypes);
 				var kind = GetTypeKind(typeref);
 				var newType = new BasicType(name, kind);
 
 				newType.ContainingAssembly = new AssemblyReference(containingAssembly);
 				newType.ContainingNamespace = containingNamespace;
+                newType.ContainingTypes = containingTypes;
+                newType.GenericParameterCount = typeref.GenericParameterCount;
 
 				if (type == null)
 				{
@@ -330,6 +334,18 @@ namespace CCIProvider
 			method.ContainingType = (IBasicType)ExtractType(methodref.ContainingType);
 			method.IsStatic = methodref.IsStatic;
 
+            if (methodref is Cci.IGenericMethodInstanceReference)
+            {
+                var genericMethodref = methodref as Cci.IGenericMethodInstanceReference;
+                method.GenericMethod = ExtractReference(genericMethodref.GenericMethod);
+
+                foreach (var typeParameterref in genericMethodref.GenericArguments)
+                {
+                    var typeArgumentref = ExtractType(methodref.ContainingType);
+                    method.GenericArguments.Add(typeArgumentref);
+                }
+            }
+
 			return method;
 		}
 
@@ -383,7 +399,7 @@ namespace CCIProvider
 			}
 		}
 
-		private void ExtractGenericType(IBasicType type, Cci.IGenericTypeInstanceReference typeref)
+		private void ExtractGenericType(BasicType type, Cci.IGenericTypeInstanceReference typeref)
 		{
 			foreach (var argumentref in typeref.GenericArguments)
 			{
@@ -398,9 +414,10 @@ namespace CCIProvider
 			return name;
 		}
 
-		private string GetTypeName(Cci.INamedTypeReference namedTyperef, out string containingAssembly, out string containingNamespace)
+		private string GetTypeName(Cci.INamedTypeReference namedTyperef, out string containingAssembly, out string containingNamespace, out string containingTypes)
 		{
-			var parts = new List<string>();
+			var namespaceParts = new List<string>();
+            var typesParts = new List<string>();
 			var name = namedTyperef.Name.Value;
 			Cci.ITypeReference typeref = namedTyperef;
 
@@ -423,6 +440,10 @@ namespace CCIProvider
 					var genericParameterTyperef = typeref as Cci.IGenericTypeParameterReference;
 					typeref = genericParameterTyperef.DefiningType;
 				}
+                if (typeref is Cci.INamedTypeReference)
+                {
+                    typesParts.Insert(0, (typeref as Cci.INamedTypeReference).Name.Value);
+                }
 			}
 
 			var namespaceTyperef = typeref as Cci.INamespaceTypeReference;
@@ -431,14 +452,15 @@ namespace CCIProvider
 			while (namespaceref is Cci.INestedUnitNamespaceReference)
 			{				
 				var nestedNamespaceref = namespaceref as Cci.INestedUnitNamespaceReference;
-				parts.Insert(0, nestedNamespaceref.Name.Value);
+				namespaceParts.Insert(0,nestedNamespaceref.Name.Value);
 				namespaceref = nestedNamespaceref.ContainingUnitNamespace;
 			}
 
 			var assemblyref = namespaceref as Cci.IUnitNamespaceReference;
 
 			containingAssembly = assemblyref.Unit.Name.Value;
-			containingNamespace = string.Join(".", parts);
+			containingNamespace = string.Join(".", namespaceParts);
+            containingTypes = string.Join(".", typesParts);
 			return name;
 		}
 
