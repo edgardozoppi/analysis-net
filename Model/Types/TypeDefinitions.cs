@@ -169,9 +169,9 @@ namespace Model.Types
             get { return this.GenericParameters.Count; }
         }
 
-		#endregion
+        #endregion
 
-		public bool MatchReference(ITypeMemberReference member)
+        public bool MatchReference(ITypeMemberReference member)
 		{
 			var type = member as IBasicType;
 			var result = type != null && this.MatchReference(type);
@@ -181,7 +181,12 @@ namespace Model.Types
 
 		public bool MatchReference(IBasicType type)
 		{
-            if (type.GenericType != null)
+			if (type is ITypeDefinition)
+			{
+				return this.Equals(type);
+			}
+
+			if (type.GenericType != null)
             {
                 type = type.GenericType;
             }
@@ -191,11 +196,11 @@ namespace Model.Types
 						 this.GenericParameters.Count == type.GenericArguments.Count &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
-                         this.GetContainingTypes() == type.ContainingTypes;
+						 this.GetContainingTypes() == type.ContainingTypes;
 			return result;
-		}		
+		}
 
-		public override string ToString()
+        public override string ToString()
 		{
 			var result = new StringBuilder();
 			result.AppendFormat("struct {0}", this.GenericName);
@@ -253,7 +258,7 @@ namespace Model.Types
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
-		public override string ToString()
+        public override string ToString()
 		{
 			var modifier = this.IsStatic ? "static " : string.Empty;
 			return string.Format("{0}{1} {2}", modifier, this.Type, this.Name);
@@ -286,6 +291,11 @@ namespace Model.Types
 
 		public bool MatchReference(ITypeMemberReference member)
 		{
+			if (member is ITypeMemberDefinition)
+			{
+				return this.Equals(member);
+			}
+
 			var field = member as IFieldReference;
 
 			var result = field != null &&
@@ -336,7 +346,7 @@ namespace Model.Types
 				case MethodParameterKind.In: kind = string.Empty; break;
 				case MethodParameterKind.Out: kind = "out "; break;
 				case MethodParameterKind.Ref: kind = "ref "; break;
-				
+
 				default: throw this.Kind.ToUnknownValueException();
 			}
 
@@ -375,16 +385,21 @@ namespace Model.Types
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
-		public bool MatchReference(IMethodParameterReference parameter)
-		{
+        public bool MatchReference(IMethodParameterReference parameter)
+        {
             var result = MatchReference(parameter, null);
             return result;
         }
 
         public bool MatchReference(IMethodParameterReference parameter, IDictionary<IType, IType> typeParameterBinding)
 		{
+			if (parameter is MethodParameter)
+			{
+				return this.Equals(parameter);
+			}
+
 			var result = this.Kind == parameter.Kind &&
-						 this.Type.MatchType(parameter.Type, typeParameterBinding);
+                this.Type.MatchType(parameter.Type, typeParameterBinding);
 			return result;
 		}
 
@@ -413,8 +428,8 @@ namespace Model.Types
 		IList<IMethodParameterReference> Parameters { get; }
         IList<IType> GenericArguments { get; }
         IMethodReference GenericMethod { get; }
-		bool IsStatic { get; }
-	}
+        bool IsStatic { get; }
+    }
 
 	public class MethodReference : IMethodReference
 	{
@@ -424,11 +439,11 @@ namespace Model.Types
 		public string Name { get; set; }
 		public int GenericParameterCount { get; set; }
         public IList<IType> GenericArguments { get; private set; }
-		public IList<IMethodParameterReference> Parameters { get; private set; }
+        public IList<IMethodParameterReference> Parameters { get; private set; }
         public IMethodReference GenericMethod { get; set; }
 		public bool IsStatic { get; set; }
 
-		public MethodReference(string name, IType returnType)
+        public MethodReference(string name, IType returnType)
 		{
 			this.Name = name;
 			this.ReturnType = returnType;
@@ -535,16 +550,21 @@ namespace Model.Types
             get { return null; }
         }
 
-		#endregion
+        #endregion
 
-		public bool MatchReference(ITypeMemberReference member)
+        public bool MatchReference(ITypeMemberReference member)
 		{
 			var method = member as IMethodReference;
             var result = false;
 
             if (method != null)
             {
-                if(!MatchBasicSignature(method))
+				if (method is MethodDefinition)
+				{
+					return this.Equals(method);
+				}
+
+				if (!MatchBasicSignature(method))
                     return false;
 
                 var typeParameterBinding = new Dictionary<IType, IType>();
@@ -593,16 +613,16 @@ namespace Model.Types
 			return result;
 		}
 
-		public bool MatchSignature(IMethodReference method)
-		{
+        public bool MatchSignature(IMethodReference method)
+        {
             var result = MatchSignature(method, null);
             return result;
         }
 
         public bool MatchBasicSignature(IMethodReference method)
         {
-			var result = this.Name == method.Name &&
-						 this.IsStatic == method.IsStatic &&
+            var result = this.Name == method.Name &&
+                         this.IsStatic == method.IsStatic &&
                          this.GenericParameters.Count == method.GenericParameterCount;
             return result;
         }
@@ -708,7 +728,7 @@ namespace Model.Types
             result.AppendFormat("({0})", parameters);
             return result.ToString();
         }
-	}
+    }
 
 	public class EnumDefinition : IValueTypeDefinition
 	{
@@ -735,14 +755,6 @@ namespace Model.Types
 		public IEnumerable<ITypeMemberDefinition> Members
 		{
 			get { return this.Constants; }
-		}
-
-		public bool MatchReference(ITypeMemberReference member)
-		{
-			var type = member as IBasicType;
-			var result = type != null && this.MatchReference(type);
-
-			return result;
 		}
 
 		#region ITypeMemberReference members
@@ -796,14 +808,27 @@ namespace Model.Types
             get { return 0; }
         }
 
-		#endregion
+        #endregion
 
-		public bool MatchReference(IBasicType type)
+		public bool MatchReference(ITypeMemberReference member)
 		{
+			var type = member as IBasicType;
+			var result = type != null && this.MatchReference(type);
+
+			return result;
+		}
+
+        public bool MatchReference(IBasicType type)
+		{
+			if (type is ITypeDefinition)
+			{
+				return this.Equals(type);
+			}
+
 			// TODO: Maybe we should also compare the TypeKind?
 			var result = this.Name == type.Name &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
-                         this.GetContainingTypes() == type.ContainingTypes &&
+						 this.GetContainingTypes() == type.ContainingTypes &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly);
 			return result;
 		}
@@ -852,6 +877,11 @@ namespace Model.Types
 
 		public bool MatchReference(ITypeMemberReference member)
 		{
+			if (member is ITypeMemberDefinition)
+			{
+				return this.Equals(member);
+			}
+
 			var constant = member as ConstantDefinition;
 
 			var result = constant != null &&
@@ -868,7 +898,7 @@ namespace Model.Types
 	}
 
 	public class InterfaceDefinition : IReferenceTypeDefinition, IGenericTypeDefinition
-	{
+    {
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
 		public ITypeDefinition ContainingType { get; set; }
@@ -959,9 +989,9 @@ namespace Model.Types
             get { return this.GenericParameters.Count; }
         }
 
-		#endregion
+        #endregion
 
-		public bool MatchReference(ITypeMemberReference member)
+        public bool MatchReference(ITypeMemberReference member)
 		{
 			var type = member as IBasicType;
 			var result = type != null && this.MatchReference(type);
@@ -971,7 +1001,12 @@ namespace Model.Types
 
 		public bool MatchReference(IBasicType type)
 		{
-            if (type.GenericType != null)
+			if (type is ITypeDefinition)
+			{
+				return this.Equals(type);
+			}
+
+			if (type.GenericType != null)
             {
                 type = type.GenericType;
             }
@@ -980,8 +1015,8 @@ namespace Model.Types
 			var result = this.Name == type.Name &&
 						 this.GenericParameters.Count == type.GenericParameterCount &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
-                         this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
-                         this.GetContainingTypes() == type.ContainingTypes;
+						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
+						 this.GetContainingTypes() == type.ContainingTypes;
 			return result;
 		}
 
@@ -1095,7 +1130,7 @@ namespace Model.Types
             get { return this.GetContainingTypes(); }
         }
 
-		IList<IType> IBasicType.GenericArguments
+        IList<IType> IBasicType.GenericArguments
 		{
 			get { return new List<IType>(); }
 		}
@@ -1120,9 +1155,9 @@ namespace Model.Types
             get { return this.GenericParameters.Count; }
         }
 
-		#endregion
+        #endregion
 
-		public bool MatchReference(ITypeMemberReference member)
+        public bool MatchReference(ITypeMemberReference member)
 		{
 			var type = member as IBasicType;
 			var result = type != null && this.MatchReference(type);
@@ -1132,7 +1167,12 @@ namespace Model.Types
 
 		public bool MatchReference(IBasicType type)
 		{
-            if (type.GenericType != null)
+			if (type is ITypeDefinition)
+			{
+				return this.Equals(type);
+			}
+
+			if (type.GenericType != null)
             {
                 type = type.GenericType;
             }
@@ -1142,7 +1182,7 @@ namespace Model.Types
 						 this.GenericParameters.Count == type.GenericParameterCount &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
-                         this.GetContainingTypes() == type.ContainingTypes;
+						 this.GetContainingTypes() == type.ContainingTypes;
 			return result;
 		}
 
@@ -1185,11 +1225,11 @@ namespace Model.Types
 			return result.ToString();
 		}
 
-		public override int GetHashCode()
-		{
-			return this.Name.GetHashCode();
-		}
-	}
+        public override int GetHashCode()
+        {
+            return this.Name.GetHashCode();
+        }
+    }
 
 	public class MethodBody : IInstructionContainer
 	{
