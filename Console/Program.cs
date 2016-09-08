@@ -13,7 +13,8 @@ using Backend.Transformations;
 using Backend.Utils;
 using Model.ThreeAddressCode.Values;
 using Backend.Model;
-using Model.ThreeAddressCode.Instructions;
+using Tac = Model.ThreeAddressCode.Instructions;
+using Bytecode = Model.Bytecode;
 
 namespace Console
 {
@@ -154,7 +155,7 @@ namespace Console
 
 			// Testing method calls inlining
 			var methodDefinition = host.ResolveReference(method) as MethodDefinition;
-			var methodCalls = methodDefinition.Body.Instructions.OfType<MethodCallInstruction>().ToList();
+			var methodCalls = methodDefinition.Body.Instructions.OfType<Tac.MethodCallInstruction>().ToList();
 
 			foreach (var methodCall in methodCalls)
 			{
@@ -188,9 +189,72 @@ namespace Console
 			dgml = DGMLSerializer.Serialize(cg);
 		}
 
+		private static void RunGenericsTests()
+		{
+			const string root = @"..\..\..";
+			const string input = root + @"\Test\bin\Debug\Test.dll";
+
+			var host = new Host();
+
+			PlatformTypes.Resolve(host);
+
+			var loader = new Loader(host);
+			loader.LoadAssembly(input);
+			//loader.LoadCoreAssembly();
+
+			var typeA = new TypeVariable("T1");
+
+			var type = new BasicType("ExamplesGenerics")
+			{
+				ContainingAssembly = new AssemblyReference("Test"),
+				ContainingNamespace = "Test",
+				GenericParameterCount = 1
+			};
+
+			type.GenericArguments.Add(typeA);
+
+			var typeDefinition = host.ResolveReference(type);
+
+			var typeK = new TypeVariable("T1");
+			var typeV = new TypeVariable("T2");
+
+			var typeKeyValuePair = new BasicType("KeyValuePair")
+			{
+				ContainingAssembly = new AssemblyReference("mscorlib"),
+				ContainingNamespace = "System.Collections.Generic",
+				GenericParameterCount = 2
+			};
+
+			typeKeyValuePair.GenericArguments.Add(typeK);
+			typeKeyValuePair.GenericArguments.Add(typeV);
+
+			var method = new MethodReference("ExampleGenericMethod", typeKeyValuePair)
+			{
+				ContainingType = type,
+				GenericParameterCount = 2
+			};
+
+			method.GenericArguments.Add(typeK);
+			method.GenericArguments.Add(typeV);
+
+			method.Parameters.Add(new MethodParameterReference(typeA));
+			method.Parameters.Add(new MethodParameterReference(typeK));
+			method.Parameters.Add(new MethodParameterReference(typeV));
+			method.Parameters.Add(new MethodParameterReference(typeKeyValuePair));
+
+			var methodDefinition = host.ResolveReference(method) as MethodDefinition;
+			var calls = methodDefinition.Body.Instructions.OfType<Bytecode.MethodCallInstruction>();
+
+			foreach (var call in calls)
+			{
+				methodDefinition = host.ResolveReference(call.Method) as MethodDefinition;
+			}
+		}
+
 		static void Main(string[] args)
 		{
-			RunSomeTests();
+			//RunSomeTests();
+			RunGenericsTests();
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();

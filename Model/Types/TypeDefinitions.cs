@@ -35,10 +35,10 @@ namespace Model.Types
 		bool MatchReference(IBasicType type);
 	}
 
-    public interface IGenericTypeDefinition : ITypeDefinition
-    {
-        IList<TypeVariable> GenericParameters { get; }
-    }
+	public interface IGenericTypeDefinition : ITypeDefinition
+	{
+		IList<TypeVariable> GenericParameters { get; }
+	}
 
 	public interface IValueTypeDefinition : ITypeDefinition
 	{
@@ -154,24 +154,24 @@ namespace Model.Types
 			get { return TypeKind.ValueType; }
 		}
 
-        string IBasicType.ContainingTypes
-        {
-            get { return this.GetContainingTypes(); }
-        }
+		string IBasicType.ContainingTypes
+		{
+			get { return this.GetContainingTypes(); }
+		}
 
-        IBasicType IBasicType.GenericType
-        {
-            get { return null; }
-        }
+		IBasicType IBasicType.GenericType
+		{
+			get { return null; }
+		}
 
-        int IBasicType.GenericParameterCount
-        {
-            get { return this.GenericParameters.Count; }
-        }
+		int IBasicType.GenericParameterCount
+		{
+			get { return this.GenericParameters.Count; }
+		}
 
-        #endregion
+		#endregion
 
-        public bool MatchReference(ITypeMemberReference member)
+		public bool MatchReference(ITypeMemberReference member)
 		{
 			var type = member as IBasicType;
 			var result = type != null && this.MatchReference(type);
@@ -181,26 +181,31 @@ namespace Model.Types
 
 		public bool MatchReference(IBasicType type)
 		{
+			var result = false;
+
 			if (type is ITypeDefinition)
 			{
-				return this.Equals(type);
+				result = this.Equals(type);
 			}
+			else
+			{
+				if (type.GenericType != null)
+				{
+					type = type.GenericType;
+				}
 
-			if (type.GenericType != null)
-            {
-                type = type.GenericType;
-            }
-
-			// TODO: Maybe we should also compare the TypeKind?
-			var result = this.Name == type.Name &&
+				// TODO: Maybe we should also compare the TypeKind?
+				result = this.Name == type.Name &&
 						 this.GenericParameters.Count == type.GenericArguments.Count &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
 						 this.GetContainingTypes() == type.ContainingTypes;
+			}
+
 			return result;
 		}
 
-        public override string ToString()
+		public override string ToString()
 		{
 			var result = new StringBuilder();
 			result.AppendFormat("struct {0}", this.GenericName);
@@ -258,7 +263,7 @@ namespace Model.Types
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
-        public override string ToString()
+		public override string ToString()
 		{
 			var modifier = this.IsStatic ? "static " : string.Empty;
 			return string.Format("{0}{1} {2}", modifier, this.Type, this.Name);
@@ -291,18 +296,23 @@ namespace Model.Types
 
 		public bool MatchReference(ITypeMemberReference member)
 		{
+			var result = false;
+
 			if (member is ITypeMemberDefinition)
 			{
-				return this.Equals(member);
+				result = this.Equals(member);
 			}
+			else
+			{
+				var field = member as IFieldReference;
 
-			var field = member as IFieldReference;
-
-			var result = field != null &&
+				result = field != null &&
 						 this.Name == field.Name &&
 						 this.IsStatic == field.IsStatic &&
 						 this.ContainingType.MatchReference(field.ContainingType) &&
 						 this.Type.Equals(field.Type);
+			}
+
 			return result;
 		}
 
@@ -375,7 +385,7 @@ namespace Model.Types
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public string Name { get; set; }
 		public IType Type { get; set; }
-		public MethodParameterKind Kind {get; set; }
+		public MethodParameterKind Kind { get; set; }
 
 		public MethodParameter(string name, IType type)
 		{
@@ -385,21 +395,20 @@ namespace Model.Types
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
-        public bool MatchReference(IMethodParameterReference parameter)
-        {
-            var result = MatchReference(parameter, null);
-            return result;
-        }
-
-        public bool MatchReference(IMethodParameterReference parameter, IDictionary<IType, IType> typeParameterBinding)
+		public bool MatchReference(IMethodParameterReference parameter)
 		{
+			var result = false;
+
 			if (parameter is MethodParameter)
 			{
-				return this.Equals(parameter);
+				result = this.Equals(parameter);
+			}
+			else
+			{
+				result = this.Kind == parameter.Kind &&
+						 this.Type.Equals(parameter.Type);
 			}
 
-			var result = this.Kind == parameter.Kind &&
-                this.Type.MatchType(parameter.Type, typeParameterBinding);
 			return result;
 		}
 
@@ -412,7 +421,7 @@ namespace Model.Types
 				case MethodParameterKind.In: kind = string.Empty; break;
 				case MethodParameterKind.Out: kind = "out "; break;
 				case MethodParameterKind.Ref: kind = "ref "; break;
-				
+
 				default: throw this.Kind.ToUnknownValueException();
 			}
 
@@ -424,12 +433,13 @@ namespace Model.Types
 	{
 		IType ReturnType { get; }
 		string Name { get; }
+		string GenericName { get; }
 		int GenericParameterCount { get; }
 		IList<IMethodParameterReference> Parameters { get; }
-        IList<IType> GenericArguments { get; }
-        IMethodReference GenericMethod { get; }
-        bool IsStatic { get; }
-    }
+		IList<IType> GenericArguments { get; }
+		IMethodReference GenericMethod { get; }
+		bool IsStatic { get; }
+	}
 
 	public class MethodReference : IMethodReference
 	{
@@ -438,18 +448,39 @@ namespace Model.Types
 		public IType ReturnType { get; set; }
 		public string Name { get; set; }
 		public int GenericParameterCount { get; set; }
-        public IList<IType> GenericArguments { get; private set; }
-        public IList<IMethodParameterReference> Parameters { get; private set; }
-        public IMethodReference GenericMethod { get; set; }
+		public IList<IType> GenericArguments { get; private set; }
+		public IList<IMethodParameterReference> Parameters { get; private set; }
+		public IMethodReference GenericMethod { get; set; }
 		public bool IsStatic { get; set; }
 
-        public MethodReference(string name, IType returnType)
+		public MethodReference(string name, IType returnType)
 		{
 			this.Name = name;
 			this.ReturnType = returnType;
 			this.Parameters = new List<IMethodParameterReference>();
 			this.Attributes = new HashSet<CustomAttribute>();
-            this.GenericArguments = new List<IType>();
+			this.GenericArguments = new List<IType>();
+		}
+
+		public string GenericName
+		{
+			get
+			{
+				var arguments = string.Empty;
+
+				if (this.GenericArguments.Count > 0)
+				{
+					arguments = string.Join(", ", this.GenericArguments);
+					arguments = string.Format("<{0}>", arguments);
+				}
+				else if (this.GenericParameterCount > 0)
+				{
+					arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
+					arguments = string.Format("<T{0}>", arguments);
+				}
+
+				return string.Format("{0}{1}", this.Name, arguments);
+			}
 		}
 
 		public override string ToString()
@@ -461,16 +492,11 @@ namespace Model.Types
 				result.Append("static ");
 			}
 
-			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType, this.Name);
-
-			if (this.GenericArguments.Count > 0)
-			{
-				var gparameters = string.Join(", ", this.GenericArguments);
-				result.AppendFormat("<{0}>", gparameters);
-			}
+			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType, this.GenericName);
 
 			var parameters = string.Join(", ", this.Parameters);
 			result.AppendFormat("({0})", parameters);
+
 			return result.ToString();
 		}
 
@@ -489,6 +515,7 @@ namespace Model.Types
 						 this.GenericParameterCount == other.GenericParameterCount &&
 						 this.ReturnType.Equals(other.ReturnType) &&
 						 this.ContainingType.Equals(other.ContainingType) &&
+						 this.GenericArguments.SequenceEqual(other.GenericArguments) &&
 						 this.Parameters.SequenceEqual(other.Parameters);
 
 			return result;
@@ -519,6 +546,22 @@ namespace Model.Types
 			this.Body = new MethodBody();
 		}
 
+		public string GenericName
+		{
+			get
+			{
+				var parameters = string.Empty;
+
+				if (this.GenericParameters.Count > 0)
+				{
+					parameters = string.Join(", ", this.GenericParameters);
+					parameters = string.Format("<{0}>", parameters);
+				}
+
+				return string.Format("{0}{1}", this.Name, parameters);
+			}
+		}
+
 		#region ITypeMemberReference members
 
 		IBasicType ITypeMemberReference.ContainingType
@@ -540,103 +583,55 @@ namespace Model.Types
 			get { return new List<IMethodParameterReference>(this.Parameters); }
 		}
 
-        IList<IType> IMethodReference.GenericArguments
-        {
-            get { return new List<IType>(); }
-        }
-
-        public IMethodReference GenericMethod
-        {
-            get { return null; }
-        }
-
-        #endregion
-
-        public bool MatchReference(ITypeMemberReference member)
+		IList<IType> IMethodReference.GenericArguments
 		{
-			var method = member as IMethodReference;
-            var result = false;
+			get { return new List<IType>(); }
+		}
 
-            if (method != null)
-            {
-				if (method is MethodDefinition)
+		public IMethodReference GenericMethod
+		{
+			get { return null; }
+		}
+
+		#endregion
+
+		public bool MatchReference(ITypeMemberReference member)
+		{
+			var result = false;
+
+			if (member is MethodDefinition)
+			{
+				result = this.Equals(member);
+			}
+			else if (member is IMethodReference)
+			{
+				var method = member as IMethodReference;
+
+				if (method.GenericMethod != null)
 				{
-					return this.Equals(method);
+					method = method.GenericMethod;
 				}
 
-				if (!MatchBasicSignature(method))
-                    return false;
+				result = this.ContainingType.MatchReference(method.ContainingType) &&
+						 this.MatchSignature(method);
+			}
 
-                var typeParameterBinding = new Dictionary<IType, IType>();
-                var containingType = method.ContainingType;
-
-                if (this.ContainingType is IGenericTypeDefinition &&
-                    containingType.GenericType != null)
-                {
-                    var genericContainingType = this.ContainingType as IGenericTypeDefinition;
-
-                    for (var i = 0; i < genericContainingType.GenericParameterCount; ++i)
-                    {
-                        var typeParameter = genericContainingType.GenericParameters[i];
-                        var typeArgument = containingType.GenericArguments[i];
-
-                        typeParameterBinding.Add(typeParameter, typeArgument);
-                    }
-
-                    containingType = containingType.GenericType;
-                }
-
-                if (method.GenericMethod != null)
-                {
-                    if (this.GenericParameters.Count != method.GenericParameterCount)
-                        return false;
-
-                    for (var i = 0; i < this.GenericParameters.Count; ++i)
-                    {
-                        var typeParameter = this.GenericParameters[i];
-                        var typeArgument = method.GenericArguments[i];
-
-                        typeParameterBinding.Add(typeParameter, typeArgument);
-                    }
-
-                    method = method.GenericMethod;
-                }
-                
-                result = method != null &&
-                             this.ContainingType.MatchReference(containingType) &&
-                             this.MatchSignature(method, typeParameterBinding);
-            }
-
-			//var result = method != null &&
-			//			 this.ContainingType.MatchReference(method.ContainingType) &&
-			//			 this.MatchSignature(method);
 			return result;
 		}
 
-        public bool MatchSignature(IMethodReference method)
-        {
-            var result = MatchSignature(method, null);
-            return result;
-        }
-
-        public bool MatchBasicSignature(IMethodReference method)
-        {
-            var result = this.Name == method.Name &&
-                         this.IsStatic == method.IsStatic &&
-                         this.GenericParameters.Count == method.GenericParameterCount;
-            return result;
-        }
-
-        public bool MatchSignature(IMethodReference method, IDictionary<IType, IType> typeParameterBinding)
+		public bool MatchSignature(IMethodReference method)
 		{
-            var result = MatchBasicSignature(method) && 
+
+
+			var result = this.Name == method.Name &&
+						 this.IsStatic == method.IsStatic &&
 						 this.GenericParameters.Count == method.GenericParameterCount &&
-                         this.ReturnType.MatchType(method.ReturnType, typeParameterBinding) &&
-						 this.MatchParameters(method, typeParameterBinding);
+						 this.ReturnType.Equals(method.ReturnType) &&
+						 this.MatchParameters(method);
 			return result;
 		}
 
-		public bool MatchParameters(IMethodReference method, IDictionary<IType, IType> typeParameterBinding)
+		public bool MatchParameters(IMethodReference method)
 		{
 			var result = false;
 
@@ -649,14 +644,14 @@ namespace Model.Types
 					var parameterdef = this.Parameters[i];
 					var parameterref = method.Parameters[i];
 
-                    result = parameterdef.MatchReference(parameterref, typeParameterBinding);
+					result = parameterdef.MatchReference(parameterref);
 				}
 			}
 
 			return result;
 		}
 
-		public override string ToString()
+		public string ToSignatureString()
 		{
 			var result = new StringBuilder();
 
@@ -675,16 +670,20 @@ namespace Model.Types
 				result.Append("virtual ");
 			}
 
-			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType.Name, this.Name);
-
-			if (this.GenericParameters.Count > 0)
-			{
-				var gparameters = string.Join(", ", this.GenericParameters);
-				result.AppendFormat("<{0}>", gparameters);
-			}
+			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType.Name, this.GenericName);
 
 			var parameters = string.Join(", ", this.Parameters);
 			result.AppendFormat("({0})", parameters);
+
+			return result.ToString();
+		}
+
+		public override string ToString()
+		{
+			var result = new StringBuilder();
+
+			var signature = this.ToSignatureString();
+			result.Append(signature);
 
 			if (this.Body.Instructions.Count > 0)
 			{
@@ -696,39 +695,7 @@ namespace Model.Types
 
 			return result.ToString();
 		}
-
-        public  string ToSignatureString()
-        {
-            var result = new StringBuilder();
-
-            if (this.IsStatic)
-            {
-                result.Append("static ");
-            }
-
-            if (this.IsAbstract)
-            {
-                result.Append("abstract ");
-            }
-
-            if (this.IsVirtual)
-            {
-                result.Append("virtual ");
-            }
-
-            result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType.Name, this.Name);
-
-            if (this.GenericParameters.Count > 0)
-            {
-                var gparameters = string.Join(", ", this.GenericParameters);
-                result.AppendFormat("<{0}>", gparameters);
-            }
-
-            var parameters = string.Join(", ", this.Parameters);
-            result.AppendFormat("({0})", parameters);
-            return result.ToString();
-        }
-    }
+	}
 
 	public class EnumDefinition : IValueTypeDefinition
 	{
@@ -793,22 +760,22 @@ namespace Model.Types
 			get { return TypeKind.ValueType; }
 		}
 
-        string IBasicType.ContainingTypes
-        {
-            get { return this.GetContainingTypes(); }
-        }
+		string IBasicType.ContainingTypes
+		{
+			get { return this.GetContainingTypes(); }
+		}
 
-        IBasicType IBasicType.GenericType
-        {
-            get { return null; }
-        }
+		IBasicType IBasicType.GenericType
+		{
+			get { return null; }
+		}
 
-        int IBasicType.GenericParameterCount
-        {
-            get { return 0; }
-        }
+		int IBasicType.GenericParameterCount
+		{
+			get { return 0; }
+		}
 
-        #endregion
+		#endregion
 
 		public bool MatchReference(ITypeMemberReference member)
 		{
@@ -818,18 +785,23 @@ namespace Model.Types
 			return result;
 		}
 
-        public bool MatchReference(IBasicType type)
+		public bool MatchReference(IBasicType type)
 		{
+			var result = false;
+
 			if (type is ITypeDefinition)
 			{
-				return this.Equals(type);
+				result = this.Equals(type);
 			}
-
-			// TODO: Maybe we should also compare the TypeKind?
-			var result = this.Name == type.Name &&
+			else
+			{
+				// TODO: Maybe we should also compare the TypeKind?
+				result = this.Name == type.Name &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.GetContainingTypes() == type.ContainingTypes &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly);
+			}
+
 			return result;
 		}
 
@@ -877,17 +849,22 @@ namespace Model.Types
 
 		public bool MatchReference(ITypeMemberReference member)
 		{
+			var result = false;
+
 			if (member is ITypeMemberDefinition)
 			{
-				return this.Equals(member);
+				result = this.Equals(member);
 			}
+			else
+			{
+				var constant = member as ConstantDefinition;
 
-			var constant = member as ConstantDefinition;
-
-			var result = constant != null &&
+				result = constant != null &&
 						 this.Name == constant.Name &&
 						 this.ContainingType.MatchReference(constant.ContainingType) &&
 						 this.Value.Equals(constant.Value);
+			}
+
 			return result;
 		}
 
@@ -898,7 +875,7 @@ namespace Model.Types
 	}
 
 	public class InterfaceDefinition : IReferenceTypeDefinition, IGenericTypeDefinition
-    {
+	{
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
 		public ITypeDefinition ContainingType { get; set; }
@@ -974,24 +951,24 @@ namespace Model.Types
 			get { return TypeKind.ReferenceType; }
 		}
 
-        string IBasicType.ContainingTypes
-        {
-            get { return this.GetContainingTypes(); }
-        }
+		string IBasicType.ContainingTypes
+		{
+			get { return this.GetContainingTypes(); }
+		}
 
-        IBasicType IBasicType.GenericType
-        {
-            get { return null; }
-        }
+		IBasicType IBasicType.GenericType
+		{
+			get { return null; }
+		}
 
-        int IBasicType.GenericParameterCount
-        {
-            get { return this.GenericParameters.Count; }
-        }
+		int IBasicType.GenericParameterCount
+		{
+			get { return this.GenericParameters.Count; }
+		}
 
-        #endregion
+		#endregion
 
-        public bool MatchReference(ITypeMemberReference member)
+		public bool MatchReference(ITypeMemberReference member)
 		{
 			var type = member as IBasicType;
 			var result = type != null && this.MatchReference(type);
@@ -1001,22 +978,27 @@ namespace Model.Types
 
 		public bool MatchReference(IBasicType type)
 		{
+			var result = false;
+
 			if (type is ITypeDefinition)
 			{
-				return this.Equals(type);
+				result = this.Equals(type);
 			}
+			else
+			{
+				if (type.GenericType != null)
+				{
+					type = type.GenericType;
+				}
 
-			if (type.GenericType != null)
-            {
-                type = type.GenericType;
-            }
-
-			// TODO: Maybe we should also compare the TypeKind?
-			var result = this.Name == type.Name &&
+				// TODO: Maybe we should also compare the TypeKind?
+				result = this.Name == type.Name &&
 						 this.GenericParameters.Count == type.GenericParameterCount &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
 						 this.GetContainingTypes() == type.ContainingTypes;
+			}
+
 			return result;
 		}
 
@@ -1048,7 +1030,7 @@ namespace Model.Types
 			return this.Name.GetHashCode();
 		}
 	}
-	
+
 	public class ClassDefinition : IReferenceTypeDefinition, IGenericTypeDefinition, ITypeDefinitionContainer
 	{
 		public Assembly ContainingAssembly { get; set; }
@@ -1125,12 +1107,12 @@ namespace Model.Types
 			get { return this.ContainingNamespace.FullName; }
 		}
 
-        string IBasicType.ContainingTypes
-        {
-            get { return this.GetContainingTypes(); }
-        }
+		string IBasicType.ContainingTypes
+		{
+			get { return this.GetContainingTypes(); }
+		}
 
-        IList<IType> IBasicType.GenericArguments
+		IList<IType> IBasicType.GenericArguments
 		{
 			get { return new List<IType>(); }
 		}
@@ -1145,19 +1127,19 @@ namespace Model.Types
 			get { return TypeKind.ReferenceType; }
 		}
 
-        IBasicType IBasicType.GenericType
-        {
-            get { return null; }
-        }
+		IBasicType IBasicType.GenericType
+		{
+			get { return null; }
+		}
 
-        int IBasicType.GenericParameterCount
-        {
-            get { return this.GenericParameters.Count; }
-        }
+		int IBasicType.GenericParameterCount
+		{
+			get { return this.GenericParameters.Count; }
+		}
 
-        #endregion
+		#endregion
 
-        public bool MatchReference(ITypeMemberReference member)
+		public bool MatchReference(ITypeMemberReference member)
 		{
 			var type = member as IBasicType;
 			var result = type != null && this.MatchReference(type);
@@ -1167,22 +1149,27 @@ namespace Model.Types
 
 		public bool MatchReference(IBasicType type)
 		{
+			var result = false;
+
 			if (type is ITypeDefinition)
 			{
-				return this.Equals(type);
+				result = this.Equals(type);
 			}
+			else
+			{
+				if (type.GenericType != null)
+				{
+					type = type.GenericType;
+				}
 
-			if (type.GenericType != null)
-            {
-                type = type.GenericType;
-            }
-
-			// TODO: Maybe we should also compare the TypeKind?
-			var result = this.Name == type.Name &&
+				// TODO: Maybe we should also compare the TypeKind?
+				result = this.Name == type.Name &&
 						 this.GenericParameters.Count == type.GenericParameterCount &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
 						 this.GetContainingTypes() == type.ContainingTypes;
+			}
+
 			return result;
 		}
 
@@ -1225,11 +1212,11 @@ namespace Model.Types
 			return result.ToString();
 		}
 
-        public override int GetHashCode()
-        {
-            return this.Name.GetHashCode();
-        }
-    }
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+	}
 
 	public class MethodBody : IInstructionContainer
 	{

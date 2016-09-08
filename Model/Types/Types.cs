@@ -142,7 +142,7 @@ namespace Model.Types
         string ContainingTypes { get; }
 		string Name { get; }
 		string GenericName { get; }
-        int GenericParameterCount { get; }
+		int GenericParameterCount { get; }
 		IList<IType> GenericArguments { get; }
         IBasicType GenericType { get; }
 		ITypeDefinition ResolvedType { get; }
@@ -159,7 +159,7 @@ namespace Model.Types
 		public string ContainingNamespace { get; set; }
         public string ContainingTypes { get; set; }
 		public string Name { get; set; }
-        public int GenericParameterCount { get; set; }
+		public int GenericParameterCount { get; set; }
 		public IList<IType> GenericArguments { get; private set; }
         public IBasicType GenericType { get; set; }
 
@@ -191,11 +191,11 @@ namespace Model.Types
 					arguments = string.Join(", ", this.GenericArguments);
 					arguments = string.Format("<{0}>", arguments);
 				}
-                else if (this.GenericParameterCount > 0)
-                {
-                    arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
-                    arguments = string.Format("<T{0}>", arguments);
-                }
+				else if (this.GenericParameterCount > 0)
+				{
+					arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
+					arguments = string.Format("<T{0}>", arguments);
+				}
 
 				return string.Format("{0}{1}", this.Name, arguments);
 			}
@@ -240,9 +240,9 @@ namespace Model.Types
 			var other = obj as IBasicType;
 			// TODO: Maybe we should also compare the TypeKind?
 			var result = other != null &&
-						 this.ContainingNamespace == other.ContainingNamespace &&
 						 this.Name == other.Name &&
-                         this.GenericParameterCount == other.GenericParameterCount &&
+						 this.GenericParameterCount == other.GenericParameterCount &&
+						 this.ContainingNamespace == other.ContainingNamespace &&
                          this.ContainingAssembly.Equals(other.ContainingAssembly) &&
 						 this.GenericArguments.SequenceEqual(other.GenericArguments);
 

@@ -201,7 +201,7 @@ namespace CCIProvider
 				newType.ContainingAssembly = new AssemblyReference(containingAssembly);
 				newType.ContainingNamespace = containingNamespace;
                 newType.ContainingTypes = containingTypes;
-                newType.GenericParameterCount = typeref.GenericParameterCount;
+				newType.GenericParameterCount = typeref.GenericParameterCount;
 
 				if (type == null)
 				{
@@ -341,7 +341,7 @@ namespace CCIProvider
 
                 foreach (var typeParameterref in genericMethodref.GenericArguments)
                 {
-                    var typeArgumentref = ExtractType(methodref.ContainingType);
+                    var typeArgumentref = ExtractType(typeParameterref);
                     method.GenericArguments.Add(typeArgumentref);
                 }
             }

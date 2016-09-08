@@ -26,7 +26,7 @@ namespace Test
 		}
 	}
 
-	public class Examples
+	class Examples
 	{
 		public int F1;
 		private static int F2 = 0;
