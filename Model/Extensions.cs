@@ -53,10 +53,24 @@ namespace Model
 			while (type.ContainingType != null)
 			{
 				type = type.ContainingType;
-				result.Insert(0, type.Name);
+
+				var metadataName = type.GetMetadataName();
+				result.Insert(0, metadataName);
 			}
 
 			return string.Join(".", result);
+		}
+
+		public static string GetMetadataName(this IBasicType type)
+		{
+			var name = type.Name;
+
+			if (type.GenericParameterCount > 0)
+			{
+				name = string.Format("{0}´{1}", name, type.GenericParameterCount);
+			}
+
+			return name;
 		}
 
 		public static string GetFullNameWithAssembly(this IBasicType type)
@@ -100,7 +114,7 @@ namespace Model
         {
             var result = false;
 
-            if (definitionType is TypeVariable)
+            if (definitionType is IGenericParameterReference)
             {
                 IType typeArgument;
 

@@ -22,6 +22,7 @@ namespace CCIProvider
 		private static IDictionary<Cci.ITypeReference, BasicType> attributesCache;
 
 		private Host host;
+		private static object typeref;
 
 		public TypeExtractor(Host host)
 		{
@@ -155,10 +156,10 @@ namespace CCIProvider
 			return type;
 		}
 
-		public TypeVariable ExtractType(Cci.IGenericParameterReference typeref)
+		public IGenericParameterReference ExtractType(Cci.IGenericParameterReference typeref)
 		{
-			var name = GetTypeName(typeref);
-			var type = new TypeVariable(name);
+			var typerefEntry = typeref as Cci.IParameterListEntry;
+			var type = new GenericParameterReference(typerefEntry.Index);
 
 			ExtractAttributes(type.Attributes, typeref.Attributes);
 
@@ -414,12 +415,12 @@ namespace CCIProvider
 			return name;
 		}
 
-		private string GetTypeName(Cci.INamedTypeReference namedTyperef, out string containingAssembly, out string containingNamespace, out string containingTypes)
+		private string GetTypeName(Cci.INamedTypeReference type, out string containingAssembly, out string containingNamespace, out string containingTypes)
 		{
 			var namespaceParts = new List<string>();
             var typesParts = new List<string>();
-			var name = namedTyperef.Name.Value;
-			Cci.ITypeReference typeref = namedTyperef;
+			var result = type.Name.Value;
+			Cci.ITypeReference typeref = type;
 
 			while (typeref is Cci.INestedTypeReference ||
 				   typeref is Cci.IGenericTypeInstanceReference ||
@@ -440,9 +441,13 @@ namespace CCIProvider
 					var genericParameterTyperef = typeref as Cci.IGenericTypeParameterReference;
 					typeref = genericParameterTyperef.DefiningType;
 				}
+
                 if (typeref is Cci.INamedTypeReference)
                 {
-                    typesParts.Insert(0, (typeref as Cci.INamedTypeReference).Name.Value);
+					var namedTyperef = typeref as Cci.INamedTypeReference;
+					var metadataName = GetMetadataName(namedTyperef);
+
+					typesParts.Insert(0, metadataName);
                 }
 			}
 
@@ -452,7 +457,7 @@ namespace CCIProvider
 			while (namespaceref is Cci.INestedUnitNamespaceReference)
 			{				
 				var nestedNamespaceref = namespaceref as Cci.INestedUnitNamespaceReference;
-				namespaceParts.Insert(0,nestedNamespaceref.Name.Value);
+				namespaceParts.Insert(0, nestedNamespaceref.Name.Value);
 				namespaceref = nestedNamespaceref.ContainingUnitNamespace;
 			}
 
@@ -461,6 +466,18 @@ namespace CCIProvider
 			containingAssembly = assemblyref.Unit.Name.Value;
 			containingNamespace = string.Join(".", namespaceParts);
             containingTypes = string.Join(".", typesParts);
+			return result;
+		}
+
+		private static string GetMetadataName(Cci.INamedTypeReference typeref)
+		{
+			var name = typeref.Name.Value;
+
+			if (typeref.GenericParameterCount > 0)
+			{
+				name = string.Format("{0}´{1}", name, typeref.GenericParameterCount);
+			}
+
 			return name;
 		}
 
@@ -496,16 +513,16 @@ namespace CCIProvider
 			}
 		}
 
-		private void ExtractGenericParameters(IList<TypeVariable> dest, IEnumerable<Cci.IGenericParameter> source)
+		private void ExtractGenericParameters(IList<GenericParameter> dest, IEnumerable<Cci.IGenericParameter> source)
 		{
 			foreach (var parameterdef in source)
 			{
 				var name = parameterdef.Name.Value;
-				var parameter = new TypeVariable(name);
+				var typeKind = GetTypeParameterKind(parameterdef);
+				var parameter = new GenericParameter(parameterdef.Index, name, typeKind);
 
 				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 
-				parameter.TypeKind = GetTypeParameterKind(parameterdef);
 				dest.Add(parameter);
 			}
 		}

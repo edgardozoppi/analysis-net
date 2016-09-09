@@ -24,9 +24,11 @@ namespace Model
 				return type as ITypeDefinition;
 			}
 
+			// Find containing assembly
 			var assembly = this.Assemblies.SingleOrDefault(a => a.MatchReference(type.ContainingAssembly));
 			if (assembly == null) return null;
 
+			// Find containing namespace
 			var namespaces = type.ContainingNamespace.Split(".".ToArray(), StringSplitOptions.RemoveEmptyEntries);
 			var containingNamespace = assembly.RootNamespace;
 
@@ -36,7 +38,18 @@ namespace Model
                 if (containingNamespace == null) return null;
             }
 
-            var result = containingNamespace.Types.SingleOrDefault(t => t.MatchReference(type));
+			// Find containing type
+			var types = type.ContainingTypes.Split(".".ToArray(), StringSplitOptions.RemoveEmptyEntries);
+			ITypeDefinitionContainer container = containingNamespace;
+
+			foreach (var name in types)
+			{
+				container = container.Types.SingleOrDefault(t => t.GetMetadataName() == name) as ITypeDefinitionContainer;
+				if (container == null) return null;
+			}
+
+			// Find type
+			var result = container.Types.SingleOrDefault(t => t.MatchReference(type));
             return result;
 		}
 
@@ -47,9 +60,11 @@ namespace Model
 				return member as ITypeMemberDefinition;
 			}
 
+			// Find containing type
 			var typedef = ResolveReference(member.ContainingType);
 			if (typedef == null) return null;
 
+			// Find member
 			var result = typedef.Members.SingleOrDefault(m => m.MatchReference(member));
 			return result;
 		}

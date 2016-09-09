@@ -202,21 +202,23 @@ namespace Console
 			loader.LoadAssembly(input);
 			//loader.LoadCoreAssembly();
 
-			var typeA = new TypeVariable("T1");
+			var typeA = new GenericParameterReference(0);
+			var typeB = new GenericParameterReference(0);
 
-			var type = new BasicType("ExamplesGenerics")
+			var type = new BasicType("NestedClass")
 			{
 				ContainingAssembly = new AssemblyReference("Test"),
 				ContainingNamespace = "Test",
+				ContainingTypes = "ExamplesGenerics´1",
 				GenericParameterCount = 1
 			};
 
-			type.GenericArguments.Add(typeA);
+			//type.GenericArguments.Add(typeB);
 
 			var typeDefinition = host.ResolveReference(type);
 
-			var typeK = new TypeVariable("T1");
-			var typeV = new TypeVariable("T2");
+			var typeK = new GenericParameterReference(0);
+			var typeV = new GenericParameterReference(1);
 
 			var typeKeyValuePair = new BasicType("KeyValuePair")
 			{
@@ -234,10 +236,11 @@ namespace Console
 				GenericParameterCount = 2
 			};
 
-			method.GenericArguments.Add(typeK);
-			method.GenericArguments.Add(typeV);
+			//method.GenericArguments.Add(typeK);
+			//method.GenericArguments.Add(typeV);
 
 			method.Parameters.Add(new MethodParameterReference(typeA));
+			method.Parameters.Add(new MethodParameterReference(typeB));
 			method.Parameters.Add(new MethodParameterReference(typeK));
 			method.Parameters.Add(new MethodParameterReference(typeV));
 			method.Parameters.Add(new MethodParameterReference(typeKeyValuePair));

@@ -75,7 +75,7 @@ namespace Model.Types
 		public static readonly BasicType ICollection = New("mscorlib", "System.Collections", "ICollection", TypeKind.ReferenceType);
         public static readonly BasicType IEnumerable = New("mscorlib", "System.Collections", "IEnumerable", TypeKind.ReferenceType);
         public static readonly BasicType IEnumerator = New("mscorlib", "System.Collections", "IEnumerator", TypeKind.ReferenceType);
-		public static readonly BasicType GenericICollection = New("mscorlib", "System.Collections.Generic", "ICollection", TypeKind.ReferenceType, "T");
+		public static readonly BasicType GenericICollection = New("mscorlib", "System.Collections.Generic", "ICollection", TypeKind.ReferenceType, 1);
 
 		public static void Resolve(Host host)
 		{
@@ -85,17 +85,18 @@ namespace Model.Types
 			}
 		}
 
-		private static BasicType New(string containingAssembly, string containingNamespace, string name, TypeKind kind, params string[] genericArguments)
+		private static BasicType New(string containingAssembly, string containingNamespace, string name, TypeKind kind, int genericParameterCount = 0)
 		{
 			var result = new BasicType(name, kind)
 			{
 				ContainingAssembly = new AssemblyReference(containingAssembly),
-				ContainingNamespace = containingNamespace
+				ContainingNamespace = containingNamespace,
+				GenericParameterCount = genericParameterCount
 			};
 
-			foreach (var arg in genericArguments)
+			for (ushort i = 0; i < genericParameterCount; ++i)
 			{
-				var typevar = new TypeVariable(arg);
+				var typevar = new GenericParameterReference(i);
 				result.GenericArguments.Add(typevar);
 			}
 
@@ -312,7 +313,7 @@ namespace Model.Types
 	//}
 
 	#endregion
-
+	
 	#region class GenericType
 
 	//public class GenericType : IBasicType
@@ -376,7 +377,7 @@ namespace Model.Types
 	//}
 
 	#endregion
-
+	
 	#region class SpecializedType
 
 	//public class SpecializedType : IType
@@ -449,15 +450,65 @@ namespace Model.Types
 	//}
 
 	#endregion
+	
+	public interface IGenericParameterReference : IType
+	{
+		ushort Index { get; }
+		string Name { get; }
+	}
 
-	public class TypeVariable : IType
+	public class GenericParameterReference : IGenericParameterReference
+	{
+		public ISet<CustomAttribute> Attributes { get; private set; }
+		public ushort Index { get; set; }
+
+		public GenericParameterReference(ushort index)
+		{
+			this.Index = index;
+			this.Attributes = new HashSet<CustomAttribute>();
+		}
+
+		public TypeKind TypeKind
+		{
+			get { return TypeKind.Unknown; }
+		}
+
+		public string Name
+		{
+			get { return string.Format("T{0}", this.Index); }
+		}
+
+		public override string ToString()
+		{
+			return this.Name;
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as IGenericParameterReference;
+			// TODO: Maybe we should also compare the TypeKind?
+			var result = other != null &&
+						 this.Name == other.Name;
+
+			return result;
+		}
+	}
+
+	public class GenericParameter : IGenericParameterReference
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeKind TypeKind { get; set; }
 		public string Name { get; set; }
+		public ushort Index { get; set; }
 
-		public TypeVariable(string name, TypeKind kind = TypeKind.Unknown)
+		public GenericParameter(ushort index, string name, TypeKind kind = TypeKind.Unknown)
 		{
+			this.Index = index;
 			this.Name = name;
 			this.TypeKind = kind;
 			this.Attributes = new HashSet<CustomAttribute>();
@@ -475,7 +526,7 @@ namespace Model.Types
 
 		public override bool Equals(object obj)
 		{
-			var other = obj as TypeVariable;
+			var other = obj as IGenericParameterReference;
 			// TODO: Maybe we should also compare the TypeKind?
 			var result = other != null &&
 						 this.Name == other.Name;

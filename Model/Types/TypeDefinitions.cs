@@ -37,7 +37,7 @@ namespace Model.Types
 
 	public interface IGenericTypeDefinition : ITypeDefinition
 	{
-		IList<TypeVariable> GenericParameters { get; }
+		IList<GenericParameter> GenericParameters { get; }
 	}
 
 	public interface IValueTypeDefinition : ITypeDefinition
@@ -75,7 +75,7 @@ namespace Model.Types
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public string Name { get; set; }
 		public IList<IBasicType> Interfaces { get; private set; }
-		public IList<TypeVariable> GenericParameters { get; private set; }
+		public IList<GenericParameter> GenericParameters { get; private set; }
 		public IList<FieldDefinition> Fields { get; private set; }
 		public IList<MethodDefinition> Methods { get; private set; }
 		public IList<ITypeDefinition> Types { get; private set; }
@@ -85,7 +85,7 @@ namespace Model.Types
 			this.Name = name;
 			this.Attributes = new HashSet<CustomAttribute>();
 			this.Interfaces = new List<IBasicType>();
-			this.GenericParameters = new List<TypeVariable>();
+			this.GenericParameters = new List<GenericParameter>();
 			this.Fields = new List<FieldDefinition>();
 			this.Methods = new List<MethodDefinition>();
 			this.Types = new List<ITypeDefinition>();
@@ -528,7 +528,7 @@ namespace Model.Types
 		public ITypeDefinition ContainingType { get; set; }
 		public IType ReturnType { get; set; }
 		public string Name { get; set; }
-		public IList<TypeVariable> GenericParameters { get; private set; }
+		public IList<GenericParameter> GenericParameters { get; private set; }
 		public IList<MethodParameter> Parameters { get; private set; }
 		public bool IsStatic { get; set; }
 		public bool IsAbstract { get; set; }
@@ -541,7 +541,7 @@ namespace Model.Types
 			this.Name = name;
 			this.ReturnType = returnType;
 			this.Attributes = new HashSet<CustomAttribute>();
-			this.GenericParameters = new List<TypeVariable>();
+			this.GenericParameters = new List<GenericParameter>();
 			this.Parameters = new List<MethodParameter>();
 			this.Body = new MethodBody();
 		}
@@ -882,7 +882,7 @@ namespace Model.Types
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public string Name { get; set; }
 		public IList<IBasicType> Interfaces { get; private set; }
-		public IList<TypeVariable> GenericParameters { get; private set; }
+		public IList<GenericParameter> GenericParameters { get; private set; }
 		public IList<MethodDefinition> Methods { get; private set; }
 
 		public InterfaceDefinition(string name)
@@ -890,7 +890,7 @@ namespace Model.Types
 			this.Name = name;
 			this.Attributes = new HashSet<CustomAttribute>();
 			this.Interfaces = new List<IBasicType>();
-			this.GenericParameters = new List<TypeVariable>();
+			this.GenericParameters = new List<GenericParameter>();
 			this.Methods = new List<MethodDefinition>();
 		}
 
@@ -1040,7 +1040,7 @@ namespace Model.Types
 		public string Name { get; set; }
 		public IBasicType Base { get; set; }
 		public IList<IBasicType> Interfaces { get; private set; }
-		public IList<TypeVariable> GenericParameters { get; private set; }
+		public IList<GenericParameter> GenericParameters { get; private set; }
 		public IList<FieldDefinition> Fields { get; private set; }
 		public IList<MethodDefinition> Methods { get; private set; }
 		public IList<ITypeDefinition> Types { get; private set; }
@@ -1053,7 +1053,7 @@ namespace Model.Types
 			this.Name = name;
 			this.Attributes = new HashSet<CustomAttribute>();
 			this.Interfaces = new List<IBasicType>();
-			this.GenericParameters = new List<TypeVariable>();
+			this.GenericParameters = new List<GenericParameter>();
 			this.Fields = new List<FieldDefinition>();
 			this.Methods = new List<MethodDefinition>();
 			this.Types = new List<ITypeDefinition>();

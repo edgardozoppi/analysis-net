@@ -9,11 +9,14 @@ namespace Test
 {
 	class ExamplesGenerics<A>
 	{
-		public KeyValuePair<K, V> ExampleGenericMethod<K, V>(A p, K key, V value, KeyValuePair<K, V> pair)
+		class NestedClass<B>
 		{
-			ExampleGenericMethod(p, 3, "hola", new KeyValuePair<int, string>(4, "chau"));
+			public KeyValuePair<K, V> ExampleGenericMethod<K, V>(A p, B q, K key, V value, KeyValuePair<K, V> pair)
+			{
+				ExampleGenericMethod(p, q, 3, "hola", new KeyValuePair<int, string>(4, "chau"));
 
-			return pair;
+				return pair;
+			}
 		}
 	}
 }
