@@ -194,15 +194,19 @@ namespace CCIProvider
 			{
 				string containingAssembly;
 				string containingNamespace;
-                string containingTypes;
-				var name = GetTypeName(typeref, out containingAssembly, out containingNamespace, out containingTypes);
+				var name = GetTypeName(typeref, out containingAssembly, out containingNamespace);
 				var kind = GetTypeKind(typeref);
 				var newType = new BasicType(name, kind);
 
 				newType.ContainingAssembly = new AssemblyReference(containingAssembly);
 				newType.ContainingNamespace = containingNamespace;
-                newType.ContainingTypes = containingTypes;
 				newType.GenericParameterCount = typeref.GenericParameterCount;
+
+				if (typeref is Cci.INestedTypeReference)
+				{
+					var nestedTyperef = typeref as Cci.INestedTypeReference;
+					newType.ContainingType = (IBasicType)ExtractType(nestedTyperef.ContainingType);
+				}
 
 				if (type == null)
 				{
@@ -415,10 +419,9 @@ namespace CCIProvider
 			return name;
 		}
 
-		private string GetTypeName(Cci.INamedTypeReference type, out string containingAssembly, out string containingNamespace, out string containingTypes)
+		private string GetTypeName(Cci.INamedTypeReference type, out string containingAssembly, out string containingNamespace)
 		{
 			var namespaceParts = new List<string>();
-            var typesParts = new List<string>();
 			var result = type.Name.Value;
 			Cci.ITypeReference typeref = type;
 
@@ -441,14 +444,6 @@ namespace CCIProvider
 					var genericParameterTyperef = typeref as Cci.IGenericTypeParameterReference;
 					typeref = genericParameterTyperef.DefiningType;
 				}
-
-                if (typeref is Cci.INamedTypeReference)
-                {
-					var namedTyperef = typeref as Cci.INamedTypeReference;
-					var metadataName = GetMetadataName(namedTyperef);
-
-					typesParts.Insert(0, metadataName);
-                }
 			}
 
 			var namespaceTyperef = typeref as Cci.INamespaceTypeReference;
@@ -465,7 +460,6 @@ namespace CCIProvider
 
 			containingAssembly = assemblyref.Unit.Name.Value;
 			containingNamespace = string.Join(".", namespaceParts);
-            containingTypes = string.Join(".", typesParts);
 			return result;
 		}
 

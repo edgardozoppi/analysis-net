@@ -30,6 +30,7 @@ namespace Model.Types
 	{
 		new Assembly ContainingAssembly { get; set; }
 		new Namespace ContainingNamespace { get; set; }
+		new ITypeDefinition ContainingType { get; set; }
 		IEnumerable<ITypeMemberDefinition> Members { get; }
 
 		bool MatchReference(IBasicType type);
@@ -154,9 +155,9 @@ namespace Model.Types
 			get { return TypeKind.ValueType; }
 		}
 
-		string IBasicType.ContainingTypes
+		IBasicType IBasicType.ContainingType
 		{
-			get { return this.GetContainingTypes(); }
+			get { return this.ContainingType; }
 		}
 
 		IBasicType IBasicType.GenericType
@@ -199,7 +200,7 @@ namespace Model.Types
 						 this.GenericParameters.Count == type.GenericArguments.Count &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
-						 this.GetContainingTypes() == type.ContainingTypes;
+						 this.ContainingType.MatchReference(type.ContainingType);
 			}
 
 			return result;
@@ -760,9 +761,9 @@ namespace Model.Types
 			get { return TypeKind.ValueType; }
 		}
 
-		string IBasicType.ContainingTypes
+		IBasicType IBasicType.ContainingType
 		{
-			get { return this.GetContainingTypes(); }
+			get { return this.ContainingType; }
 		}
 
 		IBasicType IBasicType.GenericType
@@ -798,7 +799,7 @@ namespace Model.Types
 				// TODO: Maybe we should also compare the TypeKind?
 				result = this.Name == type.Name &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
-						 this.GetContainingTypes() == type.ContainingTypes &&
+						 this.ContainingType.MatchReference(type.ContainingType) &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly);
 			}
 
@@ -951,9 +952,9 @@ namespace Model.Types
 			get { return TypeKind.ReferenceType; }
 		}
 
-		string IBasicType.ContainingTypes
+		IBasicType IBasicType.ContainingType
 		{
-			get { return this.GetContainingTypes(); }
+			get { return this.ContainingType; }
 		}
 
 		IBasicType IBasicType.GenericType
@@ -996,7 +997,7 @@ namespace Model.Types
 						 this.GenericParameters.Count == type.GenericParameterCount &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
-						 this.GetContainingTypes() == type.ContainingTypes;
+						 this.ContainingType.MatchReference(type.ContainingType);
 			}
 
 			return result;
@@ -1107,9 +1108,9 @@ namespace Model.Types
 			get { return this.ContainingNamespace.FullName; }
 		}
 
-		string IBasicType.ContainingTypes
+		IBasicType IBasicType.ContainingType
 		{
-			get { return this.GetContainingTypes(); }
+			get { return this.ContainingType; }
 		}
 
 		IList<IType> IBasicType.GenericArguments
@@ -1167,7 +1168,7 @@ namespace Model.Types
 						 this.GenericParameters.Count == type.GenericParameterCount &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
-						 this.GetContainingTypes() == type.ContainingTypes;
+						 this.ContainingType.MatchReference(type.ContainingType);
 			}
 
 			return result;

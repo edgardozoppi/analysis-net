@@ -202,15 +202,22 @@ namespace Console
 			loader.LoadAssembly(input);
 			//loader.LoadCoreAssembly();
 
+			var assembly = new AssemblyReference("Test");
+
 			var typeA = new GenericParameterReference(0);
 			var typeB = new GenericParameterReference(0);
 
 			var type = new BasicType("NestedClass")
 			{
-				ContainingAssembly = new AssemblyReference("Test"),
+				ContainingAssembly = assembly,
 				ContainingNamespace = "Test",
-				ContainingTypes = "ExamplesGenerics´1",
-				GenericParameterCount = 1
+				GenericParameterCount = 1,
+				ContainingType = new BasicType("ExamplesGenerics")
+				{
+					ContainingAssembly = assembly,
+					ContainingNamespace = "Test",
+					GenericParameterCount = 1
+				}				
 			};
 
 			//type.GenericArguments.Add(typeB);

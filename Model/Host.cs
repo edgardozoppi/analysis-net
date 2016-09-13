@@ -39,12 +39,20 @@ namespace Model
             }
 
 			// Find containing type
-			var types = type.ContainingTypes.Split(".".ToArray(), StringSplitOptions.RemoveEmptyEntries);
+			var containingTypes = new Stack<IBasicType>();
+			var containingType = type.ContainingType;
 			ITypeDefinitionContainer container = containingNamespace;
 
-			foreach (var name in types)
+			while (containingType != null)
 			{
-				container = container.Types.SingleOrDefault(t => t.GetMetadataName() == name) as ITypeDefinitionContainer;
+				containingTypes.Push(containingType);
+				containingType = type.ContainingType;
+			}
+
+			while (containingTypes.Count > 0)
+			{
+				containingType = containingTypes.Pop();
+				container = container.Types.SingleOrDefault(t => t.MatchReference(containingType)) as ITypeDefinitionContainer;
 				if (container == null) return null;
 			}
 

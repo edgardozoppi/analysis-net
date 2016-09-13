@@ -140,7 +140,7 @@ namespace Model.Types
 	{
 		IAssemblyReference ContainingAssembly { get; }
 		string ContainingNamespace { get; }
-        string ContainingTypes { get; }
+		IBasicType ContainingType { get; }
 		string Name { get; }
 		string GenericName { get; }
 		int GenericParameterCount { get; }
@@ -158,7 +158,7 @@ namespace Model.Types
 		public TypeKind TypeKind { get; set; }
 		public IAssemblyReference ContainingAssembly { get; set; }
 		public string ContainingNamespace { get; set; }
-        public string ContainingTypes { get; set; }
+        public IBasicType ContainingType { get; set; }
 		public string Name { get; set; }
 		public int GenericParameterCount { get; set; }
 		public IList<IType> GenericArguments { get; private set; }
@@ -168,7 +168,6 @@ namespace Model.Types
 		{
 			this.Name = name;
 			this.TypeKind = kind;
-			this.ContainingTypes = string.Empty;
 			this.GenericArguments = new List<IType>();
 			this.Attributes = new HashSet<CustomAttribute>();
 
@@ -192,10 +191,15 @@ namespace Model.Types
 					arguments = string.Join(", ", this.GenericArguments);
 					arguments = string.Format("<{0}>", arguments);
 				}
+				//else if (this.GenericParameterCount > 0)
+				//{
+				//	arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
+				//	arguments = string.Format("<T{0}>", arguments);
+				//}
 				else if (this.GenericParameterCount > 0)
 				{
-					arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
-					arguments = string.Format("<T{0}>", arguments);
+					arguments = string.Join(", !", Enumerable.Range(0, this.GenericParameterCount));
+					arguments = string.Format("<!{0}>", arguments);
 				}
 
 				return string.Format("{0}{1}", this.Name, arguments);

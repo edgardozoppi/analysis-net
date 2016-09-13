@@ -46,21 +46,6 @@ namespace Model
 			return new UnknownValueException<T>(self);
 		}
 
-		public static string GetContainingTypes(this ITypeDefinition type)
-		{
-			var result = new List<string>();
-
-			while (type.ContainingType != null)
-			{
-				type = type.ContainingType;
-
-				var metadataName = type.GetMetadataName();
-				result.Insert(0, metadataName);
-			}
-
-			return string.Join(".", result);
-		}
-
 		public static string GetMetadataName(this IBasicType type)
 		{
 			var name = type.Name;
@@ -75,8 +60,8 @@ namespace Model
 
 		public static string GetFullNameWithAssembly(this IBasicType type)
 		{
-			var containingAssembly = string.Empty;
 			var fullName = type.GetFullName();
+			var containingAssembly = string.Empty;
 
 			if (type.ContainingAssembly != null)
 			{
@@ -88,26 +73,22 @@ namespace Model
 
 		public static string GetFullName(this IBasicType type)
 		{
-			var containingAssembly = string.Empty;
 			var containingNamespace = string.Empty;
 			var containingTypes = string.Empty;
-
-			if (type.ContainingAssembly != null)
-			{
-				containingAssembly = string.Format("[{0}]", type.ContainingAssembly.Name);
-			}
+			var containingType = type.ContainingType;
 
 			if (!string.IsNullOrEmpty(type.ContainingNamespace))
 			{
 				containingNamespace = string.Format("{0}.", type.ContainingNamespace);
 			}
 
-            if(!string.IsNullOrEmpty(type.ContainingTypes))
+            while (containingType != null)
             {
-                containingTypes = string.Format("{0}.", type.ContainingTypes);
+                containingTypes = string.Format("{0}{1}.", containingTypes, containingType);
+				containingType = type.ContainingType;
             }
 
-			return string.Format("{0}{1}{2}{3}", containingAssembly, containingNamespace, containingTypes, type.GenericName);
+			return string.Format("{0}{1}{2}", containingNamespace, containingTypes, type.GenericName);
 		}
 
         public static bool MatchType(this IType definitionType, IType referenceType, IDictionary<IType, IType> typeParameterBinding)
