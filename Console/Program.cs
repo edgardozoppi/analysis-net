@@ -204,8 +204,8 @@ namespace Console
 
 			var assembly = new AssemblyReference("Test");
 
-			var typeA = new GenericParameterReference(0);
-			var typeB = new GenericParameterReference(0);
+			var typeA = new GenericParameterReference(GenericParameterKind.Type, 0);
+			var typeB = new GenericParameterReference(GenericParameterKind.Type, 0);
 
 			var type = new BasicType("NestedClass")
 			{
@@ -224,8 +224,8 @@ namespace Console
 
 			var typeDefinition = host.ResolveReference(type);
 
-			var typeK = new GenericParameterReference(0);
-			var typeV = new GenericParameterReference(1);
+			var typeK = new GenericParameterReference(GenericParameterKind.Method, 0);
+			var typeV = new GenericParameterReference(GenericParameterKind.Method, 1);
 
 			var typeKeyValuePair = new BasicType("KeyValuePair")
 			{

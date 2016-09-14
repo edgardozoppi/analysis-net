@@ -46,6 +46,12 @@ namespace Model
 			return new UnknownValueException<T>(self);
 		}
 
+		internal static bool BothNullOrMatchReference(this ITypeDefinition def, IBasicType @ref)
+		{
+			return (def == null && @ref == null) ||
+				   (def != null && @ref != null && def.MatchReference(@ref));
+		}
+
 		public static string GetMetadataName(this IBasicType type)
 		{
 			var name = type.Name;

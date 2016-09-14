@@ -94,11 +94,11 @@ namespace Model.Types
 				GenericParameterCount = genericParameterCount
 			};
 
-			for (ushort i = 0; i < genericParameterCount; ++i)
-			{
-				var typevar = new GenericParameterReference(i);
-				result.GenericArguments.Add(typevar);
-			}
+			//for (ushort i = 0; i < genericParameterCount; ++i)
+			//{
+			//	var typevar = new GenericParameterReference(GenericParameterKind.Type, i);
+			//	result.GenericArguments.Add(typevar);
+			//}
 
 			platformTypes.Add(result);
 			return result;
@@ -455,8 +455,15 @@ namespace Model.Types
 
 	#endregion
 	
+	public enum GenericParameterKind
+	{
+		Type,
+		Method
+	}
+
 	public interface IGenericParameterReference : IType
 	{
+		GenericParameterKind Kind { get; }
 		ushort Index { get; }
 		string Name { get; }
 	}
@@ -464,10 +471,12 @@ namespace Model.Types
 	public class GenericParameterReference : IGenericParameterReference
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
+		public GenericParameterKind Kind { get; set; }
 		public ushort Index { get; set; }
 
-		public GenericParameterReference(ushort index)
+		public GenericParameterReference(GenericParameterKind kind, ushort index)
 		{
+			this.Kind = kind;
 			this.Index = index;
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
@@ -479,7 +488,20 @@ namespace Model.Types
 
 		public string Name
 		{
-			get { return string.Format("T{0}", this.Index); }
+			get
+			{
+				string kind;
+
+				switch (this.Kind)
+				{
+					case GenericParameterKind.Type: kind = "!"; break;
+					case GenericParameterKind.Method: kind = "!!"; break;
+
+					default: throw this.Kind.ToUnknownValueException();
+				}
+
+				return string.Format("{0}{1}", kind, this.Index);
+			}
 		}
 
 		public override string ToString()
@@ -507,14 +529,16 @@ namespace Model.Types
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeKind TypeKind { get; set; }
+		public GenericParameterKind Kind { get; set; }
 		public string Name { get; set; }
 		public ushort Index { get; set; }
 
-		public GenericParameter(ushort index, string name, TypeKind kind = TypeKind.Unknown)
+		public GenericParameter(GenericParameterKind kind, ushort index, string name, TypeKind typeKind = TypeKind.Unknown)
 		{
+			this.Kind = kind;
 			this.Index = index;
 			this.Name = name;
-			this.TypeKind = kind;
+			this.TypeKind = typeKind;
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
 		

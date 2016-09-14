@@ -159,7 +159,8 @@ namespace CCIProvider
 		public IGenericParameterReference ExtractType(Cci.IGenericParameterReference typeref)
 		{
 			var typerefEntry = typeref as Cci.IParameterListEntry;
-			var type = new GenericParameterReference(typerefEntry.Index);
+			var kind = GetGenericParameterKind(typeref);
+			var type = new GenericParameterReference(kind, typerefEntry.Index);
 
 			ExtractAttributes(type.Attributes, typeref.Attributes);
 
@@ -511,9 +512,11 @@ namespace CCIProvider
 		{
 			foreach (var parameterdef in source)
 			{
+				var index = parameterdef.Index;
 				var name = parameterdef.Name.Value;
-				var typeKind = GetTypeParameterKind(parameterdef);
-				var parameter = new GenericParameter(parameterdef.Index, name, typeKind);
+				var kind = GetGenericParameterKind(parameterdef);
+				var typeKind = GetGenericParameterTypeKind(parameterdef);
+				var parameter = new GenericParameter(kind, index, name, typeKind);
 
 				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 
@@ -521,12 +524,39 @@ namespace CCIProvider
 			}
 		}
 
-		private TypeKind GetTypeParameterKind(Cci.IGenericParameter parameterdef)
+		private TypeKind GetGenericParameterTypeKind(Cci.IGenericParameter parameterdef)
 		{
 			var result = TypeKind.Unknown;
 
 			if (parameterdef.MustBeValueType) result = TypeKind.ValueType;
 			if (parameterdef.MustBeReferenceType) result = TypeKind.ReferenceType;
+
+			return result;
+		}
+
+		private GenericParameterKind GetGenericParameterKind(Cci.IGenericParameter parameterdef)
+		{
+			var result = GetGenericParameterKind(parameterdef as Cci.ITypeReference);
+			return result;
+		}
+
+		private GenericParameterKind GetGenericParameterKind(Cci.IGenericParameterReference parameterref)
+		{
+			var result = GetGenericParameterKind(parameterref as Cci.ITypeReference);
+			return result;
+		}
+
+		private GenericParameterKind GetGenericParameterKind(Cci.ITypeReference parameterref)
+		{
+			GenericParameterKind result;
+
+			if (parameterref is Cci.IGenericTypeParameter ||
+				parameterref is Cci.IGenericTypeParameterReference) result = GenericParameterKind.Type;
+
+			else if (parameterref is Cci.IGenericMethodParameter ||
+					 parameterref is Cci.IGenericMethodParameterReference) result = GenericParameterKind.Method;
+
+			else throw new Exception("Unknown generic parameter kind");
 
 			return result;
 		}

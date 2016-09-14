@@ -200,7 +200,7 @@ namespace Model.Types
 						 this.GenericParameters.Count == type.GenericArguments.Count &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
-						 this.ContainingType.MatchReference(type.ContainingType);
+						 this.ContainingType.BothNullOrMatchReference(type.ContainingType);
 			}
 
 			return result;
@@ -474,10 +474,15 @@ namespace Model.Types
 					arguments = string.Join(", ", this.GenericArguments);
 					arguments = string.Format("<{0}>", arguments);
 				}
+				//else if (this.GenericParameterCount > 0)
+				//{
+				//	arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
+				//	arguments = string.Format("<T{0}>", arguments);
+				//}
 				else if (this.GenericParameterCount > 0)
 				{
-					arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
-					arguments = string.Format("<T{0}>", arguments);
+					arguments = string.Join(", !!", Enumerable.Range(0, this.GenericParameterCount));
+					arguments = string.Format("<!!{0}>", arguments);
 				}
 
 				return string.Format("{0}{1}", this.Name, arguments);
@@ -493,7 +498,7 @@ namespace Model.Types
 				result.Append("static ");
 			}
 
-			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType, this.GenericName);
+			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType.GenericName, this.GenericName);
 
 			var parameters = string.Join(", ", this.Parameters);
 			result.AppendFormat("({0})", parameters);
@@ -622,8 +627,6 @@ namespace Model.Types
 
 		public bool MatchSignature(IMethodReference method)
 		{
-
-
 			var result = this.Name == method.Name &&
 						 this.IsStatic == method.IsStatic &&
 						 this.GenericParameters.Count == method.GenericParameterCount &&
@@ -671,7 +674,7 @@ namespace Model.Types
 				result.Append("virtual ");
 			}
 
-			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType.Name, this.GenericName);
+			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType.GenericName, this.GenericName);
 
 			var parameters = string.Join(", ", this.Parameters);
 			result.AppendFormat("({0})", parameters);
@@ -799,8 +802,8 @@ namespace Model.Types
 				// TODO: Maybe we should also compare the TypeKind?
 				result = this.Name == type.Name &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
-						 this.ContainingType.MatchReference(type.ContainingType) &&
-						 this.ContainingAssembly.MatchReference(type.ContainingAssembly);
+						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
+						 this.ContainingType.BothNullOrMatchReference(type.ContainingType);
 			}
 
 			return result;
@@ -997,7 +1000,7 @@ namespace Model.Types
 						 this.GenericParameters.Count == type.GenericParameterCount &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
-						 this.ContainingType.MatchReference(type.ContainingType);
+						 this.ContainingType.BothNullOrMatchReference(type.ContainingType);
 			}
 
 			return result;
@@ -1168,7 +1171,7 @@ namespace Model.Types
 						 this.GenericParameters.Count == type.GenericParameterCount &&
 						 this.ContainingNamespace.FullName == type.ContainingNamespace &&
 						 this.ContainingAssembly.MatchReference(type.ContainingAssembly) &&
-						 this.ContainingType.MatchReference(type.ContainingType);
+						 this.ContainingType.BothNullOrMatchReference(type.ContainingType);
 			}
 
 			return result;

@@ -46,7 +46,7 @@ namespace Model
 			while (containingType != null)
 			{
 				containingTypes.Push(containingType);
-				containingType = type.ContainingType;
+				containingType = containingType.ContainingType;
 			}
 
 			while (containingTypes.Count > 0)
