@@ -36,7 +36,12 @@ namespace Model.Types
 		bool MatchReference(IBasicType type);
 	}
 
-	public interface IGenericTypeDefinition : ITypeDefinition
+	public interface IGenericReference
+	{
+		int GenericParameterCount { get; }
+	}
+
+	public interface IGenericDefinition : IGenericReference
 	{
 		IList<GenericParameter> GenericParameters { get; }
 	}
@@ -68,7 +73,7 @@ namespace Model.Types
 		}
 	}
 
-	public class StructDefinition : IValueTypeDefinition, IGenericTypeDefinition, ITypeDefinitionContainer
+	public class StructDefinition : IValueTypeDefinition, IGenericDefinition, ITypeDefinitionContainer
 	{
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
@@ -128,6 +133,15 @@ namespace Model.Types
 
 		#endregion
 
+		#region IGenericReference members
+
+		int IGenericReference.GenericParameterCount
+		{
+			get { return this.GenericParameters.Count; }
+		}
+
+		#endregion
+
 		#region IBasicType members
 
 		IAssemblyReference IBasicType.ContainingAssembly
@@ -163,11 +177,6 @@ namespace Model.Types
 		IBasicType IBasicType.GenericType
 		{
 			get { return null; }
-		}
-
-		int IBasicType.GenericParameterCount
-		{
-			get { return this.GenericParameters.Count; }
 		}
 
 		#endregion
@@ -481,8 +490,9 @@ namespace Model.Types
 				//}
 				else if (this.GenericParameterCount > 0)
 				{
-					arguments = string.Join(", !!", Enumerable.Range(0, this.GenericParameterCount));
-					arguments = string.Format("<!!{0}>", arguments);
+					var startIndex = this.ContainingType.TotalGenericParameterCount();
+					arguments = string.Join(", T", Enumerable.Range(startIndex, this.GenericParameterCount));
+					arguments = string.Format("<T{0}>", arguments);
 				}
 
 				return string.Format("{0}{1}", this.Name, arguments);
@@ -528,7 +538,7 @@ namespace Model.Types
 		}
 	}
 
-	public class MethodDefinition : ITypeMemberDefinition, IMethodReference
+	public class MethodDefinition : ITypeMemberDefinition, IMethodReference, IGenericDefinition
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public ITypeDefinition ContainingType { get; set; }
@@ -573,6 +583,15 @@ namespace Model.Types
 		IBasicType ITypeMemberReference.ContainingType
 		{
 			get { return this.ContainingType; }
+		}
+
+		#endregion
+
+		#region IGenericReference members
+
+		int IGenericReference.GenericParameterCount
+		{
+			get { return this.GenericParameters.Count; }
 		}
 
 		#endregion
@@ -737,6 +756,15 @@ namespace Model.Types
 
 		#endregion
 
+		#region IGenericReference members
+
+		int IGenericReference.GenericParameterCount
+		{
+			get { return 0; }
+		}
+
+		#endregion
+
 		#region IBasicType members
 
 		IAssemblyReference IBasicType.ContainingAssembly
@@ -772,11 +800,6 @@ namespace Model.Types
 		IBasicType IBasicType.GenericType
 		{
 			get { return null; }
-		}
-
-		int IBasicType.GenericParameterCount
-		{
-			get { return 0; }
 		}
 
 		#endregion
@@ -878,7 +901,7 @@ namespace Model.Types
 		}
 	}
 
-	public class InterfaceDefinition : IReferenceTypeDefinition, IGenericTypeDefinition
+	public class InterfaceDefinition : IReferenceTypeDefinition, IGenericDefinition
 	{
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
@@ -928,6 +951,15 @@ namespace Model.Types
 
 		#endregion
 
+		#region IGenericReference members
+
+		int IGenericReference.GenericParameterCount
+		{
+			get { return this.GenericParameters.Count; }
+		}
+
+		#endregion
+
 		#region IBasicType members
 
 		IAssemblyReference IBasicType.ContainingAssembly
@@ -963,11 +995,6 @@ namespace Model.Types
 		IBasicType IBasicType.GenericType
 		{
 			get { return null; }
-		}
-
-		int IBasicType.GenericParameterCount
-		{
-			get { return this.GenericParameters.Count; }
 		}
 
 		#endregion
@@ -1035,7 +1062,7 @@ namespace Model.Types
 		}
 	}
 
-	public class ClassDefinition : IReferenceTypeDefinition, IGenericTypeDefinition, ITypeDefinitionContainer
+	public class ClassDefinition : IReferenceTypeDefinition, IGenericDefinition, ITypeDefinitionContainer
 	{
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
@@ -1099,6 +1126,15 @@ namespace Model.Types
 
 		#endregion
 
+		#region IGenericReference members
+
+		int IGenericReference.GenericParameterCount
+		{
+			get { return this.GenericParameters.Count; }
+		}
+
+		#endregion
+
 		#region IBasicType members
 
 		IAssemblyReference IBasicType.ContainingAssembly
@@ -1134,11 +1170,6 @@ namespace Model.Types
 		IBasicType IBasicType.GenericType
 		{
 			get { return null; }
-		}
-
-		int IBasicType.GenericParameterCount
-		{
-			get { return this.GenericParameters.Count; }
 		}
 
 		#endregion

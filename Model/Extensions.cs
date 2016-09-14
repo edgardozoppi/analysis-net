@@ -52,6 +52,18 @@ namespace Model
 				   (def != null && @ref != null && def.MatchReference(@ref));
 		}
 
+		public static int TotalGenericParameterCount(this IBasicType type)
+		{
+			var result = 0;
+
+			if (type != null)
+			{
+				result = type.GenericParameterCount + type.ContainingType.TotalGenericParameterCount();
+			}
+
+			return result;
+		}
+
 		public static string GetMetadataName(this IBasicType type)
 		{
 			var name = type.Name;

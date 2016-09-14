@@ -136,14 +136,14 @@ namespace Model.Types
 		}
 	}
 
-	public interface IBasicType : IType
+	public interface IBasicType : IType, IGenericReference
 	{
 		IAssemblyReference ContainingAssembly { get; }
 		string ContainingNamespace { get; }
 		IBasicType ContainingType { get; }
 		string Name { get; }
 		string GenericName { get; }
-		int GenericParameterCount { get; }
+		//new int GenericParameterCount { get; }
 		IList<IType> GenericArguments { get; }
         IBasicType GenericType { get; }
 		ITypeDefinition ResolvedType { get; }
@@ -198,8 +198,9 @@ namespace Model.Types
 				//}
 				else if (this.GenericParameterCount > 0)
 				{
-					arguments = string.Join(", !", Enumerable.Range(0, this.GenericParameterCount));
-					arguments = string.Format("<!{0}>", arguments);
+					var startIndex = this.ContainingType.TotalGenericParameterCount();
+					arguments = string.Join(", T", Enumerable.Range(startIndex, this.GenericParameterCount));
+					arguments = string.Format("<T{0}>", arguments);
 				}
 
 				return string.Format("{0}{1}", this.Name, arguments);
@@ -464,6 +465,7 @@ namespace Model.Types
 	public interface IGenericParameterReference : IType
 	{
 		GenericParameterKind Kind { get; }
+		IGenericReference GenericContainer { get; }
 		ushort Index { get; }
 		string Name { get; }
 	}
@@ -472,6 +474,7 @@ namespace Model.Types
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public GenericParameterKind Kind { get; set; }
+		public IGenericReference GenericContainer { get; set; }
 		public ushort Index { get; set; }
 
 		public GenericParameterReference(GenericParameterKind kind, ushort index)
@@ -530,6 +533,7 @@ namespace Model.Types
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeKind TypeKind { get; set; }
 		public GenericParameterKind Kind { get; set; }
+		public IGenericDefinition GenericContainer { get; set; }
 		public string Name { get; set; }
 		public ushort Index { get; set; }
 
@@ -541,7 +545,16 @@ namespace Model.Types
 			this.TypeKind = typeKind;
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
-		
+
+		#region IGenericParameterReference members
+
+		IGenericReference IGenericParameterReference.GenericContainer
+		{
+			get { return this.GenericContainer; }
+		}
+
+		#endregion
+
 		public override string ToString()
 		{
 			return this.Name;

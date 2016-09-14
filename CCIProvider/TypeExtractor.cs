@@ -48,7 +48,7 @@ namespace CCIProvider
 			var type = new InterfaceDefinition(name);
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
-			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
+			ExtractGenericParameters(type, type.GenericParameters, typedef.GenericParameters);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractMethods(type, type.Methods, typedef.Methods, sourceLocationProvider);
 
@@ -70,7 +70,7 @@ namespace CCIProvider
 			type.IsDelegate = typedef.IsDelegate;
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
-			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
+			ExtractGenericParameters(type, type.GenericParameters, typedef.GenericParameters);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractFields(type, type.Fields, typedef.Fields);
 			ExtractMethods(type, type.Methods, typedef.Methods, sourceLocationProvider);
@@ -84,7 +84,7 @@ namespace CCIProvider
 			var type = new StructDefinition(name);
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
-			ExtractGenericParameters(type.GenericParameters, typedef.GenericParameters);
+			ExtractGenericParameters(type, type.GenericParameters, typedef.GenericParameters);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractFields(type, type.Fields, typedef.Fields);
 			ExtractMethods(type, type.Methods, typedef.Methods, sourceLocationProvider);
@@ -158,19 +158,21 @@ namespace CCIProvider
 
 		public IGenericParameterReference ExtractType(Cci.IGenericParameterReference typeref)
 		{
+			IGenericReference genericContainer;
 			var typerefEntry = typeref as Cci.IParameterListEntry;
-			var kind = GetGenericParameterKind(typeref);
+			var kind = GetGenericParameterKind(typeref, out genericContainer);
 			var type = new GenericParameterReference(kind, typerefEntry.Index);
 
 			ExtractAttributes(type.Attributes, typeref.Attributes);
 
+			type.GenericContainer = genericContainer;
 			return type;
 		}
 
 		public IBasicType ExtractType(Cci.IGenericTypeInstanceReference typeref)
 		{
 			var type = ExtractType(typeref.GenericType, false);
-            type.GenericType = ExtractType(typeref.GenericType, false);
+            type.GenericType = ExtractType(typeref.GenericType);
 			ExtractGenericType(type, typeref);
 
 			return type;
@@ -277,7 +279,7 @@ namespace CCIProvider
 		//}
 
 		#endregion
-
+		
 		public FunctionPointerType ExtractType(Cci.IFunctionPointerTypeReference typeref)
 		{
 			var returnType = ExtractType(typeref.Type);
@@ -464,18 +466,6 @@ namespace CCIProvider
 			return result;
 		}
 
-		private static string GetMetadataName(Cci.INamedTypeReference typeref)
-		{
-			var name = typeref.Name.Value;
-
-			if (typeref.GenericParameterCount > 0)
-			{
-				name = string.Format("{0}´{1}", name, typeref.GenericParameterCount);
-			}
-
-			return name;
-		}
-
 		private TypeKind GetTypeKind(Cci.ITypeReference typeref)
 		{
 			var result = TypeKind.Unknown;
@@ -495,7 +485,7 @@ namespace CCIProvider
 				var method = new MethodDefinition(name, type);
 
 				ExtractAttributes(method.Attributes, methoddef.Attributes);
-				ExtractGenericParameters(method.GenericParameters, methoddef.GenericParameters);
+				ExtractGenericParameters(method, method.GenericParameters, methoddef.GenericParameters);
 				ExtractParameters(method.Parameters, methoddef.Parameters);
 				ExtractBody(method.Body, methoddef.Body, sourceLocationProvider);
 
@@ -508,7 +498,7 @@ namespace CCIProvider
 			}
 		}
 
-		private void ExtractGenericParameters(IList<GenericParameter> dest, IEnumerable<Cci.IGenericParameter> source)
+		private void ExtractGenericParameters(IGenericDefinition genericContainer, IList<GenericParameter> dest, IEnumerable<Cci.IGenericParameter> source)
 		{
 			foreach (var parameterdef in source)
 			{
@@ -520,6 +510,7 @@ namespace CCIProvider
 
 				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 
+				parameter.GenericContainer = genericContainer;
 				dest.Add(parameter);
 			}
 		}
@@ -536,27 +527,44 @@ namespace CCIProvider
 
 		private GenericParameterKind GetGenericParameterKind(Cci.IGenericParameter parameterdef)
 		{
-			var result = GetGenericParameterKind(parameterdef as Cci.ITypeReference);
+			GenericParameterKind result;
+
+			if (parameterdef is Cci.IGenericTypeParameter)
+			{
+				result = GenericParameterKind.Type;
+			}
+			else if (parameterdef is Cci.IGenericMethodParameter)
+			{
+				result = GenericParameterKind.Method;
+			}
+			else
+			{
+				throw new Exception("Unknown generic parameter kind");
+			}
+
 			return result;
 		}
 
-		private GenericParameterKind GetGenericParameterKind(Cci.IGenericParameterReference parameterref)
-		{
-			var result = GetGenericParameterKind(parameterref as Cci.ITypeReference);
-			return result;
-		}
-
-		private GenericParameterKind GetGenericParameterKind(Cci.ITypeReference parameterref)
+		private GenericParameterKind GetGenericParameterKind(Cci.IGenericParameterReference parameterref, out IGenericReference genericContainer)
 		{
 			GenericParameterKind result;
 
-			if (parameterref is Cci.IGenericTypeParameter ||
-				parameterref is Cci.IGenericTypeParameterReference) result = GenericParameterKind.Type;
-
-			else if (parameterref is Cci.IGenericMethodParameter ||
-					 parameterref is Cci.IGenericMethodParameterReference) result = GenericParameterKind.Method;
-
-			else throw new Exception("Unknown generic parameter kind");
+			if (parameterref is Cci.IGenericTypeParameterReference)
+			{
+				result = GenericParameterKind.Type;
+				var typeParameter = parameterref as Cci.IGenericTypeParameterReference;
+				genericContainer = (IGenericReference)ExtractType(typeParameter.DefiningType);
+			}
+			else if (parameterref is Cci.IGenericMethodParameterReference)
+			{
+				result = GenericParameterKind.Method;
+				var methodParameter = parameterref as Cci.IGenericMethodParameterReference;
+				genericContainer = (IGenericReference)ExtractReference(methodParameter.DefiningMethod);
+			}
+			else
+			{
+				throw new Exception("Unknown generic parameter reference kind");
+			}
 
 			return result;
 		}
