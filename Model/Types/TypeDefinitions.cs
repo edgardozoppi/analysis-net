@@ -483,17 +483,17 @@ namespace Model.Types
 					arguments = string.Join(", ", this.GenericArguments);
 					arguments = string.Format("<{0}>", arguments);
 				}
+				////else if (this.GenericParameterCount > 0)
+				////{
+				////	arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
+				////	arguments = string.Format("<T{0}>", arguments);
+				////}
 				//else if (this.GenericParameterCount > 0)
 				//{
-				//	arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
+				//	var startIndex = this.ContainingType.TotalGenericParameterCount();
+				//	arguments = string.Join(", T", Enumerable.Range(startIndex, this.GenericParameterCount));
 				//	arguments = string.Format("<T{0}>", arguments);
 				//}
-				else if (this.GenericParameterCount > 0)
-				{
-					var startIndex = this.ContainingType.TotalGenericParameterCount();
-					arguments = string.Join(", T", Enumerable.Range(startIndex, this.GenericParameterCount));
-					arguments = string.Format("<T{0}>", arguments);
-				}
 
 				return string.Format("{0}{1}", this.Name, arguments);
 			}

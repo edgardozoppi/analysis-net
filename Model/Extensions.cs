@@ -56,9 +56,10 @@ namespace Model
 		{
 			var result = 0;
 
-			if (type != null)
+			while (type != null)
 			{
-				result = type.GenericParameterCount + type.ContainingType.TotalGenericParameterCount();
+				result += type.GenericParameterCount;
+				type = type.ContainingType;
 			}
 
 			return result;
