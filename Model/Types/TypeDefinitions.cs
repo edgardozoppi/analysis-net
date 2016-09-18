@@ -439,12 +439,11 @@ namespace Model.Types
 		}
 	}
 
-	public interface IMethodReference : ITypeMemberReference, IMetadataReference
+	public interface IMethodReference : ITypeMemberReference, IMetadataReference, IGenericReference
 	{
 		IType ReturnType { get; }
 		string Name { get; }
 		string GenericName { get; }
-		int GenericParameterCount { get; }
 		IList<IMethodParameterReference> Parameters { get; }
 		IList<IType> GenericArguments { get; }
 		IMethodReference GenericMethod { get; }
@@ -597,11 +596,6 @@ namespace Model.Types
 		#endregion
 
 		#region IMethodReference members
-
-		int IMethodReference.GenericParameterCount
-		{
-			get { return this.GenericParameters.Count; }
-		}
 
 		IList<IMethodParameterReference> IMethodReference.Parameters
 		{
