@@ -8,6 +8,7 @@ using Model.Types;
 using Model.ThreeAddressCode.Instructions;
 using Model.ThreeAddressCode.Visitor;
 using Backend.Model;
+using Model.ThreeAddressCode.Values;
 
 namespace Backend.Analyses
 {
@@ -60,7 +61,28 @@ namespace Backend.Analyses
 
 			public override void Visit(LoadInstruction instruction)
 			{
-				instruction.Result.Type = instruction.Operand.Type;
+				var operandAsConstant = instruction.Operand as Constant;
+				var operandAsVariable = instruction.Operand as IVariable;
+
+				// Null is a polymorphic value so we handle it specially. We don't set the
+				// corresponding variable's type yet. We postpone it to usage of the variable
+				// or set it to System.Object if it is never used.
+				if (operandAsConstant != null &&
+					operandAsConstant.Value == null)
+                {
+					//instruction.Result.Type = PlatformTypes.Object;
+				}
+                // If we have variable to variable assignment where the result was assigned
+                // a type but the operand was not, then we set the operand type accordingly.
+                else if (operandAsVariable != null &&
+						 operandAsVariable.Type == null)
+                {
+                    operandAsVariable.Type = instruction.Result.Type;
+                }
+                else
+                {
+                    instruction.Result.Type = instruction.Operand.Type;
+                }
 			}
 
 			public override void Visit(LoadTokenInstruction instruction)
@@ -70,7 +92,11 @@ namespace Backend.Analyses
 
 			public override void Visit(StoreInstruction instruction)
 			{
-				// Nothing to do here, for debugging purposes only
+				// Set the null variable a type.
+                if (instruction.Operand.Type == null)
+                {
+                    instruction.Operand.Type = instruction.Result.Type;
+                }
 			}
 
 			public override void Visit(UnaryInstruction instruction)
