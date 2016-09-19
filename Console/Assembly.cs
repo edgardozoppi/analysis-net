@@ -45,8 +45,6 @@ namespace Console
 					this.PdbReader = new PdbReader(pdbStream, this.Host);
 			}
 
-			this.Module = MetadataCopier.DeepCopy(this.Host, this.Module);
-
 			this.FileName = fileName;
 			this.IsLoaded = true;
 		}
