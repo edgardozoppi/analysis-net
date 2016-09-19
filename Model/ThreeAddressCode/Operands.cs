@@ -235,12 +235,20 @@ namespace Model.ThreeAddressCode.Values
 			var other = obj as Constant;
 
 			return other != null &&
-				this.Value.Equals(other.Value);
+				((this.Value == null && other.Value == null) ||
+				(this.Value != null && this.Value.Equals(other.Value)));
 		}
 
 		public override int GetHashCode()
 		{
-			return this.Value.GetHashCode();
+			var result = 0;
+
+			if (this.Value != null)
+			{
+				result = this.Value.GetHashCode();
+			}
+
+			return result;
 		}
 
 		public override string ToString()
