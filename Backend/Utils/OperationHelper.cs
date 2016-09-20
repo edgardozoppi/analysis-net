@@ -11,6 +11,18 @@ namespace Backend.Utils
 {
 	public static class OperationHelper
 	{
+		public static MethodCallOperation ToMethodCallOperation(MethodCallOperation operation)
+		{
+			switch (operation)
+			{
+				case Bytecode.MethodCallOperation.Static: return MethodCallOperation.Static;
+				case Bytecode.MethodCallOperation.Virtual: return MethodCallOperation.Virtual;
+				case Bytecode.MethodCallOperation.Jump: return MethodCallOperation.Jump;
+
+				default: throw new UnknownBytecodeException(opcode);
+			}
+		}
+
 		public static ConvertOperation ToConvertOperation(OperationCode opcode)
 		{
 			switch (opcode)

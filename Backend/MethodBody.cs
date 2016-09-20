@@ -15,7 +15,7 @@ namespace Backend
 	public class MethodBody : IInstructionContainer
 	{
 		public IMethodDefinition MethodDefinition { get; private set; }
-		public IList<ProtectedBlock> ProtectedBlocks { get; private set; }
+		public IList<ProtectedBlock> ExceptionInformation { get; private set; }
 		public IList<Instruction> Instructions { get; private set; }
 		public IList<IVariable> Parameters { get; private set; }
 		public ISet<IVariable> Variables { get; private set; }
@@ -23,7 +23,7 @@ namespace Backend
 		public MethodBody(IMethodDefinition methodDefinition)
 		{
 			this.MethodDefinition = methodDefinition;
-			this.ProtectedBlocks = new List<ProtectedBlock>();
+			this.ExceptionInformation = new List<ProtectedBlock>();
 			this.Instructions = new List<Instruction>();
 			this.Parameters = new List<IVariable>();
 			this.Variables = new HashSet<IVariable>();
@@ -70,7 +70,7 @@ namespace Backend
 				result.AppendLine();
 			}
 
-			foreach (var handler in this.ProtectedBlocks)
+			foreach (var handler in this.ExceptionInformation)
 			{
 				result.AppendLine();
 				result.Append(handler);

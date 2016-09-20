@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
-using Backend.Analysis;
+using Backend.Analyses;
 using Backend.ThreeAddressCode;
 using System;
 using System.Collections.Generic;
@@ -11,6 +11,7 @@ using Backend.ThreeAddressCode.Expressions;
 using Backend.ThreeAddressCode.Instructions;
 using Backend.Visitors;
 using Microsoft.Cci;
+using Backend.Model;
 
 namespace Backend.Utils
 {
@@ -43,11 +44,114 @@ namespace Backend.Utils
 			return true;
 		}
 
+		public static IDictionary<K, V> Union<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> other, Func<V, V, V> valueUnion)
+		{
+			var result = new Dictionary<K, V>(self);
+			result.UnionWith(other, valueUnion);
+			return result;
+		}
+
+		public static void UnionWith<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> other, Func<V, V, V> valueUnion)
+		{
+			foreach (var entry in other)
+			{
+				V value;
+
+				if (self.TryGetValue(entry.Key, out value))
+				{
+					value = valueUnion(value, entry.Value);
+
+					if (value != null)
+			{
+						self[entry.Key] = value;
+					}
+					else
+					{
+						self.Remove(entry.Key);
+					}
+				}
+				else
+				{
+					self.Add(entry.Key, entry.Value);
+				}
+			}
+		}
+
+		public static IDictionary<K, V> Intersect<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> other, Func<V, V, V> valueIntersect)
+		{
+			var result = new Dictionary<K, V>();
+
+			foreach (var entry in other)
+			{
+				V value;
+
+				if (self.TryGetValue(entry.Key, out value))
+				{
+					value = valueIntersect(value, entry.Value);
+
+					if (value != null)
+					{
+						result.Add(entry.Key, value);
+					}
+				}
+			}
+
+			return result;
+		}
+
+		public static void IntersectWith<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> other, Func<V, V, V> valueIntersect)
+		{
+			var keys = new HashSet<K>();
+
+			foreach (var entry in other)
+			{
+				V value;
+
+				if (self.TryGetValue(entry.Key, out value))
+				{
+					value = valueIntersect(value, entry.Value);
+
+					if (value != null)
+					{
+						self[entry.Key] = value;
+						keys.Add(entry.Key);
+					}
+					else
+					{
+						self.Remove(entry.Key);
+					}
+				}
+			}
+
+			var keysToRemove = self.Keys.Except(keys).ToArray();
+
+			foreach (var key in keysToRemove)
+			{
+				self.Remove(key);
+			}
+		}
+
 		public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> elements)
 		{
 			foreach (var element in elements)
 			{
 				collection.Add(element);
+			}
+		}
+
+		public static void RemoveAll<T>(this ICollection<T> self, IEnumerable<T> elements)
+		{
+			foreach (var element in elements)
+			{
+				self.Remove(element);
+			}
+		}
+
+		public static void SetRange<K, V>(this IDictionary<K, V> self, IEnumerable<KeyValuePair<K, V>> elements)
+		{
+			foreach (var element in elements)
+			{
+				self[element.Key] = element.Value;
 			}
 		}
 
@@ -85,6 +189,18 @@ namespace Backend.Utils
 		public static Subset<T> ToEmptySubset<T>(this T[] universe)
 		{
 			return new Subset<T>(universe, true);
+		}
+
+		public static uint StartOffset(this IInstructionContainer block)
+		{
+			var instruction = block.Instructions.First();
+			return instruction.Offset;
+		}
+
+		public static uint EndOffset(this IInstructionContainer block)
+		{
+			var instruction = block.Instructions.Last();
+			return instruction.Offset;
 		}
 
 		public static ISet<IVariable> GetVariables(this IInstructionContainer block)
@@ -256,13 +372,155 @@ namespace Backend.Utils
 
 		public static void RemoveTemporalVariables(this PointsToGraph ptg)
 		{
-			var temporals = ptg.Variables.OfType<TemporalVariable>().ToArray();
-
-			foreach (var temporal in temporals)
+			foreach (var variable in ptg.Variables)
 			{
-				ptg.Remove(temporal);
+				if (variable.IsTemporal())
+				{
+					ptg.Remove(variable);
+				}
 			}
 		}
+
+		public static ISet<PTGNode> GetTargets(this PointsToGraph ptg, InstanceFieldAccess access)
+		{
+			var result = ptg.GetTargets(access.Instance, access.Field);
+			return result;
+		}
+
+		#region May Alias
+
+		public static bool MayAlias(this PointsToGraph ptg, IVariable variable1, IVariable variable2)
+		{
+			var targets1 = ptg.GetTargets(variable1);
+			var targets2 = ptg.GetTargets(variable2);
+			var alias = targets1.Intersect(targets2);
+			return alias.Any();
+		}
+
+		public static bool MayAlias(this PointsToGraph ptg, InstanceFieldAccess access, IVariable variable)
+		{
+			var targetsAccess = ptg.GetTargets(access);
+			var targetsVariable = ptg.GetTargets(variable);
+			var alias = targetsAccess.Intersect(targetsVariable);
+			return alias.Any();
+		}
+
+		public static bool MayAlias(this PointsToGraph ptg, InstanceFieldAccess access1, InstanceFieldAccess access2)
+		{
+			var targets1 = ptg.GetTargets(access1);
+			var targets2 = ptg.GetTargets(access2);
+			var alias = targets1.Intersect(targets2);
+			return alias.Any();
+		}
+
+		#endregion
+
+		#region Points-to graph reachability
+
+		public static bool IsReachable(this PointsToGraph ptg, IVariable variable, PTGNode target)
+		{
+			var result = false;
+			var visitedNodes = new HashSet<PTGNode>();
+			var worklist = new Queue<PTGNode>();
+			var nodes = ptg.GetTargets(variable);
+
+			foreach (var node in nodes)
+			{
+				worklist.Enqueue(node);
+				visitedNodes.Add(node);
+			}
+
+			while (worklist.Any())
+			{
+				var node = worklist.Dequeue();
+
+				if (node.Equals(ptg.Null))
+				{
+					continue;
+				}
+
+				if (node.Equals(target))
+				{
+					result = true;
+					break;
+				}
+
+				foreach (var targets in node.Targets.Values)
+				{
+					foreach (var nodeTarget in targets)
+					{
+						if (!visitedNodes.Contains(nodeTarget))
+						{
+							worklist.Enqueue(nodeTarget);
+							visitedNodes.Add(nodeTarget);
+						}
+					}
+				}
+			}
+
+			return result;
+		}
+
+		public static IEnumerable<PTGNode> GetReachableNodes(this PointsToGraph ptg, IVariable variable)
+		{
+			var visitedNodes = new HashSet<PTGNode>();
+			var worklist = new Queue<PTGNode>();
+			var nodes = ptg.GetTargets(variable);
+
+			foreach (var node in nodes)
+			{
+				worklist.Enqueue(node);
+				visitedNodes.Add(node);
+			}
+
+			while (worklist.Any())
+			{
+				var node = worklist.Dequeue();
+
+				yield return node;
+
+				if (node.Equals(ptg.Null))
+				{
+					continue;
+				}
+
+				foreach (var targets in node.Targets.Values)
+				{
+					foreach (var nodeTarget in targets)
+					{
+						if (!visitedNodes.Contains(nodeTarget))
+						{
+							worklist.Enqueue(nodeTarget);
+							visitedNodes.Add(nodeTarget);
+						}
+					}
+				}
+			}
+		}
+
+		public static IEnumerable<PTGNode> GetReachableNodes(this PointsToGraph ptg)
+		{
+			var result = ptg.Variables.SelectMany(v => ptg.GetReachableNodes(v))
+							.Distinct();
+			return result;
+		}
+
+		public static ISet<IVariable> GetAliases(this PointsToGraph ptg, IVariable variable)
+		{
+			var result = new HashSet<IVariable>() { variable };
+
+			foreach (var ptgNode in ptg.GetTargets(variable))
+			{
+				if (!ptgNode.Equals(ptg.Null))
+				{
+					result.UnionWith(ptgNode.Variables);
+				}
+			}
+
+			return result;
+		}
+
+		#endregion
 
 		public static bool IsPure(this IMethodReference method)
 		{
@@ -274,6 +532,91 @@ namespace Backend.Utils
 			}
 
 			return result;
+		}
+
+		public static void Inline(this MethodBody callerBody, MethodCallInstruction methodCall, MethodBody calleeBody)
+		{
+			// TODO: Fix local variables (and parameters) name clashing
+
+			var index = callerBody.Instructions.IndexOf(methodCall);
+			callerBody.Instructions.RemoveAt(index);
+
+			Instruction nextInstruction = null;
+
+			if (callerBody.Instructions.Count > index)
+			{
+				// The caller method has more instructions after the method call
+				nextInstruction = callerBody.Instructions[index];
+			}			
+
+			for (var i = 0; i < calleeBody.Parameters.Count; ++i)
+			{
+				var parameter = calleeBody.Parameters[i];
+				var argument = methodCall.Arguments[i];
+				var copy = new LoadInstruction(methodCall.Offset, parameter, argument);
+
+				copy.Label = string.Format("{0}_{1}", methodCall.Label, copy.Label);
+				callerBody.Instructions.Insert(index, copy);
+				index++;
+			}
+
+			var lastCalleeInstructionIndex = calleeBody.Instructions.Count - 1;
+
+			for (var i = 0; i < calleeBody.Instructions.Count; ++i)
+			{
+				var instruction = calleeBody.Instructions[i];
+
+				if (instruction is ReturnInstruction)
+				{
+					var ret = instruction as ReturnInstruction;
+
+					if (ret.HasOperand && methodCall.HasResult)
+					{
+						// Copy the return value of the callee to the result variable of the method call
+						var copy = new LoadInstruction(ret.Offset, methodCall.Result, ret.Operand);
+
+						copy.Label = string.Format("{0}_{1}", methodCall.Label, copy.Label);
+						callerBody.Instructions.Insert(index, copy);
+						index++;
+					}
+
+					if (nextInstruction != null && i < lastCalleeInstructionIndex)
+					{
+						// Jump to the instruction after the method call
+						var branch = new UnconditionalBranchInstruction(ret.Offset, nextInstruction.Offset);
+
+						branch.Label = string.Format("{0}_{1}", methodCall.Label, branch.Label);
+						callerBody.Instructions.Insert(index, branch);
+						index++;
+					}
+				}
+				else
+				{
+					// TODO: Fix! We should clone the instruction
+					// so the original is not modified
+					// and calleeBody remain intacted
+
+					if (instruction is BranchInstruction)
+					{
+						var branch = instruction as BranchInstruction;
+						branch.Target = string.Format("{0}_{1}", methodCall.Label, branch.Target);
+					}
+					else if (instruction is SwitchInstruction)
+					{
+						var branch = instruction as SwitchInstruction;
+
+						for (var j = 0; j < branch.Targets.Count; ++j)
+						{
+							var target = branch.Targets[j];
+							branch.Targets[j] = string.Format("{0}_{1}", methodCall.Label, target);
+						}
+					}
+
+					instruction.Label = string.Format("{0}_{1}", methodCall.Label, instruction.Label);
+					callerBody.Instructions.Insert(index, instruction);
+					index++;
+				}
+			}
 		}
 	}
 }

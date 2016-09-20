@@ -7,7 +7,7 @@ using System.Text;
 using Microsoft.Cci.MutableCodeModel;
 using Microsoft.Cci;
 using Backend;
-using Backend.Analysis;
+using Backend.Analyses;
 using Backend.Serialization;
 using Backend.ThreeAddressCode;
 

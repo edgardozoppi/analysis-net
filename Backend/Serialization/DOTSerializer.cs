@@ -4,7 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Backend.Analysis;
+using Backend.Analyses;
+using Backend.Model;
 
 namespace Backend.Serialization
 {

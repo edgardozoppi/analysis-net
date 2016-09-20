@@ -9,16 +9,18 @@ using Backend.ThreeAddressCode;
 using Backend.Utils;
 using Backend.ThreeAddressCode.Values;
 using Backend.ThreeAddressCode.Instructions;
+using Backend.Model;
 
-namespace Backend.Analysis
+namespace Backend.Analyses
 {
-	public class ForwardCopyPropagationAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IVariable>>
+	//[Obsolete("The analysis implementation could have some bugs!")]
+	public class BackwardCopyPropagationAnalysis : BackwardDataFlowAnalysis<IDictionary<IVariable, IVariable>>
 	{
 		private DataFlowAnalysisResult<IDictionary<IVariable, IVariable>>[] result;
 		private IDictionary<IVariable, IVariable>[] GEN;
 		private ISet<IVariable>[] KILL;
 
-		public ForwardCopyPropagationAnalysis(ControlFlowGraph cfg)
+		public BackwardCopyPropagationAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
 		}
@@ -32,16 +34,16 @@ namespace Backend.Analysis
 				var node_result = this.result[node.Id];
 				var copies = new Dictionary<IVariable, IVariable>();
 
-				if (node_result.Input != null)
+				if (node_result.Output != null)
 				{
-					copies.AddRange(node_result.Input);
+					copies.AddRange(node_result.Output);
 				}
 
-				for (var i = 0; i < node.Instructions.Count; ++i)
+				for (var i = node.Instructions.Count - 1; i >= 0; --i)
 				{
 					var instruction = node.Instructions[i];
 
-					foreach (var variable in instruction.UsedVariables)
+					foreach (var variable in instruction.ModifiedVariables)
 					{
 						// Only replace temporal variables
 						if (variable.IsTemporal() &&
@@ -54,6 +56,18 @@ namespace Backend.Analysis
 					}
 
 					var isTemporalCopy = this.Flow(instruction, copies);
+
+					foreach (var variable in instruction.UsedVariables)
+					{
+						// Only replace temporal variables
+						if (variable.IsTemporal() &&
+							copies.ContainsKey(variable))
+						{
+							var operand = copies[variable];
+
+							instruction.Replace(variable, operand);
+						}
+					}
 
 					// Only replace temporal variables
 					if (isTemporalCopy)
@@ -73,7 +87,6 @@ namespace Backend.Analysis
 							// The copy is not the first instruction of the basic block
 							body.Instructions.Remove(instruction);
 							node.Instructions.RemoveAt(i);
-							--i;
 						}
 					}
 				}
@@ -108,41 +121,24 @@ namespace Backend.Analysis
 
 		protected override IDictionary<IVariable, IVariable> Join(IDictionary<IVariable, IVariable> left, IDictionary<IVariable, IVariable> right)
 		{
-			// result = intersection(left, right)
-			var result = new Dictionary<IVariable, IVariable>();
-
-			foreach (var copy in left)
-			{
-				var variable = copy.Key;
-				var leftOperand = copy.Value;
-
-				if (right.ContainsKey(variable))
-				{
-					var rightOperand = right[variable];
-
-					if (leftOperand.Equals(rightOperand))
-					{
-						result.Add(variable, leftOperand);
-					}
-				}
-			}
-
+			Func<IVariable, IVariable, IVariable> intersectVariables = (a, b) => a.Equals(b) ? a : null;
+			var result = left.Intersect(right, intersectVariables);
 			return result;
 		}
 
-		protected override IDictionary<IVariable, IVariable> Flow(CFGNode node, IDictionary<IVariable, IVariable> input)
+		protected override IDictionary<IVariable, IVariable> Flow(CFGNode node, IDictionary<IVariable, IVariable> output)
 		{
-			var output = new Dictionary<IVariable, IVariable>(input);
+			var input = new Dictionary<IVariable, IVariable>(output);
 			var kill = KILL[node.Id];
 			var gen = GEN[node.Id];
 
 			foreach (var variable in kill)
 			{
-				this.RemoveCopiesWithVariable(output, variable);
+				this.RemoveCopiesWithVariable(input, variable);
 			}
 
-			output.AddRange(gen);
-			return output;
+			input.SetRange(gen);
+			return input;
 		}
 
 		private void ComputeGen()
@@ -153,8 +149,9 @@ namespace Backend.Analysis
 			{
 				var gen = new Dictionary<IVariable, IVariable>();
 
-				foreach (var instruction in node.Instructions)
+				for (var i = node.Instructions.Count - 1; i >= 0; --i)
 				{
+					var instruction = node.Instructions[i];
 					this.Flow(instruction, gen);
 				}
 
@@ -203,10 +200,10 @@ namespace Backend.Analysis
 			if (isCopy)
 			{
 				// Only replace temporal variables
-				if (right.IsTemporal() &&
-					copies.ContainsKey(right))
+				if (left.IsTemporal() &&
+					copies.ContainsKey(left))
 				{
-					right = copies[right];
+					left = copies[left];
 				}
 			}
 
@@ -217,10 +214,11 @@ namespace Backend.Analysis
 
 			if (isCopy)
 			{
-				copies.Add(left, right);
+				this.RemoveCopiesWithVariable(copies, right);
+				copies.Add(right, left);
 			}
 
-			var result = isCopy && left.IsTemporal();
+			var result = isCopy && right.IsTemporal();
 			return result;
 		}
 	}

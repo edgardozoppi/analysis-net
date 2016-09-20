@@ -31,6 +31,12 @@ namespace Test
 		public int F1;
 		private static int F2 = 0;
 
+		public void ExampleBugCopyPropagation()
+		{
+			var i = 1;
+			var r = Math.Abs(i++) + i;
+		}
+
 		public void ExampleComplexTryCatch(int a, int b)
 		{
 			b = 1;
@@ -227,6 +233,25 @@ namespace Test
 			var a = default(T);
 			return a;
 		}
+
+        public int ExampleLiveVariables(int p)
+        {
+            var a = p;
+            var b = a;
+            var c = b;
+
+            if (p > 0)
+            {
+                b = b + a;
+                c = a;
+            }
+            else
+            {
+                c = b + p;
+            }
+
+            return p;
+        }
 
 		//public void Print(params object[] args)
 		//{
