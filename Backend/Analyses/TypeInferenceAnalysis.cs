@@ -40,7 +40,7 @@ namespace Backend.Analyses
 
 			public override void Visit(CreateObjectInstruction instruction)
 			{
-				instruction.Result.Type = instruction.Constructor.ContainingType;
+				instruction.Result.Type = instruction.AllocationType;
 			}
 
 			public override void Visit(MethodCallInstruction instruction)

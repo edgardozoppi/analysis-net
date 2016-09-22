@@ -257,7 +257,7 @@ namespace Backend.Serialization
 				{
 					var methodId = reachableMethods[method];
 					var nodeId = Convert.ToString(methodId);
-					var label = string.Format("{0}.{1}", method.ContainingType.Name, method.Name);
+					var label = MemberHelper.GetMethodSignature(method);
 
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", nodeId);
@@ -272,7 +272,7 @@ namespace Backend.Serialization
 				{
 					var methodId = reachableMethods[method];
 					var nodeId = Convert.ToString(methodId);
-					var label = string.Format("{0}.{1}", method.ContainingType.Name, method.Name);
+					var label = MemberHelper.GetMethodSignature(method);
 
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", nodeId);
@@ -357,7 +357,7 @@ namespace Backend.Serialization
 				foreach (var entry in allDefinedTypes)
 				{
 					var nodeId = Convert.ToString(entry.Value);
-					var label = entry.Key.Name;
+					var label = TypeHelper.GetTypeName(entry.Key);
 
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", nodeId);
@@ -420,13 +420,13 @@ namespace Backend.Serialization
 		public static string Serialize(INamedTypeReference type)
 		{
 			var types = new INamedTypeReference[] { type };
-			return DGMLSerializer.Serialize(type);
+			return Serialize(type);
 		}
 
 		public static string Serialize(IModule module)
 		{
 			var types = module.GetAllTypes();
-			return DGMLSerializer.Serialize(types);
+			return Serialize(types);
 		}
 
 		private static string Serialize(IEnumerable<INamedTypeReference> types)
@@ -446,11 +446,12 @@ namespace Backend.Serialization
 
 				foreach (var type in types)
 				{
-					allDefinedTypes.Add(type, allDefinedTypes.Count);
+					allReferencedTypes.Add(type, allReferencedTypes.Count);
 
 					if (type is INamedTypeDefinition)
 					{
 						var namedType = type as INamedTypeDefinition;
+						allDefinedTypes.Add(namedType, allDefinedTypes.Count);
 						newTypes.Add(namedType);
 					}
 				}
@@ -463,6 +464,7 @@ namespace Backend.Serialization
 
 					var typeId = allDefinedTypes[type];
 					var sourceId = Convert.ToString(typeId);
+					var targetId = string.Empty;
 
 					var fieldsByType = from f in type.Fields
 									   group f by f.Type into g

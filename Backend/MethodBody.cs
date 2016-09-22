@@ -32,7 +32,7 @@ namespace Backend
 		public void UpdateVariables()
 		{
 			this.Variables.Clear();
-			this.Variables.UnionWith(this.Parameters);
+			//this.Variables.UnionWith(this.Parameters);
 
 			// TODO: SSA is not inserting phi instructions into method's body instructions collection.
 			foreach (var instruction in this.Instructions)

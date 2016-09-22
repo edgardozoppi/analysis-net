@@ -56,7 +56,8 @@ namespace Backend.Analyses
 			while (worklist.Count > 0)
 			{
 				var method = worklist.Dequeue();
-				var methodCalls = method.Body.Instructions.OfType<MethodCallInstruction>();
+				var body = MethodBodyProvider.Instance.GetBody(method);
+				var methodCalls = body.Instructions.OfType<MethodCallInstruction>();
 
 				foreach (var methodCall in methodCalls)
 				{
@@ -112,7 +113,7 @@ namespace Backend.Analyses
 				var receiverTypeDef = receiverType.ResolvedType;
 				if (receiverTypeDef == null) break;
 
-				var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.MatchSignature(method));
+				var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.SignaturesAreEqual(m, method));
 
 				if (matchingMethod != null)
 				{
@@ -140,7 +141,7 @@ namespace Backend.Analyses
 				var subtypes = classHierarchy.GetAllSubtypes(methodref.ContainingType);
 				var compatibleMethods = from t in subtypes
 										from m in t.Members.OfType<IMethodDefinition>()
-										where m.MatchSignature(methodref)
+										where MemberHelper.SignaturesAreEqual(m, methodref)
 										select m;
 
 				result.UnionWith(compatibleMethods);

@@ -953,6 +953,11 @@ namespace Backend.Transformations
 
 		private void ProcessCreateObject(BasicBlockInfo bb, IOperation op)
 		{
+			stack.IncrementCapacity();
+
+			var allocationResult = stack.Push();
+			stack.Pop();
+
 			var callee = op.Value as IMethodReference;
 			var arguments = new List<IVariable>();
 
@@ -962,23 +967,33 @@ namespace Backend.Transformations
 				arguments.Add(arg);
 			}
 
-			foreach (var par in callee.ExtraParameters)
-			{
-				var arg = stack.Pop();
-				arguments.Add(arg);
-			}
+			//foreach (var par in callee.ExtraParameters)
+			//{
+			//	var arg = stack.Pop();
+			//	arguments.Add(arg);
+			//}
 
-			var result = stack.Push();
 			// Adding implicit this parameter
-			arguments.Add(result);
+			arguments.Add(allocationResult);
 			arguments.Reverse();
 
-			var instruction = new CreateObjectInstruction(op.Offset, result, callee, arguments);
+			Instruction instruction = new CreateObjectInstruction(op.Offset, allocationResult, callee.ContainingType);
 			bb.Instructions.Add(instruction);
+
+			instruction = new MethodCallInstruction(op.Offset, null, MethodCallOperation.Static, callee, arguments);
+			bb.Instructions.Add(instruction);
+
+			var result = stack.Push();
+
+			instruction = new LoadInstruction(op.Offset, result, allocationResult);
+			bb.Instructions.Add(instruction);
+
+			stack.DecrementCapacity();
 		}
 
 		private void ProcessMethodCall(BasicBlockInfo bb, IOperation op)
 		{
+			var operation = OperationHelper.ToMethodCallOperation(op.OperationCode);
 			var callee = op.Value as IMethodReference;
 			var arguments = new List<IVariable>();
 			IVariable result = null;
@@ -1009,7 +1024,7 @@ namespace Backend.Transformations
 				result = stack.Push();
 			}
 
-			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
+			var instruction = new MethodCallInstruction(op.Offset, result, operation, callee, arguments);
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1046,6 +1061,7 @@ namespace Backend.Transformations
 
 		private void ProcessJumpCall(BasicBlockInfo bb, IOperation op)
 		{
+			var operation = OperationHelper.ToMethodCallOperation(op.OperationCode);
 			var callee = op.Value as IMethodReference;
 			var arguments = new List<IVariable>();
 			IVariable result = null;
@@ -1063,7 +1079,7 @@ namespace Backend.Transformations
 				result = stack.Push();
 			}
 
-			var instruction = new MethodCallInstruction(op.Offset, result, callee, arguments);
+			var instruction = new MethodCallInstruction(op.Offset, result, operation, callee, arguments);
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1136,13 +1152,13 @@ namespace Backend.Transformations
 			//	var handlers = exceptionHandlersEnd[op.Offset];
 			//	var catchs = new List<BranchInstruction>();
 			//	var finallys = new List<BranchInstruction>();
-
+			//
 			//	foreach (var handler in handlers)
 			//	{
 			//		if (handler.Kind == ExceptionHandlerBlockKind.Try)
 			//		{
 			//			var tryHandler = handler as TryExceptionHandler;
-
+			//
 			//			if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Catch)
 			//			{
 			//				var catchHandler = tryHandler.Handler as CatchExceptionHandler;
@@ -1167,7 +1183,7 @@ namespace Backend.Transformations
 			//			}
 			//		}
 			//	}
-
+			//
 			//	bb.Instructions.AddRange(catchs);
 			//	bb.Instructions.AddRange(finallys);
 			//}

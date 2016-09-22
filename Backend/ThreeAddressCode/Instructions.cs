@@ -999,58 +999,12 @@ namespace Backend.ThreeAddressCode.Instructions
 
 	public class CreateObjectInstruction : DefinitionInstruction
 	{
-		public IMethodReference Constructor { get; set; }
-		public IList<IVariable> Arguments { get; private set; }
+		public ITypeReference AllocationType { get; set; }
 
-		public CreateObjectInstruction(uint label, IVariable result, IMethodReference constructor, IEnumerable<IVariable> arguments)
+		public CreateObjectInstruction(uint label, IVariable result, ITypeReference allocationType)
 			: base(label, result)
 		{
-			this.Arguments = new List<IVariable>(arguments);
-			this.Constructor = constructor;
-		}
-
-		public override ISet<IVariable> ModifiedVariables
-		{
-			get
-			{
-				var result = new HashSet<IVariable>();
-
-				// Optimization to improve precision:
-				// Argument variables could be modified only if they are passed by ref
-				// We don't care here if the objects referenced by arguments could be modified.
-				foreach (var parameterInfo in this.Constructor.Parameters)
-				{
-					if (parameterInfo.IsByReference)
-					{
-						// The first argument is actually always the implicit this parameter
-						// so we need to offset all other parameters by 1.
-						// Since we are creating an object, the constructor cannot be static.
-						// Static constructors cannot be called directly.
-						var index = parameterInfo.Index + 1;
-						var argument = this.Arguments[index];
-						result.Add(argument);
-					}
-				}
-
-				if (this.HasResult) result.Add(this.Result);
-				return result;
-			}
-		}
-
-		public override ISet<IVariable> UsedVariables
-		{
-			get { return new HashSet<IVariable>(this.Arguments); }
-		}
-
-		public override void Replace(IVariable oldvar, IVariable newvar)
-		{
-			if (this.Result.Equals(oldvar)) this.Result = newvar;
-
-			for (var i = 0; i < this.Arguments.Count; ++i)
-			{
-				var argument = this.Arguments[i];
-				if (argument.Equals(oldvar)) this.Arguments[i] = newvar;
-			}
+			this.AllocationType = allocationType;
 		}
 
 		public override void Accept(IInstructionVisitor visitor)
@@ -1061,15 +1015,13 @@ namespace Backend.ThreeAddressCode.Instructions
 
 		public override IExpression ToExpression()
 		{
-			return new CreateObjectExpression(this.Constructor, this.Arguments);
+			return new CreateObjectExpression(this.AllocationType);
 		}
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Constructor.ContainingType);
-			var arguments = string.Join(", ", this.Arguments.Skip(1));
-
-			return string.Format("{0}:  {1} = new {2}({3});", this.Label, this.Result, type, arguments);
+			var type = TypeHelper.GetTypeName(this.AllocationType);
+			return string.Format("{0}:  {1} = new {2};", this.Label, this.Result, type);
 		}
 	}
 

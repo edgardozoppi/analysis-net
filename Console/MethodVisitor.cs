@@ -10,6 +10,7 @@ using Backend;
 using Backend.Analyses;
 using Backend.Serialization;
 using Backend.ThreeAddressCode;
+using Backend.Transformations;
 
 namespace Console
 {
@@ -34,12 +35,19 @@ namespace Console
 			//System.Console.WriteLine(methodBody);
 			//System.Console.WriteLine();
 
-			var cfg = ControlFlowGraph.GenerateNormalControlFlow(methodBody);
-			ControlFlowGraph.ComputeDominators(cfg);
-			ControlFlowGraph.IdentifyLoops(cfg);
+			var cfAnalysis = new ControlFlowAnalysis(methodBody);
+			var cfg = cfAnalysis.GenerateNormalControlFlow();
+			//var cfg = cfAnalysis.GenerateExceptionalControlFlow();
 
-			ControlFlowGraph.ComputeDominatorTree(cfg);
-			ControlFlowGraph.ComputeDominanceFrontiers(cfg);
+			var domAnalysis = new DominanceAnalysis(cfg);
+			domAnalysis.Analyze();
+			domAnalysis.GenerateDominanceTree();
+
+			var loopAnalysis = new NaturalLoopAnalysis(cfg);
+			loopAnalysis.Analyze();
+
+			var domFrontierAnalysis = new DominanceFrontierAnalysis(cfg);
+			domFrontierAnalysis.Analyze();
 
 			var splitter = new WebAnalysis(cfg);
 			splitter.Analyze();
@@ -61,14 +69,18 @@ namespace Console
 			//var pointsTo = new PointsToAnalysis(cfg);
 			//var result = pointsTo.Analyze();
 
-			var ssa = new StaticSingleAssignmentAnalysis(methodBody, cfg);
+			var liveVariables = new LiveVariablesAnalysis(cfg);
+			liveVariables.Analyze();
+
+			var ssa = new StaticSingleAssignment(methodBody, cfg);
 			ssa.Transform();
+			ssa.Prune(liveVariables);
 
 			methodBody.UpdateVariables();
 
 			////var dot = DOTSerializer.Serialize(cfg);
-			var dgml = DGMLSerializer.Serialize(cfg);
-			
+			//var dgml = DGMLSerializer.Serialize(cfg);
+
 			return base.Rewrite(methodDefinition);
 		}
 	}

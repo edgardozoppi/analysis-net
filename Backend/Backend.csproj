@@ -81,6 +81,7 @@
     <Compile Include="Analyses\LiveVariablesAnalysis.cs" />
     <Compile Include="Analyses\NaturalLoopAnalysis.cs" />
     <Compile Include="Analyses\PointsToAnalysis.cs" />
+    <Compile Include="Model\MethodBodyProvider.cs" />
     <Compile Include="Model\MethodReferenceDefinitionComparer.cs" />
     <Compile Include="Model\PointsToGraph.cs" />
     <Compile Include="Analyses\ReachingDefinitionsAnalysis.cs" />

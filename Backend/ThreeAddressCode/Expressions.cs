@@ -605,60 +605,31 @@ namespace Backend.ThreeAddressCode.Expressions
 
 	public class CreateObjectExpression : IExpression
 	{
-		public IMethodReference Constructor { get; set; }
-		public IList<IVariable> Arguments { get; private set; }
+		public ITypeReference AllocationType { get; set; }
 
-		public CreateObjectExpression(IMethodReference constructor)
+		public CreateObjectExpression(ITypeReference allocationType)
 		{
-			this.Arguments = new List<IVariable>();
-			this.Constructor = constructor;
-		}
-
-		public CreateObjectExpression(IMethodReference constructor, IEnumerable<IVariable> arguments)
-		{
-			this.Arguments = new List<IVariable>(arguments);
-			this.Constructor = constructor;
+			this.AllocationType = allocationType;
 		}
 
 		public ITypeReference Type
 		{
-			get { return this.Constructor.ContainingType; }
+			get { return this.AllocationType; }
 		}
 
 		public ISet<IVariable> Variables
 		{
-			get { return new HashSet<IVariable>(this.Arguments); }
+			get { return new HashSet<IVariable>(); }
 		}
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
-			for (var i = 0; i < this.Arguments.Count; ++i)
-			{
-				var argument = this.Arguments[i];
-				if (argument.Equals(oldvar)) this.Arguments[i] = newvar;
-			}
 		}
 
 		public IExpression Replace(IExpression oldexpr, IExpression newexpr)
 		{
 			if (this.Equals(oldexpr)) return newexpr;
-			var result = this;
-
-			if (oldexpr is IVariable && newexpr is IVariable)
-			{
-				var oldvar = oldexpr as IVariable;
-				var newvar = newexpr as IVariable;
-				result = new CreateObjectExpression(this.Constructor);
-
-				foreach (var argument in this.Arguments)
-				{
-					var variable = argument;
-					if (argument.Equals(oldvar)) variable = newvar;
-					result.Arguments.Add(variable);
-				}
-			}
-
-			return result;
+			return this;
 		}
 
 		IExpression IExpressible.ToExpression()
@@ -672,22 +643,17 @@ namespace Backend.ThreeAddressCode.Expressions
 			var other = obj as CreateObjectExpression;
 
 			return other != null &&
-				this.Constructor.Equals(other.Constructor) &&
-				this.Arguments.SequenceEqual(other.Arguments);
+				this.AllocationType.Equals(other.AllocationType);
 		}
 
 		public override int GetHashCode()
 		{
-			return this.Constructor.GetHashCode() ^
-				this.Arguments.GetHashCode();
+			return this.AllocationType.GetHashCode();
 		}
 
 		public override string ToString()
 		{
-			var type = TypeHelper.GetTypeName(this.Constructor.ContainingType);
-			var arguments = string.Join(", ", this.Arguments.Skip(1));
-
-			return string.Format("new {0}({1});", type, arguments);
+			return string.Format("new {0};", this.AllocationType);
 		}
 	}
 
@@ -695,14 +661,14 @@ namespace Backend.ThreeAddressCode.Expressions
 	{
 		public ITypeReference ElementType { get; set; }
 		public uint Rank { get; set; }
-		public IList<IVariable> LowerBounds { get; private set; }
+		//public IList<IVariable> LowerBounds { get; private set; }
 		public IList<IVariable> Sizes { get; private set; }
 
 		public CreateArrayExpression(ITypeReference elementType, uint rank)
 		{
 			this.ElementType = elementType;
 			this.Rank = rank;
-			this.LowerBounds = new List<IVariable>();
+			//this.LowerBounds = new List<IVariable>();
 			this.Sizes = new List<IVariable>();
 		}
 
@@ -710,7 +676,7 @@ namespace Backend.ThreeAddressCode.Expressions
 		{
 			this.ElementType = elementType;
 			this.Rank = rank;
-			this.LowerBounds = new List<IVariable>(lowerBounds);
+			//this.LowerBounds = new List<IVariable>(lowerBounds);
 			this.Sizes = new List<IVariable>(sizes);
 		}
 
@@ -724,7 +690,7 @@ namespace Backend.ThreeAddressCode.Expressions
 			get
 			{
 				var result = new HashSet<IVariable>();
-				result.UnionWith(this.LowerBounds);
+				//result.UnionWith(this.LowerBounds);
 				result.UnionWith(this.Sizes);
 				return result;
 			}
@@ -732,11 +698,11 @@ namespace Backend.ThreeAddressCode.Expressions
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
-			for (var i = 0; i < this.LowerBounds.Count; ++i)
-			{
-				var bound = this.LowerBounds[i];
-				if (bound.Equals(oldvar)) this.LowerBounds[i] = newvar;
-			}
+			//for (var i = 0; i < this.LowerBounds.Count; ++i)
+			//{
+			//	var bound = this.LowerBounds[i];
+			//	if (bound.Equals(oldvar)) this.LowerBounds[i] = newvar;
+			//}
 
 			for (var i = 0; i < this.Sizes.Count; ++i)
 			{
@@ -756,12 +722,12 @@ namespace Backend.ThreeAddressCode.Expressions
 				var newvar = newexpr as IVariable;
 				result = new CreateArrayExpression(this.ElementType, this.Rank);
 
-				foreach (var bound in this.LowerBounds)
-				{
-					var variable = bound;
-					if (bound.Equals(oldvar)) variable = newvar;
-					result.LowerBounds.Add(variable);
-				}
+				//foreach (var bound in this.LowerBounds)
+				//{
+				//	var variable = bound;
+				//	if (bound.Equals(oldvar)) variable = newvar;
+				//	result.LowerBounds.Add(variable);
+				//}
 
 				foreach (var size in this.Sizes)
 				{
@@ -787,7 +753,7 @@ namespace Backend.ThreeAddressCode.Expressions
 			return other != null &&
 				this.ElementType.Equals(other.ElementType) &&
 				this.Rank.Equals(other.Rank) &&
-				this.LowerBounds.SequenceEqual(other.LowerBounds) &&
+				//this.LowerBounds.SequenceEqual(other.LowerBounds) &&
 				this.Sizes.SequenceEqual(other.Sizes);
 		}
 
@@ -795,7 +761,7 @@ namespace Backend.ThreeAddressCode.Expressions
 		{
 			return this.ElementType.GetHashCode() ^
 				this.Rank.GetHashCode() ^
-				this.LowerBounds.GetHashCode() ^
+				//this.LowerBounds.GetHashCode() ^
 				this.Sizes.GetHashCode();
 		}
 
