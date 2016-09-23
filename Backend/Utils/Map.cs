@@ -121,6 +121,11 @@ namespace Backend.Utils
 		{
 		}
 
+		public MapSet(MapSet<TKey, TValue> other)
+		{
+			this.AddRange(other);
+		}
+
 		public MapSet(IEnumerable<KeyValuePair<TKey, IEnumerable<TValue>>> other)
 			: base(other)
 		{
@@ -129,6 +134,14 @@ namespace Backend.Utils
 		public MapSet(IEnumerable<KeyValuePair<TKey, TValue>> other)
 			: base(other)
 		{
+		}
+
+		public void UnionWith(MapSet<TKey, TValue> other)
+		{
+			foreach (var entry in other)
+			{
+				this.AddRange(entry.Key, entry.Value);
+			}
 		}
 
 		protected override bool ValueEquals(HashSet<TValue> a, HashSet<TValue> b)
