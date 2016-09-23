@@ -34,29 +34,17 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Cci.ILGenerator">
-      <HintPath>..\Dependencies\Microsoft.Cci.ILGenerator.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Cci.MetadataHelper">
       <HintPath>..\Dependencies\Microsoft.Cci.MetadataHelper.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Cci.MetadataModel">
       <HintPath>..\Dependencies\Microsoft.Cci.MetadataModel.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Cci.MutableMetadataModel">
-      <HintPath>..\Dependencies\Microsoft.Cci.MutableMetadataModel.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Cci.PdbReader">
       <HintPath>..\Dependencies\Microsoft.Cci.PdbReader.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Cci.PdbWriter">
-      <HintPath>..\Dependencies\Microsoft.Cci.PdbWriter.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Cci.PeReader">
       <HintPath>..\Dependencies\Microsoft.Cci.PeReader.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.PeWriter">
-      <HintPath>..\Dependencies\Microsoft.Cci.PeWriter.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Cci.SourceModel">
       <HintPath>..\Dependencies\Microsoft.Cci.SourceModel.dll</HintPath>

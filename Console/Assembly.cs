@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using Microsoft.Cci;
-using Microsoft.Cci.MutableCodeModel;
 
 namespace Console
 {
@@ -49,23 +48,23 @@ namespace Console
 			this.IsLoaded = true;
 		}
 
-		public void Save(string fileName)
-		{
-			var pdbName = Path.ChangeExtension(fileName, "pdb");
+		//public void Save(string fileName)
+		//{
+		//	var pdbName = Path.ChangeExtension(fileName, "pdb");
 
-			using (var peStream = File.Create(fileName))
-			{
-				if (this.PdbReader == null)
-				{
-					PeWriter.WritePeToStream(this.Module, this.Host, peStream);
-				}
-				else
-				{
-					using (var pdbWriter = new PdbWriter(pdbName, this.PdbReader))
-						PeWriter.WritePeToStream(this.Module, this.Host, peStream, this.PdbReader, this.PdbReader, pdbWriter);
-				}
-			}
-		}
+		//	using (var peStream = File.Create(fileName))
+		//	{
+		//		if (this.PdbReader == null)
+		//		{
+		//			PeWriter.WritePeToStream(this.Module, this.Host, peStream);
+		//		}
+		//		else
+		//		{
+		//			using (var pdbWriter = new PdbWriter(pdbName, this.PdbReader))
+		//				PeWriter.WritePeToStream(this.Module, this.Host, peStream, this.PdbReader, this.PdbReader, pdbWriter);
+		//		}
+		//	}
+		//}
 
 		public void Unload()
 		{

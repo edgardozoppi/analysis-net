@@ -30,7 +30,7 @@ namespace Console
 				//extractor.Extract(assembly.Module);
 
 				var visitor = new MethodVisitor(host, assembly.PdbReader);
-				visitor.Rewrite(assembly.Module);
+				visitor.Traverse(assembly.Module);
 			}
 
 			System.Console.WriteLine("Done!");

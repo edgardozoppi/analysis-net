@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Microsoft.Cci.MutableCodeModel;
 using Microsoft.Cci;
 using Backend;
 using Backend.Analyses;
@@ -14,17 +13,18 @@ using Backend.Transformations;
 
 namespace Console
 {
-	class MethodVisitor : MetadataRewriter
+	class MethodVisitor : MetadataTraverser
 	{
+		private IMetadataHost host;
 		private ISourceLocationProvider sourceLocationProvider;
 
 		public MethodVisitor(IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
-			: base(host)
 		{
+			this.host = host;
 			this.sourceLocationProvider = sourceLocationProvider;
 		}
 
-		public override IMethodDefinition Rewrite(IMethodDefinition methodDefinition)
+		public override void TraverseChildren(IMethodDefinition methodDefinition)
 		{
 			var signature = MemberHelper.GetMethodSignature(methodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.ParameterName); 
 			System.Console.WriteLine(signature);
@@ -80,8 +80,6 @@ namespace Console
 
 			////var dot = DOTSerializer.Serialize(cfg);
 			//var dgml = DGMLSerializer.Serialize(cfg);
-
-			return base.Rewrite(methodDefinition);
 		}
 	}
 }
