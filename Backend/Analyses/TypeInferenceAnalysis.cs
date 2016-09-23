@@ -9,6 +9,7 @@ using Backend.Visitors;
 using Microsoft.Cci;
 using Backend.Model;
 using Backend.ThreeAddressCode.Values;
+using Backend.Utils;
 
 namespace Backend.Analyses
 {
@@ -69,18 +70,18 @@ namespace Backend.Analyses
 				// or set it to System.Object if it is never used.
 				if (operandAsConstant != null &&
 					operandAsConstant.Value == null)
-                {
+				{
 					//instruction.Result.Type = PlatformTypes.Object;
 				}
-                // If we have variable to variable assignment where the result was assigned
-                // a type but the operand was not, then we set the operand type accordingly.
-                else if (operandAsVariable != null &&
+				// If we have variable to variable assignment where the result was assigned
+				// a type but the operand was not, then we set the operand type accordingly.
+				else if (operandAsVariable != null &&
 						 operandAsVariable.Type == null)
-                {
-                    operandAsVariable.Type = instruction.Result.Type;
-                }
-                else
-                {
+				{
+					operandAsVariable.Type = instruction.Result.Type;
+				}
+				else
+				{
 					instruction.Result.Type = instruction.Operand.Type;
 				}
 			}
@@ -93,10 +94,10 @@ namespace Backend.Analyses
 			public override void Visit(StoreInstruction instruction)
 			{
 				// Set the null variable a type.
-                if (instruction.Operand.Type == null)
-                {
-                    instruction.Operand.Type = instruction.Result.Type;
-                }
+				if (instruction.Operand.Type == null)
+				{
+					instruction.Operand.Type = instruction.Result.Type;
+				}
 			}
 
 			public override void Visit(UnaryInstruction instruction)
@@ -165,7 +166,7 @@ namespace Backend.Analyses
 					case BinaryOperation.Shr:
 						instruction.Result.Type = left;
 						break;
-						
+
 					case BinaryOperation.Eq:
 					case BinaryOperation.Gt:
 					case BinaryOperation.Lt:
@@ -189,13 +190,63 @@ namespace Backend.Analyses
 			var inferer = new TypeInferencer();
 			var sorted_nodes = cfg.ForwardOrder;
 
-			// TODO: Propagate types over the CFG until a fixpoint is reached (i.e. when types do not change)
-
 			for (var i = 0; i < sorted_nodes.Length; ++i)
 			{
 				var node = sorted_nodes[i];
 				inferer.Visit(node);
 			}
+
+			//// TODO: Propagate types over the CFG until a fixpoint is reached (i.e. when types do not change)
+			//IDictionary<IVariable, ITypeReference> fixedPoint;
+			//
+			//do
+			//{
+			//	fixedPoint = GetTypeInferenceResult();
+			//
+			//	for (var i = 0; i < sorted_nodes.Length; ++i)
+			//	{
+			//		var node = sorted_nodes[i];
+			//		inferer.Visit(node);
+			//	}
+			//}
+			//while (!FixedPointReached(fixedPoint));
+		}
+
+		private IDictionary<IVariable, ITypeReference> GetTypeInferenceResult()
+		{
+			var result = new Dictionary<IVariable, ITypeReference>();
+			var variables = cfg.GetVariables();
+
+			foreach (var variable in variables)
+			{
+				result[variable] = variable.Type;
+			}
+
+			return result;
+		}
+
+		private bool FixedPointReached(IDictionary<IVariable, ITypeReference> oldTypes)
+		{
+			var variables = cfg.GetVariables();
+
+			foreach (var variable in variables)
+			{
+				var oldType = oldTypes[variable];
+				var newType = variable.Type;
+
+				// this also covers null == null
+				if (oldType == newType)
+					continue;
+
+				if (oldType == null || newType == null)
+					return false;
+
+				// double-check
+				if (!TypeHelper.TypesAreEquivalent(oldType, newType, true))
+					return false;
+			}
+
+			return true;
 		}
 	}
 }
