@@ -26,9 +26,6 @@ namespace Console
 
 				Types.Initialize(host);
 
-				//var extractor = new TypesExtractor(host);
-				//extractor.Extract(assembly.Module);
-
 				var visitor = new MethodVisitor(host, assembly.PdbReader);
 				visitor.Traverse(assembly.Module);
 			}

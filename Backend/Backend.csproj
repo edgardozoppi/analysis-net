@@ -84,10 +84,7 @@
     <Compile Include="MethodBody.cs" />
     <Compile Include="ThreeAddressCode\Operands.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ThreeAddressCode\TypeDefinitions.cs" />
-    <Compile Include="ThreeAddressCode\Types.cs" />
     <Compile Include="Types.cs" />
-    <Compile Include="TypesExtractor.cs" />
     <Compile Include="Utils\OperationHelper.cs" />
     <Compile Include="Utils\Exceptions.cs" />
     <Compile Include="Serialization\DGMLSerializer.cs" />
