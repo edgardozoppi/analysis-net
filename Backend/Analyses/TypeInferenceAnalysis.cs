@@ -216,26 +216,26 @@ namespace Backend.Analyses
 			var inferer = new TypeInferencer();
 			var sorted_nodes = cfg.ForwardOrder;
 
-			for (var i = 0; i < sorted_nodes.Length; ++i)
-			{
-				var node = sorted_nodes[i];
-				inferer.Visit(node);
-			}
-
-			// Propagate types over the CFG until a fixedpoint is reached (i.e. when types do not change)
-			//IDictionary<IVariable, ITypeReference> fixedPoint;
-			//
-			//do
+			//for (var i = 0; i < sorted_nodes.Length; ++i)
 			//{
-			//	fixedPoint = GetTypeInferenceResult();
-			//
-			//	for (var i = 0; i < sorted_nodes.Length; ++i)
-			//	{
-			//		var node = sorted_nodes[i];
-			//		inferer.Visit(node);
-			//	}
+			//	var node = sorted_nodes[i];
+			//	inferer.Visit(node);
 			//}
-			//while (!FixedPointReached(fixedPoint));
+
+			// Propagate types over the CFG until a fixedpoint is reached (i.e. when types do not change anymore)
+			IDictionary<IVariable, ITypeReference> fixedPoint;
+
+			do
+			{
+				fixedPoint = GetTypeInferenceResult();
+
+				for (var i = 0; i < sorted_nodes.Length; ++i)
+				{
+					var node = sorted_nodes[i];
+					inferer.Visit(node);
+				}
+			}
+			while (!FixedPointReached(fixedPoint));
 		}
 
 		private IDictionary<IVariable, ITypeReference> GetTypeInferenceResult()
