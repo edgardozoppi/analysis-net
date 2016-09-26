@@ -88,7 +88,11 @@ namespace Backend.Analyses
 							Instruction = instruction
 						};
 
-						copiesToRemove.Add(definition.Result, location);
+						// TODO: Check this, not sure if this is the right fix.
+						if (!copiesToRemove.ContainsKey(definition.Result))
+						{
+							copiesToRemove.Add(definition.Result, location);
+						}
 					}
 				}
 			}
