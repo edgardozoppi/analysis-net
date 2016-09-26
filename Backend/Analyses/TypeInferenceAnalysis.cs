@@ -9,6 +9,7 @@ using Model.ThreeAddressCode.Instructions;
 using Model.ThreeAddressCode.Visitor;
 using Backend.Model;
 using Model.ThreeAddressCode.Values;
+using Backend.Utils;
 
 namespace Backend.Analyses
 {
@@ -49,6 +50,19 @@ namespace Backend.Analyses
 				{
 					instruction.Result.Type = instruction.Method.ReturnType;
 				}
+
+				for (var i = 0; i < instruction.Arguments.Count; ++i)
+				{
+					var argument = instruction.Arguments[i];
+
+					// Set the null variable a type.
+					if (argument.Type == null)
+					{
+						var parameter = instruction.Method.Parameters.ElementAt(i);
+
+						argument.Type = parameter.Type;
+					}
+				}
 			}
 
 			public override void Visit(IndirectMethodCallInstruction instruction)
@@ -56,6 +70,19 @@ namespace Backend.Analyses
 				if (instruction.HasResult)
 				{
 					instruction.Result.Type = instruction.Function.ReturnType;
+				}
+
+				for (var i = 0; i < instruction.Arguments.Count; ++i)
+				{
+					var argument = instruction.Arguments[i];
+
+					// Set the null variable a type.
+					if (argument.Type == null)
+					{
+						var parameter = instruction.Function.Parameters.ElementAt(i);
+
+						argument.Type = parameter.Type;
+					}
 				}
 			}
 
@@ -69,20 +96,20 @@ namespace Backend.Analyses
 				// or set it to System.Object if it is never used.
 				if (operandAsConstant != null &&
 					operandAsConstant.Value == null)
-                {
+				{
 					//instruction.Result.Type = PlatformTypes.Object;
 				}
-                // If we have variable to variable assignment where the result was assigned
-                // a type but the operand was not, then we set the operand type accordingly.
-                else if (operandAsVariable != null &&
+				// If we have variable to variable assignment where the result was assigned
+				// a type but the operand was not, then we set the operand type accordingly.
+				else if (operandAsVariable != null &&
 						 operandAsVariable.Type == null)
-                {
-                    operandAsVariable.Type = instruction.Result.Type;
-                }
-                else
-                {
-                    instruction.Result.Type = instruction.Operand.Type;
-                }
+				{
+					operandAsVariable.Type = instruction.Result.Type;
+				}
+				else
+				{
+					instruction.Result.Type = instruction.Operand.Type;
+				}
 			}
 
 			public override void Visit(LoadTokenInstruction instruction)
@@ -93,10 +120,10 @@ namespace Backend.Analyses
 			public override void Visit(StoreInstruction instruction)
 			{
 				// Set the null variable a type.
-                if (instruction.Operand.Type == null)
-                {
-                    instruction.Operand.Type = instruction.Result.Type;
-                }
+				if (instruction.Operand.Type == null)
+				{
+					instruction.Operand.Type = instruction.Result.Type;
+				}
 			}
 
 			public override void Visit(UnaryInstruction instruction)
@@ -165,7 +192,7 @@ namespace Backend.Analyses
 					case BinaryOperation.Shr:
 						instruction.Result.Type = left;
 						break;
-						
+
 					case BinaryOperation.Eq:
 					case BinaryOperation.Gt:
 					case BinaryOperation.Lt:
@@ -189,13 +216,63 @@ namespace Backend.Analyses
 			var inferer = new TypeInferencer();
 			var sorted_nodes = cfg.ForwardOrder;
 
-			// TODO: Propagate types over the CFG until a fixpoint is reached (i.e. when types do not change)
-
 			for (var i = 0; i < sorted_nodes.Length; ++i)
 			{
 				var node = sorted_nodes[i];
 				inferer.Visit(node);
 			}
+
+			// Propagate types over the CFG until a fixedpoint is reached (i.e. when types do not change)
+			//IDictionary<IVariable, ITypeReference> fixedPoint;
+			//
+			//do
+			//{
+			//	fixedPoint = GetTypeInferenceResult();
+			//
+			//	for (var i = 0; i < sorted_nodes.Length; ++i)
+			//	{
+			//		var node = sorted_nodes[i];
+			//		inferer.Visit(node);
+			//	}
+			//}
+			//while (!FixedPointReached(fixedPoint));
+		}
+
+		private IDictionary<IVariable, IType> GetTypeInferenceResult()
+		{
+			var result = new Dictionary<IVariable, IType>();
+			var variables = cfg.GetVariables();
+
+			foreach (var variable in variables)
+			{
+				result[variable] = variable.Type;
+			}
+
+			return result;
+		}
+
+		private bool FixedPointReached(IDictionary<IVariable, IType> oldTypes)
+		{
+			var variables = cfg.GetVariables();
+
+			foreach (var variable in variables)
+			{
+				var oldType = oldTypes[variable];
+				var newType = variable.Type;
+
+				// this also covers null == null
+				if (oldType == newType)
+					continue;
+
+				if (oldType == null || newType == null)
+					return false;
+
+				// double-check
+				if (oldType.Equals(newType))
+					return false;
+			}
+
+			return true;
 		}
 	}
 }
