@@ -50,6 +50,19 @@ namespace Backend.Analyses
 				{
 					instruction.Result.Type = instruction.Method.Type;
 				}
+
+				for (var i = 0; i < instruction.Arguments.Count; ++i)
+				{
+					var argument = instruction.Arguments[i];
+
+					// Set the null variable a type.
+					if (argument.Type == null)
+					{
+						var parameter = instruction.Method.Parameters.ElementAt(i);
+
+						argument.Type = parameter.Type;
+					}
+				}
 			}
 
 			public override void Visit(IndirectMethodCallInstruction instruction)
@@ -57,6 +70,19 @@ namespace Backend.Analyses
 				if (instruction.HasResult)
 				{
 					instruction.Result.Type = instruction.Function.Type;
+				}
+
+				for (var i = 0; i < instruction.Arguments.Count; ++i)
+				{
+					var argument = instruction.Arguments[i];
+
+					// Set the null variable a type.
+					if (argument.Type == null)
+					{
+						var parameter = instruction.Function.Parameters.ElementAt(i);
+
+						argument.Type = parameter.Type;
+					}
 				}
 			}
 
@@ -196,7 +222,7 @@ namespace Backend.Analyses
 				inferer.Visit(node);
 			}
 
-			//// TODO: Propagate types over the CFG until a fixpoint is reached (i.e. when types do not change)
+			// Propagate types over the CFG until a fixedpoint is reached (i.e. when types do not change)
 			//IDictionary<IVariable, ITypeReference> fixedPoint;
 			//
 			//do
