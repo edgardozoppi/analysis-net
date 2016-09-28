@@ -36,8 +36,8 @@ namespace Console
 			//System.Console.WriteLine();
 
 			var cfAnalysis = new ControlFlowAnalysis(methodBody);
-			var cfg = cfAnalysis.GenerateNormalControlFlow();
-			//var cfg = cfAnalysis.GenerateExceptionalControlFlow();
+			//var cfg = cfAnalysis.GenerateNormalControlFlow();
+			var cfg = cfAnalysis.GenerateExceptionalControlFlow();
 
 			var domAnalysis = new DominanceAnalysis(cfg);
 			domAnalysis.Analyze();
