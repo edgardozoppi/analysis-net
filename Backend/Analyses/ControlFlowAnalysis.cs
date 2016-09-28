@@ -14,7 +14,6 @@ namespace Backend.Analyses
 	public class ControlFlowAnalysis
 	{
 		private MethodBody methodBody;
-		private MapSet<string, ExceptionHandlerBlock> exceptionHandlersStart;
 
 		public ControlFlowAnalysis(MethodBody methodBody)
 		{
@@ -23,8 +22,6 @@ namespace Backend.Analyses
 
 		public ControlFlowGraph GenerateNormalControlFlow()
 		{
-			exceptionHandlersStart = GetExceptionHandlersStart();
-
 			var instructions = FilterExceptionHandlers();
 			var leaders = CreateNodes(instructions);
 			var cfg = ConnectNodes(instructions, leaders);
@@ -34,8 +31,6 @@ namespace Backend.Analyses
 
 		public ControlFlowGraph GenerateExceptionalControlFlow()
 		{
-			exceptionHandlersStart = GetExceptionHandlersStart();
-
 			var instructions = methodBody.Instructions;
 			var leaders = CreateNodes(instructions);
 			var cfg = ConnectNodes(instructions, leaders);
@@ -202,6 +197,7 @@ namespace Backend.Analyses
 			var activeRegions = new List<CFGRegion>();
 			var exceptionHandlerRegions = new Dictionary<ExceptionHandlerBlock, CFGRegion>();
 
+			var exceptionHandlersStart = GetExceptionHandlersStart();
 			var exceptionHandlersEnd = GetExceptionHandlersEnd();
 			var orderedLeaders = from entry in leaders
 								 orderby entry.Value.StartOffset()
