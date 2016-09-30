@@ -47,7 +47,7 @@ namespace CCIProvider
 			var type = new InterfaceDefinition(name);
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
-			ExtractGenericParameters(type, type.GenericParameters, typedef.GenericParameters);
+			ExtractGenericTypeParameters(type, typedef);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractMethods(type, type.Methods, typedef.Methods, sourceLocationProvider);
 
@@ -69,7 +69,7 @@ namespace CCIProvider
 			type.IsDelegate = typedef.IsDelegate;
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
-			ExtractGenericParameters(type, type.GenericParameters, typedef.GenericParameters);
+			ExtractGenericTypeParameters(type, typedef);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractFields(type, type.Fields, typedef.Fields);
 			ExtractMethods(type, type.Methods, typedef.Methods, sourceLocationProvider);
@@ -83,7 +83,7 @@ namespace CCIProvider
 			var type = new StructDefinition(name);
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
-			ExtractGenericParameters(type, type.GenericParameters, typedef.GenericParameters);
+			ExtractGenericTypeParameters(type, typedef);
 			ExtractInterfaces(type.Interfaces, typedef.Interfaces);
 			ExtractFields(type, type.Fields, typedef.Fields);
 			ExtractMethods(type, type.Methods, typedef.Methods, sourceLocationProvider);
@@ -105,9 +105,14 @@ namespace CCIProvider
 				var ptyperef = typeref as Cci.IPointerTypeReference;
 				result = ExtractType(ptyperef);
 			}
-			else if (typeref is Cci.IGenericParameterReference)
+			else if (typeref is Cci.IGenericTypeParameterReference)
 			{
-				var gptyperef = typeref as Cci.IGenericParameterReference;
+				var gptyperef = typeref as Cci.IGenericTypeParameterReference;
+				result = ExtractType(gptyperef);
+			}
+			else if (typeref is Cci.IGenericMethodParameterReference)
+			{
+				var gptyperef = typeref as Cci.IGenericMethodParameterReference;
 				result = ExtractType(gptyperef);
 			}
 			else if (typeref is Cci.IGenericTypeInstanceReference)
@@ -149,6 +154,49 @@ namespace CCIProvider
 		{
 			var target = ExtractType(typeref.TargetType);
 			var type = new PointerType(target);
+
+			ExtractAttributes(type.Attributes, typeref.Attributes);
+
+			return type;
+		}
+
+		public IGenericParameterReference ExtractType(Cci.IGenericTypeParameterReference typeref)
+		{
+			var containingType = GetContainingType(typeref.DefiningType);
+			var startIndex = TotalGenericParameterCount(containingType);
+			var name = typeref.Name.Value;
+			var index = (ushort)(startIndex + typeref.Index);
+			var type = new GenericParameterReference(GenericParameterKind.Type, index, name);
+
+			ExtractAttributes(type.Attributes, typeref.Attributes);
+
+			return type;
+		}
+
+		private Cci.ITypeReference GetContainingType(Cci.ITypeReference typeref)
+		{
+			Cci.ITypeReference result = null;
+
+			if (typeref is Cci.IGenericTypeInstanceReference)
+			{
+				var genericTyperef = typeref as Cci.IGenericTypeInstanceReference;
+				typeref = genericTyperef.GenericType;
+			}
+
+			if (typeref is Cci.INestedTypeReference)
+			{
+				var nestedTyperef = typeref as Cci.INestedTypeReference;
+				result = nestedTyperef.ContainingType;
+			}
+
+			return result;
+		}
+
+		public IGenericParameterReference ExtractType(Cci.IGenericMethodParameterReference typeref)
+		{
+			var name = typeref.Name.Value;
+			var index = typeref.Index;
+			var type = new GenericParameterReference(GenericParameterKind.Method, index, name);
 
 			ExtractAttributes(type.Attributes, typeref.Attributes);
 
@@ -208,7 +256,8 @@ namespace CCIProvider
 				}
 				else
 				{
-					typeref = null;
+					//typeref = null;
+					break;
 				}
 			}
 
@@ -217,7 +266,15 @@ namespace CCIProvider
 
 		public IBasicType ExtractType(Cci.IGenericTypeInstanceReference typeref)
 		{
-			var genericType = ExtractType(typeref.GenericType);
+			var genericTyperef = typeref.GenericType;
+
+			if (genericTyperef is Cci.ISpecializedNestedTypeReference)
+			{
+				var specializedTyperef = genericTyperef as Cci.ISpecializedNestedTypeReference;
+				genericTyperef = specializedTyperef.UnspecializedVersion;
+			}
+
+			var genericType = ExtractType(genericTyperef);
             var type = ExtractType(typeref.GenericType, false);
 			type.GenericType = genericType;
 			ExtractGenericType(type, typeref);
@@ -256,15 +313,7 @@ namespace CCIProvider
 				{
 					var nestedTyperef = typeref as Cci.INestedTypeReference;
 					newType.ContainingType = (IBasicType)ExtractType(nestedTyperef.ContainingType);
-				}
-
-				for (var i = 0; i < newType.GenericParameterCount; ++i)
-				{
-					var startIndex = newType.ContainingType.TotalGenericParameterCount();
-					var parameterName = string.Format("T{0}", startIndex + i);
-					var parameter = new GenericParameter(GenericParameterKind.Type, (ushort)i, parameterName);
-
-					newType.GenericArguments.Add(parameter);
+					newType.GenericParameterCount += newType.ContainingType.GenericParameterCount;
 				}
 
 				if (type == null)
@@ -400,25 +449,23 @@ namespace CCIProvider
 
             if (methodref is Cci.IGenericMethodInstanceReference)
             {
-                var genericMethodref = methodref as Cci.IGenericMethodInstanceReference;
-                method.GenericMethod = ExtractReference(genericMethodref.GenericMethod);
+                var genericInstanceMethodref = methodref as Cci.IGenericMethodInstanceReference;
 
-                foreach (var typeParameterref in genericMethodref.GenericArguments)
+                foreach (var typeParameterref in genericInstanceMethodref.GenericArguments)
                 {
                     var typeArgumentref = ExtractType(typeParameterref);
                     method.GenericArguments.Add(typeArgumentref);
                 }
-            }
-			else
-			{
-				for (var i = 0; i < method.GenericParameterCount; ++i)
-				{
-					var startIndex = method.ContainingType.TotalGenericParameterCount();
-					var parameterName = string.Format("T{0}", startIndex + i);
-					var parameter = new GenericParameter(GenericParameterKind.Type, (ushort)i, parameterName);
 
-					method.GenericArguments.Add(parameter);
+				var genericMethodref = genericInstanceMethodref.GenericMethod;
+
+				if (genericMethodref is Cci.ISpecializedMethodReference)
+				{
+					var specializedMethodref = genericMethodref as Cci.ISpecializedMethodReference;
+					genericMethodref = specializedMethodref.UnspecializedVersion;
 				}
+
+				method.GenericMethod = ExtractReference(genericMethodref);
 			}
 
 			return method;
@@ -476,7 +523,10 @@ namespace CCIProvider
 
 		private void ExtractGenericType(BasicType type, Cci.IGenericTypeInstanceReference typeref)
 		{
-			type.GenericArguments.Clear();
+			if (type.ContainingType != null)
+			{
+				type.GenericArguments.AddRange(type.ContainingType.GenericArguments);
+			}
 
 			foreach (var argumentref in typeref.GenericArguments)
 			{
@@ -554,7 +604,7 @@ namespace CCIProvider
 				var method = new MethodDefinition(name, type);
 
 				ExtractAttributes(method.Attributes, methoddef.Attributes);
-				ExtractGenericParameters(method, method.GenericParameters, methoddef.GenericParameters);
+				ExtractGenericMethodParameters(method, methoddef);
 				ExtractParameters(method.Parameters, methoddef.Parameters);
 				ExtractBody(method.Body, methoddef.Body, sourceLocationProvider);
 
@@ -567,20 +617,62 @@ namespace CCIProvider
 			}
 		}
 
-		private void ExtractGenericParameters(IGenericDefinition genericContainer, IList<GenericParameter> dest, IEnumerable<Cci.IGenericParameter> source)
+		private void ExtractGenericTypeParameters(IGenericDefinition definingType, Cci.INamedTypeDefinition typedef)
 		{
-			foreach (var parameterdef in source)
+			var allGenericTypeParameters = GetAllGenericTypeParameters(typedef);
+
+			for (var i = 0; i < allGenericTypeParameters.Count; ++i)
 			{
-				var index = parameterdef.Index;
+				var parameterdef = allGenericTypeParameters[i];
+				//var index = parameterdef.Index;
+				var index = (ushort)i;
 				var name = parameterdef.Name.Value;
-				var kind = GetGenericParameterKind(parameterdef);
 				var typeKind = GetGenericParameterTypeKind(parameterdef);
-				var parameter = new GenericParameter(kind, index, name, typeKind);
+				var parameter = new GenericParameter(GenericParameterKind.Type, index, name, typeKind);
 
 				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 
-				parameter.GenericContainer = genericContainer;
-				dest.Add(parameter);
+				parameter.GenericContainer = definingType;
+				definingType.GenericParameters.Add(parameter);
+			}
+		}
+
+		private static IList<Cci.IGenericTypeParameter> GetAllGenericTypeParameters(Cci.ITypeDefinition typedef)
+		{
+			var result = new List<Cci.IGenericTypeParameter>();
+
+			while (typedef != null)
+			{
+				result.InsertRange(0, typedef.GenericParameters);
+
+				if (typedef is Cci.INestedTypeDefinition)
+				{
+					var nestedTypedef = typedef as Cci.INestedTypeDefinition;
+					typedef = nestedTypedef.ContainingTypeDefinition;
+				}
+				else
+				{
+					//typedef = null;
+					break;
+				}
+			}
+
+			return result;
+		}
+
+		private void ExtractGenericMethodParameters(IGenericDefinition definingMethod, Cci.IMethodDefinition methoddef)
+		{
+			foreach (var parameterdef in methoddef.GenericParameters)
+			{
+				var index = parameterdef.Index;
+				var name = parameterdef.Name.Value;
+				var typeKind = GetGenericParameterTypeKind(parameterdef);
+				var parameter = new GenericParameter(GenericParameterKind.Method, index, name, typeKind);
+
+				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
+
+				parameter.GenericContainer = definingMethod;
+				definingMethod.GenericParameters.Add(parameter);
 			}
 		}
 

@@ -204,14 +204,14 @@ namespace Console
 
 			var assembly = new AssemblyReference("Test");
 
-			var typeA = new GenericParameterReference(GenericParameterKind.Type, 0, "T0");
-			var typeB = new GenericParameterReference(GenericParameterKind.Type, 0, "T1");
+			var typeA = new GenericParameterReference(GenericParameterKind.Type, 0);
+			var typeB = new GenericParameterReference(GenericParameterKind.Type, 1);
 
-			var type = new BasicType("NestedClass")
+			var typeNestedClass = new BasicType("NestedClass")
 			{
 				ContainingAssembly = assembly,
 				ContainingNamespace = "Test",
-				GenericParameterCount = 1,
+				GenericParameterCount = 2,
 				ContainingType = new BasicType("ExamplesGenerics")
 				{
 					ContainingAssembly = assembly,
@@ -220,13 +220,18 @@ namespace Console
 				}				
 			};
 
-			type.ContainingType.GenericArguments.Add(typeA);
-			type.GenericArguments.Add(typeB);
+			//typeNestedClass.ContainingType.GenericArguments.Add(typeA);
+			//typeNestedClass.GenericArguments.Add(typeB);
 
-			var typeDefinition = host.ResolveReference(type);
+			var typeDefinition = host.ResolveReference(typeNestedClass);
 
-			var typeK = new GenericParameterReference(GenericParameterKind.Method, 0, "T2");
-			var typeV = new GenericParameterReference(GenericParameterKind.Method, 1, "T3");
+			if (typeDefinition == null)
+			{
+				System.Console.WriteLine("[Error] Cannot resolve type:\n{0}", typeNestedClass);
+			}
+
+			var typeK = new GenericParameterReference(GenericParameterKind.Method, 0);
+			var typeV = new GenericParameterReference(GenericParameterKind.Method, 1);
 
 			var typeKeyValuePair = new BasicType("KeyValuePair")
 			{
@@ -238,27 +243,54 @@ namespace Console
 			typeKeyValuePair.GenericArguments.Add(typeK);
 			typeKeyValuePair.GenericArguments.Add(typeV);
 
-			var method = new MethodReference("ExampleGenericMethod", typeKeyValuePair)
+			var methodExampleGenericMethod = new MethodReference("ExampleGenericMethod", typeKeyValuePair)
 			{
-				ContainingType = type,
+				ContainingType = typeNestedClass,
 				GenericParameterCount = 2
 			};
 
-			method.GenericArguments.Add(typeK);
-			method.GenericArguments.Add(typeV);
+			//methodExampleGenericMethod.GenericArguments.Add(typeK);
+			//methodExampleGenericMethod.GenericArguments.Add(typeV);
 
-			method.Parameters.Add(new MethodParameterReference(typeA));
-			method.Parameters.Add(new MethodParameterReference(typeB));
-			method.Parameters.Add(new MethodParameterReference(typeK));
-			method.Parameters.Add(new MethodParameterReference(typeV));
-			method.Parameters.Add(new MethodParameterReference(typeKeyValuePair));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeA));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeB));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeK));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeV));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeKeyValuePair));
 
-			var methodDefinition = host.ResolveReference(method) as MethodDefinition;
+			var methodDefinition = host.ResolveReference(methodExampleGenericMethod) as MethodDefinition;
+
+			if (methodDefinition == null)
+			{
+				System.Console.WriteLine("[Error] Cannot resolve method:\n{0}", methodExampleGenericMethod);
+			}
+
+			var methodExample = new MethodReference("Example", PlatformTypes.Void)
+			{
+				ContainingType = new BasicType("ExamplesGenericReferences")
+				{
+					ContainingAssembly = assembly,
+					ContainingNamespace = "Test"
+				}
+			};
+
+			methodDefinition = host.ResolveReference(methodExample) as MethodDefinition;
+
+			if (methodDefinition == null)
+			{
+				System.Console.WriteLine("[Error] Cannot resolve method:\n{0}", methodExample);
+			}
+
 			var calls = methodDefinition.Body.Instructions.OfType<Bytecode.MethodCallInstruction>();
 
 			foreach (var call in calls)
 			{
 				methodDefinition = host.ResolveReference(call.Method) as MethodDefinition;
+
+				if (methodDefinition == null)
+				{
+					System.Console.WriteLine("[Error] Cannot resolve method:\n{0}", call.Method);
+				}
 			}
 		}
 

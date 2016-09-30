@@ -191,11 +191,11 @@ namespace Model.Types
 					arguments = string.Join(", ", this.GenericArguments);
 					arguments = string.Format("<{0}>", arguments);
 				}
-				////else if (this.GenericParameterCount > 0)
-				////{
-				////	arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
-				////	arguments = string.Format("<T{0}>", arguments);
-				////}
+				else if (this.GenericParameterCount > 0)
+				{
+					arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
+					arguments = string.Format("<T{0}>", arguments);
+				}
 				//else if (this.GenericParameterCount > 0)
 				//{
 				//	var startIndex = this.ContainingType.TotalGenericParameterCount();
@@ -464,8 +464,8 @@ namespace Model.Types
 
 	public interface IGenericParameterReference : IType
 	{
-		GenericParameterKind Kind { get; }
 		IGenericReference GenericContainer { get; }
+		GenericParameterKind Kind { get; }
 		ushort Index { get; }
 		string Name { get; }
 	}
@@ -473,41 +473,31 @@ namespace Model.Types
 	public class GenericParameterReference : IGenericParameterReference
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
-		public GenericParameterKind Kind { get; set; }
 		public IGenericReference GenericContainer { get; set; }
+		public GenericParameterKind Kind { get; set; }
 		public ushort Index { get; set; }
-		public string Name { get; set; }
 
-		public GenericParameterReference(GenericParameterKind kind, ushort index, string name)
+		public GenericParameterReference(GenericParameterKind kind, ushort index)
 		{
 			this.Kind = kind;
 			this.Index = index;
-			this.Name = name;
 			this.Attributes = new HashSet<CustomAttribute>();
+		}
+
+		public GenericParameterReference(GenericParameterKind kind, ushort index, string name)
+			: this(kind, index)
+		{
+		}
+
+		public string Name
+		{
+			get { return GetName(this.Kind, this.Index); }
 		}
 
 		public TypeKind TypeKind
 		{
 			get { return TypeKind.Unknown; }
 		}
-
-		//public string Name
-		//{
-		//	get
-		//	{
-		//		string kind;
-
-		//		switch (this.Kind)
-		//		{
-		//			case GenericParameterKind.Type: kind = "!"; break;
-		//			case GenericParameterKind.Method: kind = "!!"; break;
-
-		//			default: throw this.Kind.ToUnknownValueException();
-		//		}
-
-		//		return string.Format("{0}{1}", kind, this.Index);
-		//	}
-		//}
 
 		public override string ToString()
 		{
@@ -524,9 +514,25 @@ namespace Model.Types
 			var other = obj as IGenericParameterReference;
 			// TODO: Maybe we should also compare the TypeKind?
 			var result = other != null &&
-						 this.Name == other.Name;
+						 this.Kind == other.Kind &&
+						 this.Index == other.Index;
 
 			return result;
+		}
+
+		private static string GetName(GenericParameterKind kind, ushort index)
+		{
+			string prefix;
+
+			switch (kind)
+			{
+				case GenericParameterKind.Type: prefix = "!"; break;
+				case GenericParameterKind.Method: prefix = "!!"; break;
+
+				default: throw kind.ToUnknownValueException();
+			}
+
+			return string.Format("{0}{1}", prefix, index);
 		}
 	}
 
@@ -534,8 +540,8 @@ namespace Model.Types
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeKind TypeKind { get; set; }
-		public GenericParameterKind Kind { get; set; }
 		public IGenericDefinition GenericContainer { get; set; }
+		public GenericParameterKind Kind { get; set; }
 		public ushort Index { get; set; }
 		public string Name { get; set; }
 
@@ -569,9 +575,11 @@ namespace Model.Types
 
 		public override bool Equals(object obj)
 		{
-			var other = obj as IGenericParameterReference;
+			var other = obj as GenericParameterReference;
 			// TODO: Maybe we should also compare the TypeKind?
 			var result = other != null &&
+						 this.Kind == other.Kind &&
+						 this.Index == other.Index &&
 						 this.Name == other.Name;
 
 			return result;

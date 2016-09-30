@@ -36,12 +36,12 @@ namespace Model.Types
 		bool MatchReference(IBasicType type);
 	}
 
-	public interface IGenericReference
+	public interface IGenericReference : ITypeMemberReference
 	{
 		int GenericParameterCount { get; }
 	}
 
-	public interface IGenericDefinition : IGenericReference
+	public interface IGenericDefinition : IGenericReference, ITypeMemberDefinition
 	{
 		IList<GenericParameter> GenericParameters { get; }
 	}
@@ -482,11 +482,12 @@ namespace Model.Types
 					arguments = string.Join(", ", this.GenericArguments);
 					arguments = string.Format("<{0}>", arguments);
 				}
-				////else if (this.GenericParameterCount > 0)
-				////{
-				////	arguments = string.Join(", T", Enumerable.Range(1, this.GenericParameterCount));
-				////	arguments = string.Format("<T{0}>", arguments);
-				////}
+				else if (this.GenericParameterCount > 0)
+				{
+					var startIndex = this.ContainingType.GenericParameterCount + 1;
+					arguments = string.Join(", T", Enumerable.Range(startIndex, this.GenericParameterCount));
+					arguments = string.Format("<T{0}>", arguments);
+				}
 				//else if (this.GenericParameterCount > 0)
 				//{
 				//	var startIndex = this.ContainingType.TotalGenericParameterCount();
