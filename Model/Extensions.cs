@@ -3,6 +3,7 @@
 using Model.Types;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -128,5 +129,29 @@ namespace Model
             result = definitionType.Equals(referenceType);
             return result;
         }
+
+		public static Assembly LoadAssemblyWithReferences(this ILoader loader, string fileName)
+		{
+			var directory = Path.GetDirectoryName(fileName);
+			var result = loader.LoadAssembly(fileName);
+			var references = new HashSet<IAssemblyReference>(result.References);
+
+			while (references.Count > 0)
+			{
+				var reference = references.First();
+				references.Remove(reference);
+
+				var assembly = loader.Host.ResolveReference(reference);
+				if (assembly != null) continue;
+
+				fileName = Path.ChangeExtension(reference.Name, "dll");
+				fileName = Path.Combine(directory, fileName);
+
+				assembly = loader.LoadAssembly(fileName);
+				references.UnionWith(assembly.References);
+			}
+
+			return result;
+		}
 	}
 }

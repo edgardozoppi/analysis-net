@@ -31,6 +31,11 @@ namespace CCIProvider
 			GC.SuppressFinalize(this);
 		}
 
+		public Host Host
+		{
+			get { return ourHost; }
+		}
+
 		public Assembly LoadCoreAssembly()
 		{
 			var module = cciHost.LoadUnit(cciHost.CoreAssemblySymbolicIdentity) as Cci.IModule;

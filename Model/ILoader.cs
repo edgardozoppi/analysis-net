@@ -9,6 +9,7 @@ namespace Model
 {
 	public interface ILoader : IDisposable
 	{
+		Host Host { get; }
 		Assembly LoadAssembly(string fileName);
 	}
 }

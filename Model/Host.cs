@@ -17,6 +17,17 @@ namespace Model
 			this.Assemblies = new List<Assembly>();
 		}
 
+		public Assembly ResolveReference(IAssemblyReference assembly)
+		{
+			if (assembly is Assembly)
+			{
+				return assembly as Assembly;
+			}
+
+			var result = this.Assemblies.SingleOrDefault(a => a.MatchReference(assembly));
+			return result;
+		}
+
 		public ITypeDefinition ResolveReference(IBasicType type)
 		{
 			if (type is ITypeDefinition)
@@ -25,7 +36,7 @@ namespace Model
 			}
 
 			// Find containing assembly
-			var assembly = this.Assemblies.SingleOrDefault(a => a.MatchReference(type.ContainingAssembly));
+			var assembly = ResolveReference(type.ContainingAssembly);
 			if (assembly == null) return null;
 
 			// Find containing namespace
