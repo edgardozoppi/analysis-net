@@ -12,7 +12,7 @@ using Cci = Microsoft.Cci;
 
 namespace CCIProvider
 {
-	public class Loader : IDisposable
+	public class Loader : ILoader
 	{
 		private Host ourHost;
 		private Cci.MetadataReaderHost cciHost;

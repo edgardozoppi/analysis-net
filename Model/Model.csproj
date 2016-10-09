@@ -48,6 +48,7 @@
     <Compile Include="Extensions.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="IInstruction.cs" />
+    <Compile Include="ILoader.cs" />
     <Compile Include="Namespace.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ThreeAddressCode\ExceptionHandlers.cs" />
