@@ -505,18 +505,6 @@ namespace Backend.Utils
 
 		#endregion
 
-		public static bool IsPure(this IMethodReference method)
-		{
-			var result = method.Attributes.Any(a => a.Type.Equals(PlatformTypes.PureAttribute));
-
-			if (!result)
-			{
-				result = method.Name == "get_Count" && TypeHelper.IsContainer(method.ContainingType);
-			}
-
-			return result;
-		}
-
 		public static void Inline(this MethodBody callerBody, MethodCallInstruction methodCall, MethodBody calleeBody)
 		{
 			// TODO: Fix local variables (and parameters) name clashing

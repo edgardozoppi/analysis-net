@@ -495,7 +495,7 @@ namespace CCIProvider
 				if (mexpr is Cci.IMetadataConstant)
 				{
 					var mconstant = mexpr as Cci.IMetadataConstant;
-					argument = new Constant(mconstant.Value);
+					argument = ExtractConstant(mconstant);
 				}
 				else
 				{
@@ -513,12 +513,19 @@ namespace CCIProvider
 			foreach (var constdef in source)
 			{
 				var name = constdef.Name.Value;
-				var value = constdef.CompileTimeValue.Value;
+				var value = ExtractConstant(constdef.CompileTimeValue);
 				var constant = new ConstantDefinition(name, value);
 
 				constant.ContainingType = containingType;
 				dest.Add(constant);
 			}
+		}
+
+		private Constant ExtractConstant(Cci.IMetadataConstant constant)
+		{
+			var result = new Constant(constant.Value);
+			result.Type = ExtractType(constant.Type);
+			return result;
 		}
 
 		private void ExtractGenericType(BasicType type, Cci.IGenericTypeInstanceReference typeref)
@@ -757,7 +764,7 @@ namespace CCIProvider
 			foreach (var parameterref in source)
 			{
 				var type = ExtractType(parameterref.Type);
-				var parameter = new MethodParameterReference(type);
+				var parameter = new MethodParameterReference(parameterref.Index, type);
 
 				parameter.Kind = GetMethodParameterKind(parameterref);
 				dest.Add(parameter);
@@ -770,10 +777,11 @@ namespace CCIProvider
 			{
 				var name = parameterdef.Name.Value;
 				var type = ExtractType(parameterdef.Type);
-				var parameter = new MethodParameter(name, type);
+				var parameter = new MethodParameter(parameterdef.Index, name, type);
 
 				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 
+				parameter.DefaultValue = ExtractConstant(parameterdef.Constant);
 				parameter.Kind = GetMethodParameterKind(parameterdef);
 				dest.Add(parameter);
 			}

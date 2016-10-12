@@ -342,17 +342,20 @@ namespace Model.Types
 
 	public interface IMethodParameterReference
 	{
+		ushort Index { get; }
 		IType Type { get; }
 		MethodParameterKind Kind { get; }
 	}
 
 	public class MethodParameterReference : IMethodParameterReference
 	{
+		public ushort Index { get; set; }
 		public IType Type { get; set; }
 		public MethodParameterKind Kind { get; set; }
 
-		public MethodParameterReference(IType type)
+		public MethodParameterReference(ushort index, IType type)
 		{
+			this.Index = index;
 			this.Type = type;
 			this.Kind = MethodParameterKind.In;
 		}
@@ -393,16 +396,24 @@ namespace Model.Types
 	public class MethodParameter : IMethodParameterReference
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
+		public ushort Index { get; set; }
 		public string Name { get; set; }
 		public IType Type { get; set; }
-		public MethodParameterKind Kind { get; set; }
+		public MethodParameterKind Kind {get; set; }
+		public Constant DefaultValue { get; set; }
 
-		public MethodParameter(string name, IType type)
+		public MethodParameter(ushort index, string name, IType type)
 		{
+			this.Index = index;
 			this.Name = name;
 			this.Type = type;
 			this.Kind = MethodParameterKind.In;
 			this.Attributes = new HashSet<CustomAttribute>();
+		}
+
+		public bool HasDefaultValue
+		{
+			get { return this.DefaultValue != null; }
 		}
 
 		public bool MatchReference(IMethodParameterReference parameter)
@@ -469,6 +480,34 @@ namespace Model.Types
 			this.Parameters = new List<IMethodParameterReference>();
 			this.Attributes = new HashSet<CustomAttribute>();
 			this.GenericArguments = new List<IType>();
+		}
+
+		public string GenericName
+		{
+			get
+			{
+				var arguments = string.Empty;
+
+				if (this.GenericArguments.Count > 0)
+				{
+					arguments = string.Join(", ", this.GenericArguments);
+					arguments = string.Format("<{0}>", arguments);
+				}
+				else if (this.GenericParameterCount > 0)
+				{
+					var startIndex = this.ContainingType.GenericParameterCount + 1;
+					arguments = string.Join(", T", Enumerable.Range(startIndex, this.GenericParameterCount));
+					arguments = string.Format("<T{0}>", arguments);
+				}
+				//else if (this.GenericParameterCount > 0)
+				//{
+				//	var startIndex = this.ContainingType.TotalGenericParameterCount();
+				//	arguments = string.Join(", T", Enumerable.Range(startIndex, this.GenericParameterCount));
+				//	arguments = string.Format("<T{0}>", arguments);
+				//}
+
+				return string.Format("{0}{1}", this.Name, arguments);
+			}
 		}
 
 		public string GenericName
@@ -852,9 +891,9 @@ namespace Model.Types
 	{
 		public ITypeDefinition ContainingType { get; set; }
 		public string Name { get; set; }
-		public object Value { get; set; }
+		public Constant Value { get; set; }
 
-		public ConstantDefinition(string name, object value)
+		public ConstantDefinition(string name, Constant value)
 		{
 			this.Name = name;
 			this.Value = value;

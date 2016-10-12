@@ -53,6 +53,23 @@ namespace Model.Types
 			return type;
 		}
 
+		public static bool IsScalar(this IType type)
+		{
+			var result = type.Equals(PlatformTypes.Boolean)
+					  || type.Equals(PlatformTypes.Char)
+					  || type.Equals(PlatformTypes.Float32)
+					  || type.Equals(PlatformTypes.Float64)
+					  || type.Equals(PlatformTypes.Int8)
+					  || type.Equals(PlatformTypes.Int16)
+					  || type.Equals(PlatformTypes.Int32)
+					  || type.Equals(PlatformTypes.Int64)
+					  || type.Equals(PlatformTypes.UInt8)
+					  || type.Equals(PlatformTypes.UInt16)
+					  || type.Equals(PlatformTypes.UInt32)
+					  || type.Equals(PlatformTypes.UInt64);
+			return result;
+		}
+
 		public static bool IsContainer(IType type)
 		{
 			var result = false;
@@ -251,7 +268,7 @@ namespace Model.Types
 			return result;
 		}
 
-		public static List<TypeModifier> TypeModifiers(IType type)
+		public static IList<TypeModifier> TypeModifiers(IType type)
 		{
 			var result = new List<TypeModifier>();
 
