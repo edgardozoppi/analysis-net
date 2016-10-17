@@ -133,5 +133,109 @@ namespace Backend.Model
 
 			return info;
 		}
+
+		#region Topological Sort
+
+		//private CFGNode[] ComputeForwardTopologicalSort()
+		//{
+		//	var result = new CFGNode[this.Nodes.Count];
+		//	var visited = new bool[this.Nodes.Count];
+		//	var index = this.Nodes.Count - 1;
+
+		//	foreach (var node in this.Entries)
+		//	{
+		//		ControlFlowGraph.DepthFirstSearch(result, visited, node, ref index);
+		//	}
+
+		//	return result;
+		//}
+
+		//private static void DepthFirstSearch(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
+		//{
+		//	var alreadyVisited = visited[node.Id];
+
+		//	if (!alreadyVisited)
+		//	{
+		//		visited[node.Id] = true;
+
+		//		foreach (var succ in node.Successors)
+		//		{
+		//			ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
+		//		}
+
+		//		node.ForwardIndex = index;
+		//		result[index] = node;
+		//		index--;
+		//	}
+		//}
+
+		private enum TopologicalSortNodeStatus
+		{
+			NeverVisited, // never pushed into stack
+			FirstVisit, // pushed into stack for the first time
+			SecondVisit // pushed into stack for the second time
+		}
+
+		public IMethodReference[] ComputeTopologicalSort()
+		{
+			var result = ComputeTopologicalSort(this.Roots);
+			return result;
+		}
+
+		public IMethodReference[] ComputeTopologicalSort(IEnumerable<IMethodReference> roots)
+		{
+			// reverse postorder traversal from root methods
+			var stack = new Stack<IMethodReference>();
+			var result = new IMethodReference[methods.Count];
+			var status = new Dictionary<IMethodReference, TopologicalSortNodeStatus>();
+			var index = methods.Count - 1;
+
+			foreach (var methodInfo in methods.Keys)
+			{
+				status[methodInfo] = TopologicalSortNodeStatus.NeverVisited;
+			}
+
+			foreach (var method in roots)
+			{
+				stack.Push(method);
+				status[method] = TopologicalSortNodeStatus.FirstVisit;
+			}
+
+			do
+			{
+				var method = stack.Peek();
+				var node_status = status[method];
+
+				if (node_status == TopologicalSortNodeStatus.FirstVisit)
+				{
+					status[method] = TopologicalSortNodeStatus.SecondVisit;
+
+					var methodInfo = methods[method];
+					var callees = methodInfo.Invocations.Values.SelectMany(inv => inv.PossibleCallees);
+
+					foreach (var callee in callees)
+					{
+						var callee_status = status[callee];
+
+						if (callee_status == TopologicalSortNodeStatus.NeverVisited)
+						{
+							stack.Push(callee);
+							status[callee] = TopologicalSortNodeStatus.FirstVisit;
+						}
+					}
+				}
+				else if (node_status == TopologicalSortNodeStatus.SecondVisit)
+				{
+					stack.Pop();
+					result[index] = method;
+					index--;
+				}
+			}
+			while (stack.Count > 0);
+
+			return result;
+		}
+
+		#endregion
 	}
 }
