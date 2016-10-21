@@ -140,7 +140,7 @@ namespace Model.Types
 	{
 		IAssemblyReference ContainingAssembly { get; }
 		string ContainingNamespace { get; }
-		IBasicType ContainingType { get; }
+		//IBasicType ContainingType { get; }
 		string Name { get; }
 		string GenericName { get; }
 		//new int GenericParameterCount { get; }

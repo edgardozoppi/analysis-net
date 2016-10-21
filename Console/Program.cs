@@ -252,11 +252,11 @@ namespace Console
 			//methodExampleGenericMethod.GenericArguments.Add(typeK);
 			//methodExampleGenericMethod.GenericArguments.Add(typeV);
 
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeA));
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeB));
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeK));
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeV));
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(typeKeyValuePair));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(0, typeA));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(1, typeB));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(2, typeK));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(3, typeV));
+			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(4, typeKeyValuePair));
 
 			var methodDefinition = host.ResolveReference(methodExampleGenericMethod) as MethodDefinition;
 

@@ -169,11 +169,6 @@ namespace Model.Types
 			get { return TypeKind.ValueType; }
 		}
 
-		IBasicType IBasicType.ContainingType
-		{
-			get { return this.ContainingType; }
-		}
-
 		IBasicType IBasicType.GenericType
 		{
 			get { return null; }
@@ -510,34 +505,6 @@ namespace Model.Types
 			}
 		}
 
-		public string GenericName
-		{
-			get
-			{
-				var arguments = string.Empty;
-
-				if (this.GenericArguments.Count > 0)
-				{
-					arguments = string.Join(", ", this.GenericArguments);
-					arguments = string.Format("<{0}>", arguments);
-				}
-				else if (this.GenericParameterCount > 0)
-				{
-					var startIndex = this.ContainingType.GenericParameterCount + 1;
-					arguments = string.Join(", T", Enumerable.Range(startIndex, this.GenericParameterCount));
-					arguments = string.Format("<T{0}>", arguments);
-				}
-				//else if (this.GenericParameterCount > 0)
-				//{
-				//	var startIndex = this.ContainingType.TotalGenericParameterCount();
-				//	arguments = string.Join(", T", Enumerable.Range(startIndex, this.GenericParameterCount));
-				//	arguments = string.Format("<T{0}>", arguments);
-				//}
-
-				return string.Format("{0}{1}", this.Name, arguments);
-			}
-		}
-
 		public override string ToString()
 		{
 			var result = new StringBuilder();
@@ -826,11 +793,6 @@ namespace Model.Types
 			get { return TypeKind.ValueType; }
 		}
 
-		IBasicType IBasicType.ContainingType
-		{
-			get { return this.ContainingType; }
-		}
-
 		IBasicType IBasicType.GenericType
 		{
 			get { return null; }
@@ -1021,11 +983,6 @@ namespace Model.Types
 			get { return TypeKind.ReferenceType; }
 		}
 
-		IBasicType IBasicType.ContainingType
-		{
-			get { return this.ContainingType; }
-		}
-
 		IBasicType IBasicType.GenericType
 		{
 			get { return null; }
@@ -1179,11 +1136,6 @@ namespace Model.Types
 		string IBasicType.ContainingNamespace
 		{
 			get { return this.ContainingNamespace.FullName; }
-		}
-
-		IBasicType IBasicType.ContainingType
-		{
-			get { return this.ContainingType; }
 		}
 
 		IList<IType> IBasicType.GenericArguments
