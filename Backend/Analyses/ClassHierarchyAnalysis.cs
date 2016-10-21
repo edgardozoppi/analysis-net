@@ -1,168 +1,150 @@
 ﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
+using Backend.Model;
 using Model;
+using Model.ThreeAddressCode.Instructions;
 using Model.Types;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Backend.Model
+namespace Backend.Analyses
 {
 	public class ClassHierarchyAnalysis
 	{
-		#region class ClassHierarchyInfo
-
-		private class ClassHierarchyInfo
-		{
-			public IBasicType Type { get; private set; }
-			public ISet<ITypeDefinition> Subtypes { get; private set; }
-
-			public ClassHierarchyInfo(IBasicType type)
-			{
-				this.Type = type;
-				this.Subtypes = new HashSet<ITypeDefinition>();
-			}
-		}
-
-		#endregion
-
 		private Host host;
-		private IDictionary<IBasicType, ClassHierarchyInfo> types;
-		private bool analyzed;
+		private ClassHierarchy classHierarchy;
 
-		public ClassHierarchyAnalysis(Host host)
+		public ClassHierarchyAnalysis(Host host, ClassHierarchy hierarchy)
 		{
 			this.host = host;
-			this.types = new Dictionary<IBasicType, ClassHierarchyInfo>(new BasicTypeDefinitionComparer());
+			this.classHierarchy = hierarchy;
 		}
 
-		public IEnumerable<IBasicType> Types
+		public ClassHierarchyAnalysis(Host host)
+			: this(host, new ClassHierarchy(host))
 		{
-			get { return types.Keys; }
 		}
 
-		public IEnumerable<ITypeDefinition> GetSubtypes(IBasicType type)
+		public CallGraph Analyze()
 		{
-			ClassHierarchyInfo info;
-			var result = Enumerable.Empty<ITypeDefinition>();
+			var allDefinedMethods = from a in host.Assemblies
+									from t in a.RootNamespace.GetAllTypes()
+									from m in t.Members.OfType<MethodDefinition>()
+									where m.Body != null
+									select m;
 
-			if (types.TryGetValue(type, out info))
-			{
-				result = info.Subtypes;
-			}
-
+			var result = Analyze(allDefinedMethods);
 			return result;
 		}
 
-		public IEnumerable<ITypeDefinition> GetAllSubtypes(IBasicType type)
+		public CallGraph Analyze(IEnumerable<MethodDefinition> roots)
 		{
-			var result = new HashSet<ITypeDefinition>();
-			var worklist = new HashSet<ITypeDefinition>();
+			var result = new CallGraph();
+			var visitedMethods = new HashSet<MethodDefinition>();
+			var worklist = new Queue<MethodDefinition>();
 
-			var subtypes = GetSubtypes(type);
-			worklist.UnionWith(subtypes);
+			classHierarchy.Analyze();
+
+			foreach (var root in roots)
+			{
+				worklist.Enqueue(root);
+				visitedMethods.Add(root);
+				result.Add(root);
+			}
 
 			while (worklist.Count > 0)
 			{
-				var subtype = worklist.First();
-				worklist.Remove(subtype);
+				var method = worklist.Dequeue();
+				var methodCalls = method.Body.Instructions.OfType<MethodCallInstruction>();
 
-				var isNewSubtype = result.Add(subtype);
-
-				if (isNewSubtype)
+				foreach (var methodCall in methodCalls)
 				{
-					subtypes = GetSubtypes(subtype);
-					worklist.UnionWith(subtypes);
+					var isVirtual = methodCall.Operation == MethodCallOperation.Virtual;
+					var staticCallee = ResolveStaticCallee(methodCall);
+					var possibleCallees = ResolvePossibleCallees(staticCallee, isVirtual);
+
+					result.Add(method, methodCall.Label, staticCallee);
+					result.Add(method, methodCall.Label, possibleCallees);
+
+					foreach (var calleeref in possibleCallees)
+					{
+						var calleedef = host.ResolveReference(calleeref) as MethodDefinition;
+
+						if (calleedef != null)
+						{
+							var isNewMethod = visitedMethods.Add(calleedef);
+
+							if (isNewMethod)
+							{
+								worklist.Enqueue(calleedef);
+							}
+						}
+					}
 				}
 			}
 
 			return result;
 		}
 
-		public void Analyze()
+		private IMethodReference ResolveStaticCallee(MethodCallInstruction methodCall)
 		{
-			if (analyzed) return;
-			analyzed = true;
+			var staticCallee = methodCall.Method;
 
-			var definedTypes = host.Assemblies
-				.SelectMany(a => a.RootNamespace.GetAllTypes())
-				.Where(t => t is StructDefinition ||
-							t is ClassDefinition ||
-							t is InterfaceDefinition);
-
-			foreach (var type in definedTypes)
+			if (!staticCallee.IsStatic &&
+				methodCall.Operation == MethodCallOperation.Virtual)
 			{
-				Analyze(type);
+				var receiver = methodCall.Arguments.First();
+				var receiverType = receiver.Type as IBasicType;
+
+				staticCallee = FindMethodImplementation(receiverType, staticCallee);
 			}
+
+			return staticCallee;
 		}
 
-		private void Analyze(ITypeDefinition type)
+		private IMethodReference FindMethodImplementation(IBasicType receiverType, IMethodReference method)
 		{
-			if (type is ClassDefinition)
+			var result = method;
+
+			while (receiverType != null && !method.ContainingType.Equals(receiverType))
 			{
-				var typedef = type as ClassDefinition;
-				Analyze(typedef);
+				var receiverTypeDef = receiverType.ResolvedType as ClassDefinition;
+				if (receiverTypeDef == null) break;
+
+				var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.MatchSignature(method));
+
+				if (matchingMethod != null)
+				{
+					result = matchingMethod;
+					break;
+				}
+				else
+				{
+					receiverType = receiverTypeDef.Base;
+				}
+
 			}
-			else if (type is StructDefinition)
-			{
-				var typedef = type as StructDefinition;
-				Analyze(typedef);
-			}
-			else if (type is InterfaceDefinition)
-			{
-				var typedef = type as InterfaceDefinition;
-				Analyze(typedef);
-			}
+
+			return result;
 		}
 
-		private void Analyze(ClassDefinition type)
+		private IEnumerable<IMethodReference> ResolvePossibleCallees(IMethodReference methodref, bool isVirtualCall)
 		{
-			GetOrAddInfo(type);
+			var result = new HashSet<IMethodReference>();
 
-			if (type.Base != null)
+			result.Add(methodref);
+
+			if (!methodref.IsStatic && isVirtualCall)
 			{
-				var baseInfo = GetOrAddInfo(type.Base);
-				baseInfo.Subtypes.Add(type);
-			}
+				var subtypes = classHierarchy.GetAllSubtypes(methodref.ContainingType);
+				var compatibleMethods = from t in subtypes
+										from m in t.Members.OfType<MethodDefinition>()
+										where m.MatchSignature(methodref)
+										select m;
 
-			foreach (var interfaceref in type.Interfaces)
-			{
-				var interfaceInfo = GetOrAddInfo(interfaceref);
-				interfaceInfo.Subtypes.Add(type);
-			}
-		}
-
-		private void Analyze(StructDefinition type)
-		{
-			GetOrAddInfo(type);
-
-			foreach (var interfaceref in type.Interfaces)
-			{
-				var interfaceInfo = GetOrAddInfo(interfaceref);
-				interfaceInfo.Subtypes.Add(type);
-			}
-		}
-
-		private void Analyze(InterfaceDefinition type)
-		{
-			GetOrAddInfo(type);
-
-			foreach (var interfaceref in type.Interfaces)
-			{
-				var interfaceInfo = GetOrAddInfo(interfaceref);
-				interfaceInfo.Subtypes.Add(type);
-			}
-		}
-
-		private ClassHierarchyInfo GetOrAddInfo(IBasicType type)
-		{
-			ClassHierarchyInfo result;
-
-			if (!types.TryGetValue(type, out result))
-			{
-				result = new ClassHierarchyInfo(type);
-				types.Add(type, result);
+				result.UnionWith(compatibleMethods);
 			}
 
 			return result;

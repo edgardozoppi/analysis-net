@@ -40,10 +40,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Analyses\ClassHierarchyCallGraphAnalysis.cs" />
+    <Compile Include="Analyses\ClassHierarchyAnalysis.cs" />
     <Compile Include="Analyses\ControlFlowAnalysis.cs" />
     <Compile Include="Analyses\BackwardCopyPropagationAnalysis.cs" />
-    <Compile Include="Analyses\ClassHierarchyAnalysis.cs" />
+    <Compile Include="Model\ClassHierarchy.cs" />
     <Compile Include="Analyses\LiveVariablesAnalysis.cs" />
     <Compile Include="Model\CallGraph.cs" />
     <Compile Include="Model\ControlFlowGraph.cs" />

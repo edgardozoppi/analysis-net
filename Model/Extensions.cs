@@ -153,5 +153,27 @@ namespace Model
 
 			return result;
 		}
+
+		public static IEnumerable<MethodDefinition> GetRootMethods(this Host host)
+		{
+			var result = host.Assemblies.SelectMany(a => a.GetRootMethods());
+			return result;
+		}
+
+		public static IEnumerable<MethodDefinition> GetRootMethods(this Assembly assembly)
+		{
+			var mainSignature = new MethodReference("Main", PlatformTypes.Void);
+			var args = new MethodParameterReference(0, new ArrayType(PlatformTypes.String));
+
+			mainSignature.IsStatic = true;
+			mainSignature.Parameters.Add(args);
+
+			var rootMethods = from t in assembly.RootNamespace.GetAllTypes()
+							  from m in t.Members.OfType<MethodDefinition>()
+							  where m.Body != null &&
+									m.MatchSignature(mainSignature)
+							  select m;
+			return rootMethods;
+		}
 	}
 }

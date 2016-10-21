@@ -338,7 +338,7 @@ namespace Backend.Serialization
 
 		#region Class Hierarchy
 
-		public static string Serialize(ClassHierarchyAnalysis ch)
+		public static string Serialize(ClassHierarchy ch)
 		{
 			using (var stringWriter = new StringWriter())
 			using (var xmlWriter = new XmlTextWriter(stringWriter))
