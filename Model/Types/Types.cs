@@ -173,7 +173,7 @@ namespace Model.Types
 
 			this.ResolveType = () =>
 			{
-				var msg = "Use IBasicType.Resolve method to bind this type with some host. " +
+				var msg = "Use Resolve method to bind this reference with some host. " +
 						  "To bind all platform types use PlatformTypes.Resolve method.";
 
 				throw new InvalidOperationException(msg);

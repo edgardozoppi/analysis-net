@@ -453,11 +453,15 @@ namespace Model.Types
 		IList<IMethodParameterReference> Parameters { get; }
 		IList<IType> GenericArguments { get; }
 		IMethodReference GenericMethod { get; }
+		MethodDefinition ResolvedMethod { get; }
 		bool IsStatic { get; }
 	}
 
 	public class MethodReference : IMethodReference
 	{
+		private Func<MethodDefinition> ResolveMethod;
+		private MethodDefinition resolvedMethod;
+
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public IBasicType ContainingType { get; set; }
 		public IType ReturnType { get; set; }
@@ -475,6 +479,13 @@ namespace Model.Types
 			this.Parameters = new List<IMethodParameterReference>();
 			this.Attributes = new HashSet<CustomAttribute>();
 			this.GenericArguments = new List<IType>();
+
+			this.ResolveMethod = () =>
+			{
+				var msg = "Use Resolve method to bind this reference with some host.";
+
+				throw new InvalidOperationException(msg);
+			};
 		}
 
 		public string GenericName
@@ -505,21 +516,33 @@ namespace Model.Types
 			}
 		}
 
+		public MethodDefinition ResolvedMethod
+		{
+			get
+			{
+				if (resolvedMethod == null)
+				{
+					resolvedMethod = ResolveMethod();
+				}
+
+				return resolvedMethod;
+			}
+		}
+
+		//public MethodDefinition Resolve(Host host)
+		//{
+		//	this.ResolvedMethod = host.ResolveReference(this) as MethodDefinition;
+		//	return this.ResolvedMethod;
+		//}
+
+		public void Resolve(Host host)
+		{
+			ResolveMethod = () => host.ResolveReference(this) as MethodDefinition;
+		}
+
 		public override string ToString()
 		{
-			var result = new StringBuilder();
-
-			if (this.IsStatic)
-			{
-				result.Append("static ");
-			}
-
-			result.AppendFormat("{0} {1}::{2}", this.ReturnType, this.ContainingType.GenericName, this.GenericName);
-
-			var parameters = string.Join(", ", this.Parameters);
-			result.AppendFormat("({0})", parameters);
-
-			return result.ToString();
+			return this.ToSignatureString();
 		}
 
 		public override int GetHashCode()
@@ -565,7 +588,11 @@ namespace Model.Types
 			this.Attributes = new HashSet<CustomAttribute>();
 			this.GenericParameters = new List<GenericParameter>();
 			this.Parameters = new List<MethodParameter>();
-			this.Body = new MethodBody();
+		}
+
+		public bool HasBody
+		{
+			get { return this.Body != null; }
 		}
 
 		public string GenericName
@@ -612,6 +639,11 @@ namespace Model.Types
 		IList<IType> IMethodReference.GenericArguments
 		{
 			get { return new List<IType>(); }
+		}
+
+		MethodDefinition IMethodReference.ResolvedMethod
+		{
+			get { return this; }
 		}
 
 		public IMethodReference GenericMethod
@@ -709,7 +741,7 @@ namespace Model.Types
 			var signature = this.ToSignatureString();
 			result.Append(signature);
 
-			if (this.Body.Instructions.Count > 0)
+			if (this.HasBody)
 			{
 				result.AppendLine();
 				result.AppendLine("{");
@@ -1239,6 +1271,13 @@ namespace Model.Types
 		}
 	}
 
+	public enum MethodBodyKind
+	{
+		Bytecode,
+		ThreeAddressCode,
+		StaticSingleAssignment
+	}
+
 	public class MethodBody : IInstructionContainer
 	{
 		public IList<IVariable> Parameters { get; private set; }
@@ -1246,9 +1285,11 @@ namespace Model.Types
 		public IList<IInstruction> Instructions { get; private set; }
 		public IList<ProtectedBlock> ExceptionInformation { get; private set; }
 		public ushort MaxStack { get; set; }
+		public MethodBodyKind Kind { get; set; }
 
-		public MethodBody()
+		public MethodBody(MethodBodyKind kind)
 		{
+			this.Kind = kind;
 			this.Parameters = new List<IVariable>();
 			this.LocalVariables = new HashSet<IVariable>();
 			this.Instructions = new List<IInstruction>();

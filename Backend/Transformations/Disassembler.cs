@@ -926,7 +926,7 @@ namespace Backend.Transformations
 
 		public MethodBody Execute()
 		{
-			var body = new MethodBody();
+			var body = new MethodBody(MethodBodyKind.ThreeAddressCode);
 
 			body.MaxStack = method.Body.MaxStack;
 			body.Parameters.AddRange(method.Body.Parameters);

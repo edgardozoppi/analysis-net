@@ -468,6 +468,7 @@ namespace CCIProvider
 				method.GenericMethod = ExtractReference(genericMethodref);
 			}
 
+			method.Resolve(host);
 			return method;
 		}
 
@@ -613,7 +614,7 @@ namespace CCIProvider
 				ExtractAttributes(method.Attributes, methoddef.Attributes);
 				ExtractGenericMethodParameters(method, methoddef);
 				ExtractParameters(method.Parameters, methoddef.Parameters);
-				ExtractBody(method.Body, methoddef.Body, sourceLocationProvider);
+				method.Body = ExtractBody(methoddef.Body, sourceLocationProvider);
 
 				method.IsStatic = methoddef.IsStatic;
 				method.IsAbstract = methoddef.IsAbstract;
@@ -738,15 +739,15 @@ namespace CCIProvider
 			return result;
 		}
 
-		private void ExtractBody(MethodBody ourBody, Cci.IMethodBody cciBody, Cci.ISourceLocationProvider sourceLocationProvider)
+		private MethodBody ExtractBody(Cci.IMethodBody cciBody, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			// TODO: Is not a good idea to extract all method bodies defined
 			// in an assembly when loading it. It would be better to delay 
 			// the extraction so it take place when it is actually needed,
 			// like on demand in a lazy fashion.
 			var codeProvider = new CodeProvider(this, sourceLocationProvider);
-
-			codeProvider.ExtractBody(ourBody, cciBody);
+			var result = codeProvider.ExtractBody(cciBody);
+			return result;
 		}
 
 		private void ExtractInterfaces(IList<IBasicType> dest, IEnumerable<Cci.ITypeReference> source)

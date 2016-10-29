@@ -28,22 +28,18 @@ namespace CCIProvider
 			this.parameters = new Dictionary<Cci.IParameterDefinition, IVariable>();
 			this.locals = new Dictionary<Cci.ILocalDefinition, IVariable>();
 		}
-
-		public MethodBody ExtractBody(Cci.IMethodBody body)
-		{
-			var result = new MethodBody();
-
-			ExtractBody(result, body);
-			return result;
-		}
 		
-		public void ExtractBody(MethodBody ourBody, Cci.IMethodBody cciBody)
+		public MethodBody ExtractBody(Cci.IMethodBody cciBody)
 		{
+			var ourBody = new MethodBody(MethodBodyKind.Bytecode);
+
 			ourBody.MaxStack = cciBody.MaxStack;
 			ExtractParameters(cciBody.MethodDefinition, ourBody.Parameters);
 			ExtractLocalVariables(cciBody.LocalVariables, ourBody.LocalVariables);
 			ExtractExceptionInformation(cciBody.OperationExceptionInformation, ourBody.ExceptionInformation);
 			ExtractInstructions(cciBody.Operations, ourBody.Instructions);
+
+			return ourBody;
 		}
 
 		private void ExtractParameters(Cci.IMethodDefinition methoddef, IList<IVariable> ourParameters)

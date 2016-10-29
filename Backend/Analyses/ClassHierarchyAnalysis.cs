@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
 using Backend.Model;
+using Backend.Transformations;
 using Model;
 using Model.ThreeAddressCode.Instructions;
 using Model.Types;
@@ -57,6 +58,9 @@ namespace Backend.Analyses
 			while (worklist.Count > 0)
 			{
 				var method = worklist.Dequeue();
+
+				OnReachableMethodFound(method);
+
 				var methodCalls = method.Body.Instructions.OfType<MethodCallInstruction>();
 
 				foreach (var methodCall in methodCalls)
@@ -86,6 +90,17 @@ namespace Backend.Analyses
 			}
 
 			return result;
+		}
+
+		protected virtual void OnReachableMethodFound(MethodDefinition method)
+		{
+			if (method.Body.Kind == MethodBodyKind.Bytecode)
+			{
+				var disassembler = new Disassembler(method);
+				var body = disassembler.Execute();
+
+				method.Body = body;
+			}
 		}
 
 		private IMethodReference ResolveStaticCallee(MethodCallInstruction methodCall)

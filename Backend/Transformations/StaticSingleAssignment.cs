@@ -31,12 +31,14 @@ namespace Backend.Transformations
 			//ControlFlowGraph.ComputeDominatorTree(cfg);
 			//ControlFlowGraph.ComputeDominanceFrontiers(cfg);
 
-			//this.method.UpdateVariables();
+			//method.UpdateVariables();
 
 			this.InsertPhiInstructions();
 			this.RenameVariables();
 
-			//this.method.UpdateVariables();
+			//method.UpdateVariables();
+
+			method.Kind = MethodBodyKind.StaticSingleAssignment;
 		}
 
 		public void Prune(LiveVariablesAnalysis liveVariables)
