@@ -105,13 +105,30 @@ namespace Model
             while (containingType != null)
             {
                 containingTypes = string.Format("{0}{1}.", containingTypes, containingType);
-				containingType = type.ContainingType;
+				containingType = containingType.ContainingType;
             }
 
 			return string.Format("{0}{1}{2}", containingNamespace, containingTypes, type.GenericName);
 		}
 
-        public static bool MatchType(this IType definitionType, IType referenceType, IDictionary<IType, IType> typeParameterBinding)
+		public static string ToSignatureString(this IMethodReference method)
+		{
+			var result = new StringBuilder();
+
+			if (method.IsStatic)
+			{
+				result.Append("static ");
+			}
+
+			result.AppendFormat("{0} {1}::{2}", method.ReturnType, method.ContainingType.GenericName, method.GenericName);
+
+			var parameters = string.Join(", ", method.Parameters);
+			result.AppendFormat("({0})", parameters);
+
+			return result.ToString();
+		}
+
+		public static bool MatchType(this IType definitionType, IType referenceType, IDictionary<IType, IType> typeParameterBinding)
         {
             var result = false;
 
@@ -146,6 +163,7 @@ namespace Model
 
 				fileName = Path.ChangeExtension(reference.Name, "dll");
 				fileName = Path.Combine(directory, fileName);
+				if (!File.Exists(fileName)) continue;
 
 				assembly = loader.LoadAssembly(fileName);
 				references.UnionWith(assembly.References);
