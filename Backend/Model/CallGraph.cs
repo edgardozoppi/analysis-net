@@ -136,7 +136,7 @@ namespace Backend.Model
 
 		#region Topological Sort
 
-		//private CFGNode[] ComputeForwardTopologicalSort()
+		//private CFGNode[] ComputeTopologicalSort()
 		//{
 		//	var result = new CFGNode[this.Nodes.Count];
 		//	var visited = new bool[this.Nodes.Count];
@@ -176,19 +176,18 @@ namespace Backend.Model
 			SecondVisit // pushed into stack for the second time
 		}
 
-		public IMethodReference[] ComputeTopologicalSort()
+		public IEnumerable<IMethodReference> ComputeTopologicalSort()
 		{
 			var result = ComputeTopologicalSort(this.Roots);
 			return result;
 		}
 
-		public IMethodReference[] ComputeTopologicalSort(IEnumerable<IMethodReference> roots)
+		public IEnumerable<IMethodReference> ComputeTopologicalSort(IEnumerable<IMethodReference> roots)
 		{
 			// reverse postorder traversal from root methods
 			var stack = new Stack<IMethodReference>();
-			var result = new IMethodReference[methods.Count];
+			var result = new List<IMethodReference>();
 			var status = new Dictionary<IMethodReference, TopologicalSortNodeStatus>();
-			var index = methods.Count - 1;
 
 			foreach (var methodInfo in methods.Keys)
 			{
@@ -227,8 +226,7 @@ namespace Backend.Model
 				else if (node_status == TopologicalSortNodeStatus.SecondVisit)
 				{
 					stack.Pop();
-					result[index] = method;
-					index--;
+					result.Insert(0, method);
 				}
 			}
 			while (stack.Count > 0);
