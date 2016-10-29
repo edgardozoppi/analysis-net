@@ -258,7 +258,8 @@ namespace Backend.Serialization
 				{
 					var methodId = reachableMethods[method];
 					var nodeId = Convert.ToString(methodId);
-					var label = string.Format("{0}.{1}", method.ContainingType.Name, method.Name);
+					//var label = string.Format("{0}.{1}", method.ContainingType.Name, method.Name);
+					var label = method.ToSignatureString();
 
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", nodeId);
@@ -273,7 +274,8 @@ namespace Backend.Serialization
 				{
 					var methodId = reachableMethods[method];
 					var nodeId = Convert.ToString(methodId);
-					var label = string.Format("{0}.{1}", method.ContainingType.Name, method.Name);
+					//var label = string.Format("{0}.{1}", method.ContainingType.Name, method.Name);
+					var label = method.ToSignatureString();
 
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", nodeId);
