@@ -53,5 +53,15 @@ namespace Test
 				current = current.Next;
 			}
 		}
+
+		public Node Example4(bool a, bool b)
+		{
+			var node = new Node(1);
+
+			if (a) return new Node(2);
+			else if (b) return null;
+
+			return node;
+		}
 	}
 }

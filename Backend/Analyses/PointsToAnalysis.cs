@@ -23,6 +23,7 @@ namespace Backend.Analyses
 		{
 			private UniqueIDGenerator nodeIdGenerator;
 			private IDictionary<uint, int> nodeIdAtOffset;
+			private IVariable resultVariable;
 			private PointsToGraph ptg;
 
 			public TransferFunction(UniqueIDGenerator nodeIdGenerator)
@@ -85,9 +86,53 @@ namespace Backend.Analyses
 				}
 			}
 
+			public override void Visit(ReturnInstruction instruction)
+			{
+				if (instruction.HasOperand)
+				{
+					ProcessReturn(instruction.Operand);
+				}
+			}
+
 			#endregion
 
 			#region Private methods
+
+			private IVariable ResultVariable
+			{
+				get
+				{
+					if (resultVariable == null)
+					{
+						resultVariable = new LocalVariable("$result");
+					}
+
+					return resultVariable;
+				}
+			}
+
+			private void ProcessNull(IVariable dst)
+			{
+				if (dst.Type.TypeKind == TypeKind.ValueType) return;
+
+				ptg.RemoveEdges(dst);
+				ptg.PointsTo(dst, ptg.Null);
+			}
+
+			private void ProcessReturn(IVariable src)
+			{
+				if (src.Type.TypeKind == TypeKind.ValueType) return;
+
+				var dst = this.ResultVariable;
+
+				// Weak update to preserve all possible return values
+				var targets = ptg.GetTargets(src);
+
+				foreach (var target in targets)
+				{
+					ptg.PointsTo(dst, target);
+				}
+			}
 
 			private void ProcessAllocation(uint offset, IVariable dst)
 			{
@@ -97,14 +142,6 @@ namespace Backend.Analyses
 
 				ptg.RemoveEdges(dst);
 				ptg.PointsTo(dst, node);
-			}
-
-			private void ProcessNull(IVariable dst)
-			{
-				if (dst.Type.TypeKind == TypeKind.ValueType) return;
-
-				ptg.RemoveEdges(dst);
-				ptg.PointsTo(dst, ptg.Null);
 			}
 
 			private void ProcessCopy(IVariable dst, IVariable src)
