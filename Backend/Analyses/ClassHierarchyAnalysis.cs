@@ -33,7 +33,7 @@ namespace Backend.Analyses
 			var allDefinedMethods = from a in host.Assemblies
 									from t in a.RootNamespace.GetAllTypes()
 									from m in t.Members.OfType<MethodDefinition>()
-									where m.Body != null
+									where m.HasBody
 									select m;
 
 			var result = Analyze(allDefinedMethods);

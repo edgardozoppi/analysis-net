@@ -34,6 +34,8 @@ namespace Backend.Model
 
 	public class CallGraph
 	{
+		#region class MethodInfo
+
 		private class MethodInfo
 		{
 			public IMethodReference Method { get; private set; }
@@ -49,6 +51,8 @@ namespace Backend.Model
 				this.Invocations = new Dictionary<string, InvocationInfo>();
 			}
 		}
+
+		#endregion
 
 		private IDictionary<IMethodReference, MethodInfo> methods;
 

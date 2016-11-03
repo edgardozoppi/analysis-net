@@ -32,7 +32,7 @@ namespace Console
 			var allDefinedMethods = from a in host.Assemblies
 									from t in a.RootNamespace.GetAllTypes()
 									from m in t.Members.OfType<MethodDefinition>()
-									where m.Body != null
+									where m.HasBody
 									select m;
 
 			foreach (var method in allDefinedMethods)
@@ -43,7 +43,7 @@ namespace Console
 
 		private void VisitMethod(MethodDefinition method)
 		{
-			System.Console.WriteLine(method.Name);
+			System.Console.WriteLine(method.ToSignatureString());
 
 			var methodBodyBytecode = method.Body;
 			var disassembler = new Disassembler(method);
@@ -54,10 +54,7 @@ namespace Console
 			//var cfg = cfAnalysis.GenerateNormalControlFlow();
 			var cfg = cfAnalysis.GenerateExceptionalControlFlow();
 
-			var dgml = DGMLSerializer.Serialize(cfg);
-
-			//if (method.Name == "ExampleTryCatchFinally")
-			//	;
+			var dgml_CFG = DGMLSerializer.Serialize(cfg);
 
 			var domAnalysis = new DominanceAnalysis(cfg);
 			domAnalysis.Analyze();
@@ -78,6 +75,7 @@ namespace Console
 			var typeAnalysis = new TypeInferenceAnalysis(cfg);
 			typeAnalysis.Analyze();
 
+			// Copy Propagation
 			var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
 			forwardCopyAnalysis.Analyze();
 			forwardCopyAnalysis.Transform(methodBody);
@@ -86,12 +84,21 @@ namespace Console
 			backwardCopyAnalysis.Analyze();
 			backwardCopyAnalysis.Transform(methodBody);
 
-			//var pointsTo = new PointsToAnalysis(cfg);
-			//var result = pointsTo.Analyze();
+			// Points-To
+			var pointsTo = new PointsToAnalysis(cfg);
+			var result = pointsTo.Analyze();
 
+			var ptg = result[cfg.Exit.Id].Output;
+			//ptg.RemoveVariablesExceptParameters();
+			ptg.RemoveTemporalVariables();
+
+			var dgml_PTG = DGMLSerializer.Serialize(ptg);
+
+			// Live Variables
 			var liveVariables = new LiveVariablesAnalysis(cfg);
 			liveVariables.Analyze();
 
+			// SSA
 			var ssa = new StaticSingleAssignment(methodBody, cfg);
 			ssa.Transform();
 			ssa.Prune(liveVariables);
@@ -111,20 +118,6 @@ namespace Console
 			//const string root = @"C:\Users\Edgar\Projects"; // facu
 
 			const string input = root + @"\Test\bin\Debug\Test.dll";
-
-			//using (var host = new PeReader.DefaultHost())
-			//using (var assembly = new Assembly(host))
-			//{
-			//	assembly.Load(input);
-
-			//	Types.Initialize(host);
-
-			//	//var extractor = new TypesExtractor(host);
-			//	//extractor.Extract(assembly.Module);
-
-			//	var visitor = new MethodVisitor(host, assembly.PdbReader);
-			//	visitor.Rewrite(assembly.Module);
-			//}
 
 			var host = new Host();
 			//host.Assemblies.Add(assembly);
@@ -297,8 +290,8 @@ namespace Console
 
 		static void Main(string[] args)
 		{
-			//RunSomeTests();
-			RunGenericsTests();
+			RunSomeTests();
+			//RunGenericsTests();
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();

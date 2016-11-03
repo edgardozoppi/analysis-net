@@ -273,6 +273,24 @@ namespace Model.Types
 			var modifier = this.IsStatic ? "static " : string.Empty;
 			return string.Format("{0}{1} {2}", modifier, this.Type, this.Name);
 		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as IFieldReference;
+
+			var result = other != null &&
+						 this.Name == other.Name &&
+						 this.IsStatic == other.IsStatic &&
+						 this.Type.Equals(other.Type) &&
+						 this.ContainingType.Equals(other.ContainingType);
+
+			return result;
+		}
 	}
 
 	public class FieldDefinition : ITypeMemberDefinition, IFieldReference

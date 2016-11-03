@@ -42,7 +42,7 @@ namespace Backend.Model
             this.Targets = new MapSet<IFieldReference, PTGNode>();
         }
 
-		public PTGNode(int id, IType type, uint offset = 0, PTGNodeKind kind = PTGNodeKind.Object)
+		public PTGNode(int id, IType type, PTGNodeKind kind = PTGNodeKind.Object, uint offset = 0)
 			: this(id, kind)
 		{
 			this.Offset = offset;
@@ -112,7 +112,7 @@ namespace Backend.Model
 
         public IEnumerable<IVariable> Variables
         {
-            get { return this.variables.Keys; }
+            get { return variables.Keys; }
         }
 
 		public IEnumerable<PTGNode> Nodes
@@ -133,7 +133,7 @@ namespace Backend.Model
 			foreach (var node in ptg.Nodes)
 			{
 				if (this.Contains(node)) continue;
-				var clone = new PTGNode(node.Id, node.Type, node.Offset, node.Kind);
+				var clone = new PTGNode(node.Id, node.Type, node.Kind, node.Offset);
 
 				nodes.Add(clone.Id, clone);
 			}
@@ -141,7 +141,7 @@ namespace Backend.Model
             // add all variables
 			foreach (var variable in ptg.Variables)
 			{
-				this.variables.Add(variable);
+				variables.Add(variable);
 			}
 
 			// add all edges
@@ -153,32 +153,36 @@ namespace Backend.Model
                 foreach (var variable in node.Variables)
                 {
                     clone.Variables.Add(variable);
-                    this.variables.Add(variable, clone);
+                    variables.Add(variable, clone);
                 }
 
-                // add source -field-> node edges
-                foreach (var entry in node.Sources)
-                    foreach (var source in entry.Value)
-                    {
-                        var source_clone = nodes[source.Id];
+				// add source -field-> node edges
+				foreach (var entry in node.Sources)
+				{
+					foreach (var source in entry.Value)
+					{
+						var source_clone = nodes[source.Id];
 
-                        clone.Sources.Add(entry.Key, source_clone);
-                    }
+						clone.Sources.Add(entry.Key, source_clone);
+					}
+				}
 
-                // add node -field-> target edges
-                foreach (var entry in node.Targets)
-                    foreach (var target in entry.Value)
-                    {
-                        var target_clone = nodes[target.Id];
+				// add node -field-> target edges
+				foreach (var entry in node.Targets)
+				{
+					foreach (var target in entry.Value)
+					{
+						var target_clone = nodes[target.Id];
 
-                        clone.Targets.Add(entry.Key, target_clone);
-                    }
+						clone.Targets.Add(entry.Key, target_clone);
+					}
+				}
             }
 		}
 
 		public bool Contains(IVariable variable)
 		{
-			return this.variables.ContainsKey(variable);
+			return variables.ContainsKey(variable);
 		}
 
 		public bool Contains(PTGNode node)
@@ -242,7 +246,7 @@ namespace Backend.Model
 #endif
 
             target.Variables.Add(variable);
-            this.variables.Add(variable, target);
+            variables.Add(variable, target);
         }
 
         public void PointsTo(PTGNode source, IFieldReference field, PTGNode target)
@@ -264,7 +268,7 @@ namespace Backend.Model
 			var hasVariable = this.Contains(variable);
 			if (!hasVariable) return;
 
-			var targets = this.variables[variable];
+			var targets = variables[variable];
 
 			foreach (var target in targets)
 			{
@@ -289,8 +293,8 @@ namespace Backend.Model
 			Func<PTGNode, PTGNode, bool> nodeEquals = (a, b) => a.Equals(b) && a.SameEdges(b);
 
 			return other != null &&
-				this.variables.MapEquals(other.variables) &&
-				this.nodes.DictionaryEquals(other.nodes, nodeEquals);
+				variables.MapEquals(other.variables) &&
+				nodes.DictionaryEquals(other.nodes, nodeEquals);
         }
     }
 }

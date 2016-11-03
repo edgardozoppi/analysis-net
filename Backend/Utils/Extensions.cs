@@ -355,12 +355,25 @@ namespace Backend.Utils
 
 		public static void RemoveTemporalVariables(this PointsToGraph ptg)
 		{
-			foreach (var variable in ptg.Variables)
+			var variablesToRemove = ptg.Variables
+									   .Where(v => v.IsTemporal())
+									   .ToArray();
+
+			foreach (var variable in variablesToRemove)
 			{
-				if (variable.IsTemporal())
-				{
-					ptg.Remove(variable);
-				}
+				ptg.Remove(variable);
+			}
+		}
+
+		public static void RemoveVariablesExceptParameters(this PointsToGraph ptg)
+		{
+			var variablesToRemove = ptg.Variables
+						   .Where(v => !v.IsParameter)
+						   .ToArray();
+
+			foreach (var variable in variablesToRemove)
+			{
+				ptg.Remove(variable);
 			}
 		}
 
@@ -394,6 +407,21 @@ namespace Backend.Utils
 			var targets2 = ptg.GetTargets(access2);
 			var alias = targets1.Intersect(targets2);
 			return alias.Any();
+		}
+
+		public static ISet<IVariable> GetAliases(this PointsToGraph ptg, IVariable variable)
+		{
+			var result = new HashSet<IVariable>() { variable };
+
+			foreach (var ptgNode in ptg.GetTargets(variable))
+			{
+				if (!ptgNode.Equals(ptg.Null))
+				{
+					result.UnionWith(ptgNode.Variables);
+				}
+			}
+
+			return result;
 		}
 
 		#endregion
@@ -488,26 +516,13 @@ namespace Backend.Utils
 			return result;
 		}
 
-		public static ISet<IVariable> GetAliases(this PointsToGraph ptg, IVariable variable)
-		{
-			var result = new HashSet<IVariable>() { variable };
-
-			foreach (var ptgNode in ptg.GetTargets(variable))
-			{
-				if (!ptgNode.Equals(ptg.Null))
-				{
-					result.UnionWith(ptgNode.Variables);
-				}
-			}
-
-			return result;
-		}
-
 		#endregion
 
 		public static void Inline(this MethodBody callerBody, MethodCallInstruction methodCall, MethodBody calleeBody)
 		{
-			// TODO: Fix local variables (and parameters) name clashing
+			// TODO: Fix local variables (and parameters) name clashing.
+			// TODO: If callee is a generic method we need to specialize
+			// the generic parameters with the corresponding arguments.
 
 			var index = callerBody.Instructions.IndexOf(methodCall);
 			callerBody.Instructions.RemoveAt(index);

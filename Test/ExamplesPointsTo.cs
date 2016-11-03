@@ -38,6 +38,9 @@ namespace Test
 			if (a) node.Next = new Node(2);
 			else if (b) node.Next = new Node(3);
 			else node.Next = node;
+
+			var next = node.Next;
+			next.Next = null;
 		}
 
 		public void Example3()
