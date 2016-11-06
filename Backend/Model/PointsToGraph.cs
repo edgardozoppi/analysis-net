@@ -30,6 +30,8 @@ namespace Backend.Model
 		public uint Offset { get; set; }
         public IType Type { get; set; }
         public ISet<IVariable> Variables { get; private set; }
+		// TODO: Maybe is better to use node ids instead of the nodes itself
+		// to avoid cloning them when cloning the PT graph
         public MapSet<IFieldReference, PTGNode> Sources { get; private set; }
         public MapSet<IFieldReference, PTGNode> Targets { get; private set; }
 
@@ -296,5 +298,76 @@ namespace Backend.Model
 				variables.MapEquals(other.variables) &&
 				nodes.DictionaryEquals(other.nodes, nodeEquals);
         }
-    }
+
+		// TODO: Change the return type to MapSet<IVariable, int>
+		// binding: parameter -> argument
+		public MapSet<IVariable, PTGNode> NewFrame(IDictionary<IVariable, IVariable> binding)
+		{
+			// Remove node -> variable edges
+			foreach (var entry in variables)
+			{
+				foreach (var node in entry.Value)
+				{
+					node.Variables.Remove(entry.Key);
+				}
+			}
+
+			var callerFrame = variables;
+			// Clear variable -> node edges
+			variables = new MapSet<IVariable, PTGNode>();
+
+			foreach (var entry in binding)
+			{
+				// Get argument targets
+				var targets = callerFrame[entry.Value];
+
+				// Add parameter -> node edges
+				variables.AddRange(entry.Key, targets);
+
+				// Add node -> parameter edges
+				foreach (var node in targets)
+				{
+					node.Variables.Add(entry.Key);
+				}
+			}
+
+			return callerFrame;
+		}
+
+		// TODO: Change the parameter type to MapSet<IVariable, int>
+		// binding: parameter -> argument
+		public void RestoreFrame(MapSet<IVariable, PTGNode> frame, IDictionary<IVariable, IVariable> binding)
+		{
+			// Remove node -> variable edges
+			foreach (var entry in variables)
+			{
+				foreach (var node in entry.Value)
+				{
+					node.Variables.Remove(entry.Key);
+				}
+			}
+
+			var calleeFrame = variables;
+			// Restore variable -> node edges
+			variables = frame;
+
+			foreach (var entry in binding)
+			{
+				// Get parameter targets
+				var targets = calleeFrame[entry.Key];
+
+				// Set argument -> node edges
+				variables[entry.Value] = targets;
+			}
+
+			// Add node -> variable edges
+			foreach (var entry in variables)
+			{
+				foreach (var node in entry.Value)
+				{
+					node.Variables.Add(entry.Key);
+				}
+			}
+		}
+	}
 }

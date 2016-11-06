@@ -63,5 +63,24 @@ namespace Test
 
 			return node;
 		}
+
+		public Node Example5(Node n, Node m)
+		{
+			var k = new Node(3);
+
+			n.Next = m;
+			m.Next = k;
+
+			return k;
+		}
+
+		public void Example6()
+		{
+			var n = new Node(1);
+			var m = new Node(2);
+			var w = Example5(n, m);
+
+			w.Next = n;
+		}
 	}
 }

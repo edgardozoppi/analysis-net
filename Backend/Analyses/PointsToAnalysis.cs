@@ -26,10 +26,23 @@ namespace Backend.Analyses
 			private IVariable resultVariable;
 			private PointsToGraph ptg;
 
-			public TransferFunction(UniqueIDGenerator nodeIdGenerator)
+			public TransferFunction(IType returnType, UniqueIDGenerator nodeIdGenerator)
 			{
 				this.nodeIdGenerator = nodeIdGenerator;
 				this.nodeIdAtOffset = new Dictionary<uint, int>();
+
+				if (returnType.TypeKind != TypeKind.ValueType)
+				{
+					this.resultVariable = new LocalVariable("$result");
+					this.resultVariable.Type = returnType;
+				}
+			}
+
+			public Func<MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall;
+
+			public IVariable ResultVariable
+			{
+				get { return resultVariable; }
 			}
 
 			public PointsToGraph Evaluate(CFGNode node, PointsToGraph input)
@@ -94,22 +107,17 @@ namespace Backend.Analyses
 				}
 			}
 
+			public override void Visit(MethodCallInstruction instruction)
+			{
+				if (ProcessMethodCall != null)
+				{
+					ptg = ProcessMethodCall(instruction, nodeIdGenerator, ptg);
+				}
+			}
+
 			#endregion
 
 			#region Private methods
-
-			private IVariable ResultVariable
-			{
-				get
-				{
-					if (resultVariable == null)
-					{
-						resultVariable = new LocalVariable("$result");
-					}
-
-					return resultVariable;
-				}
-			}
 
 			private void ProcessNull(IVariable dst)
 			{
@@ -123,14 +131,12 @@ namespace Backend.Analyses
 			{
 				if (src.Type.TypeKind == TypeKind.ValueType) return;
 
-				var dst = this.ResultVariable;
-
 				// Weak update to preserve all possible return values
 				var targets = ptg.GetTargets(src);
 
 				foreach (var target in targets)
 				{
-					ptg.PointsTo(dst, target);
+					ptg.PointsTo(resultVariable, target);
 				}
 			}
 
@@ -184,6 +190,7 @@ namespace Backend.Analyses
 				{
 					var hasField = node.Targets.ContainsKey(access.Field);
 
+					// TODO: Don't create an unknown node when doing the inter PT analysis
 					if (!hasField)
 					{
 						var target = GetOrCreateNode(offset, dst.Type, PTGNodeKind.Unknown);
@@ -251,23 +258,34 @@ namespace Backend.Analyses
 		private UniqueIDGenerator nodeIdGenerator;
 		private TransferFunction transferFunction;
 
-		public PointsToAnalysis(ControlFlowGraph cfg)
+		public PointsToAnalysis(ControlFlowGraph cfg, IType returnType)
 			: base(cfg)
 		{
 			this.nodeIdGenerator = new UniqueIDGenerator(1);
-			this.transferFunction = new TransferFunction(nodeIdGenerator);
+			this.transferFunction = new TransferFunction(returnType, nodeIdGenerator);
 			this.initialGraph = CreateInitialGraph();
 		}
 
-		internal PointsToAnalysis(ControlFlowGraph cfg, UniqueIDGenerator nodeIdGenerator, PointsToGraph ptg)
+		public PointsToAnalysis(ControlFlowGraph cfg, IType returnType, UniqueIDGenerator nodeIdGenerator, PointsToGraph ptg)
 			: base(cfg)
 		{
             this.nodeIdGenerator = nodeIdGenerator;
-			this.transferFunction = new TransferFunction(nodeIdGenerator);
-			this.initialGraph = ptg;
+			this.transferFunction = new TransferFunction(returnType, nodeIdGenerator);
+			this.initialGraph = CreateInitialGraph(ptg);
 		}
 
-        protected override PointsToGraph InitialValue(CFGNode node)
+		public Func<MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall
+		{
+			get { return transferFunction.ProcessMethodCall; }
+			set { transferFunction.ProcessMethodCall = value; }
+		}
+
+		public IVariable ResultVariable
+		{
+			get { return transferFunction.ResultVariable; }
+		}
+
+		protected override PointsToGraph InitialValue(CFGNode node)
         {
 			return this.initialGraph;
         }
@@ -314,6 +332,34 @@ namespace Backend.Analyses
 				{
 					ptg.Add(variable);
 				}
+			}
+
+			if (this.ResultVariable != null)
+			{
+				ptg.Add(this.ResultVariable);
+			}
+
+			return ptg;
+		}
+
+		private PointsToGraph CreateInitialGraph(PointsToGraph ptg)
+		{
+			// Add all variables except parameters
+			var variables = cfg.GetVariables();
+
+			foreach (var variable in variables)
+			{
+				if (variable.Type.TypeKind == TypeKind.ValueType) continue;
+
+				if (!variable.IsParameter)
+				{
+					ptg.Add(variable);
+				}
+			}
+
+			if (this.ResultVariable != null)
+			{
+				ptg.Add(this.ResultVariable);
 			}
 
 			return ptg;

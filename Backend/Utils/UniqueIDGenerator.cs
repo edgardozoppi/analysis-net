@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Backend.Utils
 {
-	internal class UniqueIDGenerator
+	public class UniqueIDGenerator
 	{
 		private int nextAvailableId;
 

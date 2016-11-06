@@ -40,9 +40,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ExamplesGenerics.cs" />
-    <Compile Include="Examples.cs" />
-    <Compile Include="ExamplesCallGraph.cs" />
+    <None Include="ExamplesGenerics.cs" />
+    <None Include="Examples.cs" />
+    <None Include="ExamplesCallGraph.cs" />
     <Compile Include="ExamplesPointsTo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -2,6 +2,7 @@
 
 using Backend.Model;
 using Backend.Transformations;
+using Backend.Utils;
 using Model;
 using Model.ThreeAddressCode.Instructions;
 using Model.Types;
@@ -103,7 +104,7 @@ namespace Backend.Analyses
 			}
 		}
 
-		private IMethodReference ResolveStaticCallee(MethodCallInstruction methodCall)
+		private static IMethodReference ResolveStaticCallee(MethodCallInstruction methodCall)
 		{
 			var staticCallee = methodCall.Method;
 
@@ -113,50 +114,24 @@ namespace Backend.Analyses
 				var receiver = methodCall.Arguments.First();
 				var receiverType = receiver.Type as IBasicType;
 
-				staticCallee = FindMethodImplementation(receiverType, staticCallee);
+				staticCallee = Helper.FindMethodImplementation(receiverType, staticCallee);
 			}
 
 			return staticCallee;
 		}
 
-		private IMethodReference FindMethodImplementation(IBasicType receiverType, IMethodReference method)
-		{
-			var result = method;
-
-			while (receiverType != null && !method.ContainingType.Equals(receiverType))
-			{
-				var receiverTypeDef = receiverType.ResolvedType as ClassDefinition;
-				if (receiverTypeDef == null) break;
-
-				var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.MatchSignature(method));
-
-				if (matchingMethod != null)
-				{
-					result = matchingMethod;
-					break;
-				}
-				else
-				{
-					receiverType = receiverTypeDef.Base;
-				}
-
-			}
-
-			return result;
-		}
-
-		private IEnumerable<IMethodReference> ResolvePossibleCallees(IMethodReference methodref, bool isVirtualCall)
+		private IEnumerable<IMethodReference> ResolvePossibleCallees(IMethodReference method, bool isVirtualCall)
 		{
 			var result = new HashSet<IMethodReference>();
 
-			result.Add(methodref);
+			result.Add(method);
 
-			if (!methodref.IsStatic && isVirtualCall)
+			if (!method.IsStatic && isVirtualCall)
 			{
-				var subtypes = classHierarchy.GetAllSubtypes(methodref.ContainingType);
+				var subtypes = classHierarchy.GetAllSubtypes(method.ContainingType);
 				var compatibleMethods = from t in subtypes
 										from m in t.Members.OfType<MethodDefinition>()
-										where m.MatchSignature(methodref)
+										where m.MatchSignature(method)
 										select m;
 
 				result.UnionWith(compatibleMethods);

@@ -43,6 +43,7 @@
     <Compile Include="Analyses\ClassHierarchyAnalysis.cs" />
     <Compile Include="Analyses\ControlFlowAnalysis.cs" />
     <Compile Include="Analyses\BackwardCopyPropagationAnalysis.cs" />
+    <Compile Include="Analyses\InterPointsToAnalysis.cs" />
     <Compile Include="Model\ClassHierarchy.cs" />
     <Compile Include="Analyses\LiveVariablesAnalysis.cs" />
     <Compile Include="Model\CallGraph.cs" />
@@ -61,11 +62,14 @@
     <Compile Include="Analyses\TypeInferenceAnalysis.cs" />
     <Compile Include="Analyses\WebAnalysis.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\Helper.cs" />
+    <Compile Include="Utils\MethodAnalysisInfo.cs" />
     <Compile Include="Utils\OperationHelper.cs" />
     <Compile Include="Serialization\DGMLSerializer.cs" />
     <Compile Include="Serialization\DOTSerializer.cs" />
     <Compile Include="Utils\Extensions.cs" />
     <Compile Include="Utils\Map.cs" />
+    <Compile Include="Utils\ProgramAnalysisInfo.cs" />
     <Compile Include="Utils\Subset.cs" />
     <Compile Include="Utils\UniqueIDGenerator.cs" />
   </ItemGroup>

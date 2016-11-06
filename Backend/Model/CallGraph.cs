@@ -89,6 +89,12 @@ namespace Backend.Model
 			return methodInfo.Invocations.Values;
 		}
 
+		public bool ContainsInvocation(IMethodReference method, string label)
+		{
+			var methodInfo = GetMethodInfo(method);
+			return methodInfo.Invocations.ContainsKey(label);
+		}
+
 		public InvocationInfo GetInvocation(IMethodReference method, string label)
 		{
 			var methodInfo = GetMethodInfo(method);

@@ -85,7 +85,7 @@ namespace Console
 			backwardCopyAnalysis.Transform(methodBody);
 
 			// Points-To
-			var pointsTo = new PointsToAnalysis(cfg);
+			var pointsTo = new PointsToAnalysis(cfg, method.ReturnType);
 			var result = pointsTo.Analyze();
 
 			var ptg = result[cfg.Exit.Id].Output;
@@ -288,10 +288,42 @@ namespace Console
 			}
 		}
 
+		private static void RunInterPointsToTests()
+		{
+			const string root = @"..\..\..";
+			const string input = root + @"\Test\bin\Debug\Test.dll";
+
+			var host = new Host();
+
+			PlatformTypes.Resolve(host);
+
+			var loader = new Loader(host);
+			loader.LoadAssembly(input);
+			//loader.LoadCoreAssembly();
+
+			var methodReference = new MethodReference("Example6", PlatformTypes.Void)
+			{
+				ContainingType = new BasicType("ExamplesPointsTo", TypeKind.ReferenceType)
+				{
+					ContainingAssembly = new AssemblyReference("Test"),
+					ContainingNamespace = "Test"
+				}
+			};
+
+			methodReference.Resolve(host);
+
+			var programInfo = new ProgramAnalysisInfo();
+			var pta = new InterPointsToAnalysis(programInfo);
+
+			var cg = pta.Analyze(methodReference.ResolvedMethod);
+			var dgml_CG = DGMLSerializer.Serialize(cg);
+		}
+
 		static void Main(string[] args)
 		{
-			RunSomeTests();
+			//RunSomeTests();
 			//RunGenericsTests();
+			RunInterPointsToTests();
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();
