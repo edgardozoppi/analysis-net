@@ -299,9 +299,8 @@ namespace Backend.Model
 				nodes.DictionaryEquals(other.nodes, nodeEquals);
         }
 
-		// TODO: Change the return type to MapSet<IVariable, int>
 		// binding: parameter -> argument
-		public MapSet<IVariable, PTGNode> NewFrame(IDictionary<IVariable, IVariable> binding)
+		public MapSet<IVariable, int> NewFrame(IDictionary<IVariable, IVariable> binding)
 		{
 			// Remove node -> variable edges
 			foreach (var entry in variables)
@@ -331,13 +330,17 @@ namespace Backend.Model
 				}
 			}
 
-			return callerFrame;
+			// This is needed so it works with clonned PT graphs (different nodes but with the same id)
+			var result = callerFrame.ToDictionary(entry => entry.Key, entry => entry.Value.Select(n => n.Id)).ToMapSet();
+			return result;
 		}
 
-		// TODO: Change the parameter type to MapSet<IVariable, int>
 		// binding: parameter -> argument
-		public void RestoreFrame(MapSet<IVariable, PTGNode> frame, IDictionary<IVariable, IVariable> binding)
+		public void RestoreFrame(MapSet<IVariable, int> frame, IDictionary<IVariable, IVariable> binding)
 		{
+			// This is needed so it works with clonned PT graphs (different nodes but with the same id)
+			var frame2 = frame.ToDictionary(entry => entry.Key, entry => entry.Value.Select(id => nodes[id])).ToMapSet();
+
 			// Remove node -> variable edges
 			foreach (var entry in variables)
 			{
@@ -349,7 +352,7 @@ namespace Backend.Model
 
 			var calleeFrame = variables;
 			// Restore variable -> node edges
-			variables = frame;
+			variables = frame2;
 
 			foreach (var entry in binding)
 			{

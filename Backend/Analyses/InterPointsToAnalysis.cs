@@ -78,12 +78,8 @@ namespace Backend.Analyses
 					var methodInfo = methodsInfo[method];
 					var cfg = methodInfo.Get<ControlFlowGraph>(CFG_INFO);
 
-					var binding = GetCallerCalleeBinding(methodCall.Arguments, method.Body.Parameters);
-
-					// TODO: Change the frame type to MapSet<IVariable, int>
-					// so it works with clonned PT graphs!!
-
 					var ptg = input.Clone();
+					var binding = GetCallerCalleeBinding(methodCall.Arguments, method.Body.Parameters);
 					var previousFrame = ptg.NewFrame(binding);
 
 					// TODO: Garbage collect unreachable nodes!

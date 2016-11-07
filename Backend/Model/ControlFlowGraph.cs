@@ -135,6 +135,9 @@ namespace Backend.Model
 
 	public class ControlFlowGraph
 	{
+		public const int EntryNodeId = 0;
+		public const int ExitNodeId = 1;
+
 		private CFGNode[] forwardOrder;
 		private CFGNode[] backwardOrder;
 
@@ -145,8 +148,8 @@ namespace Backend.Model
 
 		public ControlFlowGraph()
 		{
-			this.Entry = new CFGNode(0, CFGNodeKind.Entry);
-			this.Exit = new CFGNode(1, CFGNodeKind.Exit);
+			this.Entry = new CFGNode(EntryNodeId, CFGNodeKind.Entry);
+			this.Exit = new CFGNode(ExitNodeId, CFGNodeKind.Exit);
 			this.Nodes = new HashSet<CFGNode>() { this.Entry, this.Exit };
 			this.Loops = new HashSet<CFGLoop>();
 		}

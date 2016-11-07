@@ -138,6 +138,30 @@ namespace Backend.Utils
 		//	}
 		//}
 
+		public static MapSet<K, V> ToMapSet<K, V>(this IEnumerable<KeyValuePair<K, IEnumerable<V>>> elements)
+		{
+			var result = new MapSet<K, V>();
+
+			foreach (var element in elements)
+			{
+				result.AddRange(element.Key, element.Value);
+			}
+
+			return result;
+		}
+
+		public static MapList<K, V> ToMapList<K, V>(this IEnumerable<KeyValuePair<K, IEnumerable<V>>> elements)
+		{
+			var result = new MapList<K, V>();
+
+			foreach (var element in elements)
+			{
+				result.AddRange(element.Key, element.Value);
+			}
+
+			return result;
+		}
+
 		public static MapSet<K, V> ToMapSet<K, V>(this IEnumerable<V> elements, Func<V, K> keySelector)
 		{
 			var result = new MapSet<K, V>();
