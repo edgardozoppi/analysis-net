@@ -263,15 +263,13 @@ namespace Backend.Analyses
 		{
 			this.nodeIdGenerator = new UniqueIDGenerator(1);
 			this.transferFunction = new TransferFunction(returnType, nodeIdGenerator);
-			this.initialGraph = CreateInitialGraph();
 		}
 
-		public PointsToAnalysis(ControlFlowGraph cfg, IType returnType, UniqueIDGenerator nodeIdGenerator, PointsToGraph ptg)
+		public PointsToAnalysis(ControlFlowGraph cfg, IType returnType, UniqueIDGenerator nodeIdGenerator)
 			: base(cfg)
 		{
             this.nodeIdGenerator = nodeIdGenerator;
 			this.transferFunction = new TransferFunction(returnType, nodeIdGenerator);
-			this.initialGraph = CreateInitialGraph(ptg);
 		}
 
 		public Func<MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall
@@ -283,6 +281,18 @@ namespace Backend.Analyses
 		public IVariable ResultVariable
 		{
 			get { return transferFunction.ResultVariable; }
+		}
+
+		public override DataFlowAnalysisResult<PointsToGraph>[] Analyze()
+		{
+			this.initialGraph = CreateInitialGraph();
+			return base.Analyze();
+		}
+
+		public DataFlowAnalysisResult<PointsToGraph>[] Analyze(PointsToGraph ptg)
+		{
+			this.initialGraph = CreateInitialGraph(ptg);
+			return base.Analyze();
 		}
 
 		protected override PointsToGraph InitialValue(CFGNode node)

@@ -16,6 +16,7 @@ namespace Backend.Analyses
 	{
 		public const string CFG_INFO = "CFG";
 		public const string PTG_INFO = "PTG";
+		public const string PTA_INFO = "PTA";
 		public const string INPUT_PTG_INFO = "INPUT_PTG";
 
 		private CallGraph callGraph;
@@ -40,9 +41,11 @@ namespace Backend.Analyses
 			var cfg = methodInfo.Get<ControlFlowGraph>(CFG_INFO);
 
 			// TODO: Don't create unknown nodes when doing the inter PT analysis
-			// TODO: Restore the nodeIdAtOffset mapping, or even better, reuse the same PT analysis
 			var pta = new PointsToAnalysis(cfg, method.ReturnType);
 			pta.ProcessMethodCall = ProcessMethodCall;
+
+			methodInfo.Add(PTA_INFO, pta);
+
 			var result = pta.Analyze();
 
 			methodInfo.Set(PTG_INFO, result);
@@ -76,7 +79,6 @@ namespace Backend.Analyses
 					OnReachableMethodFound(method);
 
 					var methodInfo = methodsInfo[method];
-					var cfg = methodInfo.Get<ControlFlowGraph>(CFG_INFO);
 
 					var ptg = input.Clone();
 					var binding = GetCallerCalleeBinding(methodCall.Arguments, method.Body.Parameters);
@@ -96,18 +98,28 @@ namespace Backend.Analyses
 
 					methodInfo.Set(INPUT_PTG_INFO, ptg);
 
-					// TODO: Don't create unknown nodes when doing the inter PT analysis
-					// TODO: Restore the nodeIdAtOffset mapping, or even better, reuse the same PT analysis
-					var pta = new PointsToAnalysis(cfg, method.ReturnType, nodeIdGenerator, ptg);
-					pta.ProcessMethodCall = ProcessMethodCall;
-					var result = pta.Analyze();
+					PointsToAnalysis pta;
+					ok = methodInfo.TryGet(PTA_INFO, out pta);
+
+					if (!ok)
+					{
+						var cfg = methodInfo.Get<ControlFlowGraph>(CFG_INFO);
+
+						// TODO: Don't create unknown nodes when doing the inter PT analysis
+						pta = new PointsToAnalysis(cfg, method.ReturnType, nodeIdGenerator);
+						pta.ProcessMethodCall = ProcessMethodCall;
+
+						methodInfo.Add(PTA_INFO, pta);
+					}
+
+					var result = pta.Analyze(ptg);
 
 					methodInfo.Set(PTG_INFO, result);
 
 					var parameterKind = method.Parameters.ToDictionary(p => p.Name, p => p.Kind);
 					binding = GetCalleeCallerBinding(methodCall.Arguments, method.Body.Parameters, parameterKind, methodCall.Result, pta.ResultVariable);
 
-					ptg = result[cfg.Exit.Id].Output.Clone();
+					ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
 					ptg.RestoreFrame(previousFrame, binding);
 
 					// TODO: Garbage collect unreachable nodes!
