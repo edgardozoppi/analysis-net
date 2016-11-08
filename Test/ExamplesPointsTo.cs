@@ -75,7 +75,18 @@ namespace Test
 			return c;
 		}
 
-		public void Example6()
+		public Node Example6(int n)
+		{
+			Node z = null;
+
+			for (var i = 0; i < n; ++i)
+				z = new Node(i);
+
+			z.Next = Example6(n - 1);
+			return z;
+		}
+
+		public void Example7()
 		{
 			Node r;
 			var n = new Node(1);
@@ -83,6 +94,7 @@ namespace Test
 			var w = Example5(n, m, out r);
 
 			w.Next = n;
+			var q = Example6(4);
 		}
 	}
 }

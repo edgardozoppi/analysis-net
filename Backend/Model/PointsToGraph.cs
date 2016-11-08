@@ -317,6 +317,10 @@ namespace Backend.Model
 
 			foreach (var entry in binding)
 			{
+				if (entry.Key.Type.TypeKind == TypeKind.ValueType ||
+					entry.Value.Type.TypeKind == TypeKind.ValueType)
+					continue;
+
 				// Get argument targets
 				var targets = callerFrame[entry.Value];
 
@@ -356,6 +360,10 @@ namespace Backend.Model
 
 			foreach (var entry in binding)
 			{
+				if (entry.Key.Type.TypeKind == TypeKind.ValueType ||
+					entry.Value.Type.TypeKind == TypeKind.ValueType)
+					continue;
+
 				// Get parameter targets
 				var targets = calleeFrame[entry.Key];
 
