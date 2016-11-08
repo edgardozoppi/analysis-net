@@ -55,7 +55,7 @@ namespace CCIProvider
 
 			foreach (var parameter in methoddef.Parameters)
 			{
-				var type = typeExtractor.ExtractType(parameter.Type);
+				var type = typeExtractor.ExtractType(parameter.Type, parameter.IsByReference);
 				var v = new LocalVariable(parameter.Name.Value, true) { Type = type };
 
 				ourParameters.Add(v);
@@ -68,7 +68,7 @@ namespace CCIProvider
 			foreach (var local in cciLocalVariables)
 			{
 				var name = GetLocalSourceName(local);
-				var type = typeExtractor.ExtractType(local.Type);
+				var type = typeExtractor.ExtractType(local.Type, local.IsReference);
 				var v = new LocalVariable(name) { Type = type };
 
 				ourLocalVariables.Add(v);

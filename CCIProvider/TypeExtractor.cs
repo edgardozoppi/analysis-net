@@ -91,6 +91,18 @@ namespace CCIProvider
 			return type;
 		}
 
+		public IType ExtractType(Cci.ITypeReference typeref, bool isReference)
+		{
+			var type = ExtractType(typeref);
+
+			if (isReference)
+			{
+				type = new PointerType(type);
+			}
+
+			return type;
+		}
+
 		public IType ExtractType(Cci.ITypeReference typeref)
 		{
 			IType result = null;
@@ -99,6 +111,11 @@ namespace CCIProvider
 			{
 				var atyperef = typeref as Cci.IArrayTypeReference;
 				result = ExtractType(atyperef);
+			}
+			else if (typeref is Cci.IManagedPointerTypeReference)
+			{
+				var ptyperef = typeref as Cci.IManagedPointerTypeReference;
+				result = ExtractType(ptyperef);
 			}
 			else if (typeref is Cci.IPointerTypeReference)
 			{
@@ -144,6 +161,16 @@ namespace CCIProvider
 		{
 			var elements = ExtractType(typeref.ElementType);
 			var type = new ArrayType(elements, typeref.Rank);
+
+			ExtractAttributes(type.Attributes, typeref.Attributes);
+
+			return type;
+		}
+
+		public PointerType ExtractType(Cci.IManagedPointerTypeReference typeref)
+		{
+			var target = ExtractType(typeref.TargetType);
+			var type = new PointerType(target);
 
 			ExtractAttributes(type.Attributes, typeref.Attributes);
 
@@ -764,7 +791,7 @@ namespace CCIProvider
 		{
 			foreach (var parameterref in source)
 			{
-				var type = ExtractType(parameterref.Type);
+				var type = ExtractType(parameterref.Type, parameterref.IsByReference);
 				var parameter = new MethodParameterReference(parameterref.Index, type);
 
 				parameter.Kind = GetMethodParameterKind(parameterref);
@@ -777,12 +804,16 @@ namespace CCIProvider
 			foreach (var parameterdef in source)
 			{
 				var name = parameterdef.Name.Value;
-				var type = ExtractType(parameterdef.Type);
+				var type = ExtractType(parameterdef.Type, parameterdef.IsByReference);
 				var parameter = new MethodParameter(parameterdef.Index, name, type);
 
 				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 
-				parameter.DefaultValue = ExtractConstant(parameterdef.Constant);
+				if (parameterdef.HasDefaultValue)
+				{
+					parameter.DefaultValue = ExtractConstant(parameterdef.Constant);
+				}
+
 				parameter.Kind = GetMethodParameterKind(parameterdef);
 				dest.Add(parameter);
 			}
