@@ -301,7 +301,7 @@ namespace Console
 			loader.LoadAssembly(input);
 			//loader.LoadCoreAssembly();
 
-			var methodReference = new MethodReference("Example6", PlatformTypes.Void)
+			var methodReference = new MethodReference("Example8", PlatformTypes.Void)
 			{
 				ContainingType = new BasicType("ExamplesPointsTo", TypeKind.ReferenceType)
 				{
@@ -309,6 +309,17 @@ namespace Console
 					ContainingNamespace = "Test"
 				}
 			};
+
+			//var parameter = new MethodParameterReference(0, PlatformTypes.Boolean);
+			//methodReference.Parameters.Add(parameter);
+			//parameter = new MethodParameterReference(1, PlatformTypes.Boolean);
+			//methodReference.Parameters.Add(parameter);
+
+			//methodReference.ReturnType = new BasicType("Node", TypeKind.ReferenceType)
+			//{
+			//	ContainingAssembly = new AssemblyReference("Test"),
+			//	ContainingNamespace = "Test"
+			//};
 
 			methodReference.Resolve(host);
 

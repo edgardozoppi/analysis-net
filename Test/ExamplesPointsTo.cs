@@ -90,7 +90,11 @@ namespace Test
 			for (var i = 0; i < n; ++i)
 				z = new Node(i);
 
-			//z.Next = Example7(n - 1);
+			if (n > 0)
+			{
+				z.Next = Example7(n - 1);
+			}
+
 			return z;
 		}
 
