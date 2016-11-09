@@ -64,37 +64,39 @@ namespace Test
 			return node;
 		}
 
-		public Node Example5(Node a, Node b, out Node p)
+		public Node Example5(Node a, Node b)
 		{
 			var c = new Node(3);
 
 			a.Next = b;
 			b.Next = c;
 
-			p = c;
 			return c;
 		}
 
-		public Node Example6(int n)
+		public void Example6()
+		{
+			var n = new Node(1);
+			var m = new Node(2);
+			var w = Example5(n, m);
+
+			w.Next = n;
+		}
+
+		public Node Example7(int n)
 		{
 			Node z = null;
 
 			for (var i = 0; i < n; ++i)
 				z = new Node(i);
 
-			z.Next = Example6(n - 1);
+			//z.Next = Example7(n - 1);
 			return z;
 		}
 
-		public void Example7()
+		public void Example8()
 		{
-			Node r;
-			var n = new Node(1);
-			var m = new Node(2);
-			var w = Example5(n, m, out r);
-
-			w.Next = n;
-			var q = Example6(4);
+			var q = Example7(4);
 		}
 	}
 }

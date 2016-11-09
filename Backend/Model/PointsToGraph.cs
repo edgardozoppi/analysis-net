@@ -29,19 +29,11 @@ namespace Backend.Model
 		public PTGNodeKind Kind { get; private set; }
 		public uint Offset { get; set; }
         public IType Type { get; set; }
-        public ISet<IVariable> Variables { get; private set; }
-		// TODO: Maybe is better to use node ids instead of the nodes itself
-		// to avoid cloning them when cloning the PT graph
-        public MapSet<IFieldReference, PTGNode> Sources { get; private set; }
-        public MapSet<IFieldReference, PTGNode> Targets { get; private set; }
 
 		public PTGNode(int id, PTGNodeKind kind = PTGNodeKind.Null)
         {
 			this.Id = id;
             this.Kind = kind;
-            this.Variables = new HashSet<IVariable>();
-            this.Sources = new MapSet<IFieldReference, PTGNode>();
-            this.Targets = new MapSet<IFieldReference, PTGNode>();
         }
 
 		public PTGNode(int id, IType type, PTGNodeKind kind = PTGNodeKind.Object, uint offset = 0)
@@ -49,15 +41,6 @@ namespace Backend.Model
 		{
 			this.Offset = offset;
 			this.Type = type;
-		}
-
-		public bool SameEdges(PTGNode node)
-		{
-			if (node == null) throw new ArgumentNullException("node");
-
-			return this.Variables.SetEquals(node.Variables) &&
-				this.Sources.MapEquals(node.Sources) &&
-				this.Targets.MapEquals(node.Targets);
 		}
 
 		public override bool Equals(object obj)
@@ -98,23 +81,31 @@ namespace Backend.Model
 
     public class PointsToGraph
     {
-		private MapSet<IVariable, PTGNode> variables;
-		private IDictionary<int, PTGNode> nodes;
+		public const int NullNodeId = 0;
 
-        public PTGNode Null { get; private set; }
+		private IDictionary<int, PTGNode> nodes;
+		private MapSet<IVariable, PTGNode> roots;
+		private MapSet<PTGNode, IVariable> variables;
+		private IDictionary<PTGNode, MapSet<IFieldReference, PTGNode>> targets;
+		private IDictionary<PTGNode, MapSet<IFieldReference, PTGNode>> sources;
+
+		public PTGNode Null { get; private set; }
 
         public PointsToGraph()
         {
-            this.Null = new PTGNode(0, PTGNodeKind.Null);
-            this.variables = new MapSet<IVariable, PTGNode>();            
+            this.Null = new PTGNode(NullNodeId, PTGNodeKind.Null);
 			this.nodes = new Dictionary<int, PTGNode>();
+            this.roots = new MapSet<IVariable, PTGNode>();
+			this.variables = new MapSet<PTGNode, IVariable>();
+			this.targets = new Dictionary<PTGNode, MapSet<IFieldReference, PTGNode>>();
+			this.sources = new Dictionary<PTGNode, MapSet<IFieldReference, PTGNode>>();
 
 			this.Add(this.Null);
         }
 
         public IEnumerable<IVariable> Variables
         {
-            get { return variables.Keys; }
+            get { return roots.Keys; }
         }
 
 		public IEnumerable<PTGNode> Nodes
@@ -131,65 +122,57 @@ namespace Backend.Model
 
 		public void Union(PointsToGraph ptg)
 		{
-			// add all new nodes
+			// add all nodes
 			foreach (var node in ptg.Nodes)
 			{
-				if (this.Contains(node)) continue;
-				var clone = new PTGNode(node.Id, node.Type, node.Kind, node.Offset);
-
-				nodes.Add(clone.Id, clone);
-			}
-
-            // add all variables
-			foreach (var variable in ptg.Variables)
-			{
-				variables.Add(variable);
+				Add(node);
 			}
 
 			// add all edges
-            foreach (var node in ptg.Nodes)
-            {
-                var clone = nodes[node.Id];
 
-                // add variable <---> node edges
-                foreach (var variable in node.Variables)
-                {
-                    clone.Variables.Add(variable);
-                    variables.Add(variable, clone);
-                }
+			// add variable ---> node edges
+			foreach (var entry in ptg.roots)
+			{
+				roots.AddRange(entry.Key, entry.Value);
+			}
 
-				// add source -field-> node edges
-				foreach (var entry in node.Sources)
+			// add node ---> variable edges
+			foreach (var entry in ptg.variables)
+			{
+				variables.AddRange(entry.Key, entry.Value);
+			}
+
+			// add node -field-> target edges
+			foreach (var entry in ptg.targets)
+			{
+				var edges = GetEdges(targets, entry.Key);
+
+				foreach (var edge in entry.Value)
 				{
-					foreach (var source in entry.Value)
-					{
-						var source_clone = nodes[source.Id];
-
-						clone.Sources.Add(entry.Key, source_clone);
-					}
+					edges.AddRange(edge.Key, edge.Value);
 				}
+			}
 
-				// add node -field-> target edges
-				foreach (var entry in node.Targets)
+			// add source -field-> node edges
+			foreach (var entry in ptg.sources)
+			{
+				var edges = GetEdges(sources, entry.Key);
+
+				foreach (var edge in entry.Value)
 				{
-					foreach (var target in entry.Value)
-					{
-						var target_clone = nodes[target.Id];
-
-						clone.Targets.Add(entry.Key, target_clone);
-					}
+					edges.AddRange(edge.Key, edge.Value);
 				}
-            }
+			}
 		}
 
 		public bool Contains(IVariable variable)
 		{
-			return variables.ContainsKey(variable);
+			return roots.ContainsKey(variable);
 		}
 
 		public bool Contains(PTGNode node)
 		{
-			return this.ContainsNode(node.Id);
+			return ContainsNode(node.Id);
 		}
 
 		public bool ContainsNode(int id)
@@ -199,12 +182,17 @@ namespace Backend.Model
 
 		public void Add(IVariable variable)
 		{
-			variables.Add(variable);
+			roots.Add(variable);
 		}
 
 		public void Add(PTGNode node)
 		{
+			if (Contains(node)) return;
 			nodes.Add(node.Id, node);
+
+			variables.Add(node);
+			targets.Add(node, new MapSet<IFieldReference, PTGNode>());
+			sources.Add(node, new MapSet<IFieldReference, PTGNode>());
 		}
 
 		public PTGNode GetNode(int id)
@@ -214,19 +202,38 @@ namespace Backend.Model
 
 		public ISet<PTGNode> GetTargets(IVariable variable)
 		{
-			return variables[variable];
+			return roots[variable];
+		}
+
+		public ISet<IVariable> GetVariables(PTGNode node)
+		{
+			return variables[node];
+		}
+
+		public MapSet<IFieldReference, PTGNode> GetTargets(PTGNode node)
+		{
+			return targets[node];
+		}
+
+		public MapSet<IFieldReference, PTGNode> GetSources(PTGNode node)
+		{
+			return sources[node];
 		}
 
 		public ISet<PTGNode> GetTargets(IVariable variable, IFieldReference field)
 		{
 			var result = new HashSet<PTGNode>();
-			var targets = this.GetTargets(variable);
+			var targets = GetTargets(variable);
 
 			foreach (var node in targets)
 			{
-				if (node.Targets.ContainsKey(field))
+				HashSet<PTGNode> fieldTargets;
+				var nodeTargets = GetTargets(node);
+
+				var ok = nodeTargets.TryGetValue(field, out fieldTargets);
+
+				if (ok)
 				{
-					var fieldTargets = node.Targets[field];
 					result.AddRange(fieldTargets);
 				}
 			}
@@ -234,53 +241,69 @@ namespace Backend.Model
 			return result;
 		}
 
+		public ISet<PTGNode> GetTargets(PTGNode node, IFieldReference field)
+		{
+			var targets = GetTargets(node);
+			return targets[field];
+		}
+
+		public ISet<PTGNode> GetSources(PTGNode node, IFieldReference field)
+		{
+			var sources = GetSources(node);
+			return sources[field];
+		}
+
 		public void Remove(IVariable variable)
 		{
-			this.RemoveEdges(variable);
-			variables.Remove(variable);
+			RemoveEdges(variable);
+			roots.Remove(variable);
 		}
 
         public void PointsTo(IVariable variable, PTGNode target)
         {
 #if DEBUG
-			if (!this.Contains(target))
+			if (!Contains(target))
 				throw new ArgumentException("Target node does not belong to this Points-to graph.", "target");
 #endif
 
-            target.Variables.Add(variable);
-            variables.Add(variable, target);
+            roots.Add(variable, target);
+			variables.Add(target, variable);
         }
 
         public void PointsTo(PTGNode source, IFieldReference field, PTGNode target)
         {
 #if DEBUG
-			if (!this.Contains(source))
+			if (!Contains(source))
 				throw new ArgumentException("Source node does not belong to this Points-to graph.", "source");
 
-			if (!this.Contains(target))
+			if (!Contains(target))
 				throw new ArgumentException("Target node does not belong to this Points-to graph.", "target");
 #endif
 
-            source.Targets.Add(field, target);
-            target.Sources.Add(field, source);
+			var edges = GetEdges(targets, source);
+			edges.Add(field, target);
+
+			edges = GetEdges(sources, target);
+			edges.Add(field, source);
         }
 
-        public void RemoveEdges(IVariable variable)
+		public void RemoveEdges(IVariable variable)
         {
-			var hasVariable = this.Contains(variable);
+			var hasVariable = Contains(variable);
 			if (!hasVariable) return;
 
-			var targets = variables[variable];
+			var targets = GetTargets(variable);
 
 			foreach (var target in targets)
 			{
-				target.Variables.Remove(variable);
+				var nodeVariables = variables[target];
+				nodeVariables.Remove(variable);
 			}
 
 			// If we uncomment the next line
 			// the variable will be removed from
 			// the graph, not only its edges
-			//this.Roots.Remove(variable);
+			// roots.Remove(variable);
 
 			// Remove only the edges of the variable,
 			// but not the variable itself
@@ -292,28 +315,26 @@ namespace Backend.Model
 			if (object.ReferenceEquals(this, obj)) return true;
             var other = obj as PointsToGraph;
 
-			Func<PTGNode, PTGNode, bool> nodeEquals = (a, b) => a.Equals(b) && a.SameEdges(b);
+			Func<PTGNode, PTGNode, bool> nodeEquals = (a, b) => a.Equals(b);
+			Func<MapSet<IFieldReference, PTGNode>, MapSet<IFieldReference, PTGNode>, bool> edgeEquals = (a, b) => a.MapEquals(b);
 
 			return other != null &&
-				variables.MapEquals(other.variables) &&
-				nodes.DictionaryEquals(other.nodes, nodeEquals);
+				roots.MapEquals(other.roots) &&
+				//variables.MapEquals(other.variables) &&
+				nodes.DictionaryEquals(other.nodes, nodeEquals) &&
+				//sources.DictionaryEquals(other.sources, edgeEquals) &&
+				targets.DictionaryEquals(other.targets, edgeEquals);
         }
 
 		// binding: parameter -> argument
 		public MapSet<IVariable, int> NewFrame(IDictionary<IVariable, IVariable> binding)
 		{
 			// Remove node -> variable edges
-			foreach (var entry in variables)
-			{
-				foreach (var node in entry.Value)
-				{
-					node.Variables.Remove(entry.Key);
-				}
-			}
+			variables.Clear();
 
-			var callerFrame = variables;
+			var callerFrame = roots;
 			// Clear variable -> node edges
-			variables = new MapSet<IVariable, PTGNode>();
+			roots = new MapSet<IVariable, PTGNode>();
 
 			foreach (var entry in binding)
 			{
@@ -325,12 +346,12 @@ namespace Backend.Model
 				var targets = callerFrame[entry.Value];
 
 				// Add parameter -> node edges
-				variables.AddRange(entry.Key, targets);
+				roots.AddRange(entry.Key, targets);
 
 				// Add node -> parameter edges
 				foreach (var node in targets)
 				{
-					node.Variables.Add(entry.Key);
+					variables.Add(node, entry.Key);
 				}
 			}
 
@@ -346,17 +367,11 @@ namespace Backend.Model
 			var frame2 = frame.ToDictionary(entry => entry.Key, entry => entry.Value.Select(id => nodes[id])).ToMapSet();
 
 			// Remove node -> variable edges
-			foreach (var entry in variables)
-			{
-				foreach (var node in entry.Value)
-				{
-					node.Variables.Remove(entry.Key);
-				}
-			}
+			variables.Clear();
 
-			var calleeFrame = variables;
+			var calleeFrame = roots;
 			// Restore variable -> node edges
-			variables = frame2;
+			roots = frame2;
 
 			foreach (var entry in binding)
 			{
@@ -368,17 +383,32 @@ namespace Backend.Model
 				var targets = calleeFrame[entry.Key];
 
 				// Set argument -> node edges
-				variables[entry.Value] = targets;
+				roots[entry.Value] = targets;
 			}
 
 			// Add node -> variable edges
-			foreach (var entry in variables)
+			foreach (var entry in roots)
 			{
 				foreach (var node in entry.Value)
 				{
-					node.Variables.Add(entry.Key);
+					variables.Add(node, entry.Key);
 				}
 			}
+		}
+
+		private static MapSet<IFieldReference, PTGNode> GetEdges(IDictionary<PTGNode, MapSet<IFieldReference, PTGNode>> mapping, PTGNode node)
+		{
+			MapSet<IFieldReference, PTGNode> result;
+
+			var ok = mapping.TryGetValue(node, out result);
+
+			if (!ok)
+			{
+				result = new MapSet<IFieldReference, PTGNode>();
+				mapping.Add(node, result);
+			}
+
+			return result;
 		}
 	}
 }

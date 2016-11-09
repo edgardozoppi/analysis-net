@@ -161,8 +161,9 @@ namespace Backend.Serialization
 				foreach (var node in ptg.Nodes)
 				{
 					var targetId = Convert.ToString(node.Id);
+					var nodeVariables = ptg.GetVariables(node);
 
-					foreach (var variable in node.Variables)
+					foreach (var variable in nodeVariables)
 					{
 						var sourceId = variable.Name;
 
@@ -172,7 +173,7 @@ namespace Backend.Serialization
 						xmlWriter.WriteEndElement();
 					}
 
-					var fieldsBySource = from e in node.Sources
+					var fieldsBySource = from e in ptg.GetSources(node)
 										 from s in e.Value
 										 group e.Key by s into g
 										 select g;

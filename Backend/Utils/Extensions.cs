@@ -437,11 +437,12 @@ namespace Backend.Utils
 		{
 			var result = new HashSet<IVariable>() { variable };
 
-			foreach (var ptgNode in ptg.GetTargets(variable))
+			foreach (var node in ptg.GetTargets(variable))
 			{
-				if (!ptgNode.Equals(ptg.Null))
+				if (!node.Equals(ptg.Null))
 				{
-					result.UnionWith(ptgNode.Variables);
+					var nodeVariables = ptg.GetVariables(node);
+					result.UnionWith(nodeVariables);
 				}
 			}
 
@@ -480,7 +481,9 @@ namespace Backend.Utils
 					break;
 				}
 
-				foreach (var targets in node.Targets.Values)
+				var nodeTargets = ptg.GetTargets(node);
+
+				foreach (var targets in nodeTargets.Values)
 				{
 					foreach (var nodeTarget in targets)
 					{
@@ -519,7 +522,9 @@ namespace Backend.Utils
 					continue;
 				}
 
-				foreach (var targets in node.Targets.Values)
+				var nodeTargets = ptg.GetTargets(node);
+
+				foreach (var targets in nodeTargets.Values)
 				{
 					foreach (var nodeTarget in targets)
 					{

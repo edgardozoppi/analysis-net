@@ -22,14 +22,14 @@ namespace Backend.Analyses
 		private class TransferFunction : InstructionVisitor
 		{
 			private UniqueIDGenerator nodeIdGenerator;
-			private IDictionary<uint, int> nodeIdAtOffset;
+			private IDictionary<uint, PTGNode> nodeAtOffset;
 			private IVariable resultVariable;
 			private PointsToGraph ptg;
 
 			public TransferFunction(IType returnType, UniqueIDGenerator nodeIdGenerator)
 			{
 				this.nodeIdGenerator = nodeIdGenerator;
-				this.nodeIdAtOffset = new Dictionary<uint, int>();
+				this.nodeAtOffset = new Dictionary<uint, PTGNode>();
 
 				if (returnType.TypeKind != TypeKind.ValueType)
 				{
@@ -188,7 +188,8 @@ namespace Backend.Analyses
 
 				foreach (var node in nodes)
 				{
-					var hasField = node.Targets.ContainsKey(access.Field);
+					var nodeTargets = ptg.GetTargets(node);
+					var hasField = nodeTargets.ContainsKey(access.Field);
 
 					// TODO: Don't create an unknown node when doing the inter PT analysis
 					if (!hasField)
@@ -198,7 +199,7 @@ namespace Backend.Analyses
 						ptg.PointsTo(node, access.Field, target);
 					}
 
-					var targets = node.Targets[access.Field];
+					var targets = nodeTargets[access.Field];
 
 					foreach (var target in targets)
 					{
@@ -227,23 +228,21 @@ namespace Backend.Analyses
 			private PTGNode GetOrCreateNode(uint offset, IType type, PTGNodeKind kind)
 			{
 				PTGNode node;
-				int nodeId;
 
-				var ok = nodeIdAtOffset.TryGetValue(offset, out nodeId);
+				var ok = nodeAtOffset.TryGetValue(offset, out node);
 
-				if (ok)
-				{
-					// Get already existing node
-					node = ptg.GetNode(nodeId);
-				}
-				else
+				if (!ok)
 				{
 					// Create a new node
-					nodeId = nodeIdGenerator.Next;
+					var nodeId = nodeIdGenerator.Next;
 					node = new PTGNode(nodeId, type, kind, offset);
 
 					ptg.Add(node);
-					nodeIdAtOffset.Add(offset, nodeId);
+					nodeAtOffset.Add(offset, node);
+				}
+				else if (!ptg.Contains(node))
+				{
+					ptg.Add(node);
 				}
 
 				return node;
