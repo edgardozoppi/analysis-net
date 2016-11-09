@@ -91,7 +91,9 @@ namespace Backend.Analyses
 					PointsToGraph oldInput;
 					var ok = methodInfo.TryGet(INPUT_PTG_INFO, out oldInput);
 
-					if (ok)
+					var inputChanged = !ok || !ptg.GraphEquals(oldInput);
+
+					if (ok && inputChanged)
 					{
 						ptg.Union(oldInput);
 					}
@@ -112,14 +114,25 @@ namespace Backend.Analyses
 						methodInfo.Add(PTA_INFO, pta);
 					}
 
-					var result = pta.Analyze(ptg);
+					if (inputChanged)
+					{
+						methodInfo.Set(PTG_INFO, pta.GetResult());
 
-					methodInfo.Set(PTG_INFO, result);
+						ptg = ptg.Clone();
+						var result = pta.Analyze(ptg);
+
+						ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
+					}
+					else
+					{
+						var result = methodInfo.Get<DataFlowAnalysisResult<PointsToGraph>[]>(PTG_INFO);
+						ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
+					}
 
 					var parameterKind = method.Parameters.ToDictionary(p => p.Name, p => p.Kind);
 					binding = GetCalleeCallerBinding(methodCall.Arguments, method.Body.Parameters, parameterKind, methodCall.Result, pta.ResultVariable);
 
-					ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
+					//ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
 					ptg.RestoreFrame(previousFrame, binding);
 
 					// TODO: Garbage collect unreachable nodes!

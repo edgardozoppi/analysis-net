@@ -41,16 +41,24 @@ namespace Backend.Analyses
 
 	public abstract class ForwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
+		private DataFlowAnalysisResult<T>[] result;
+
 		public ForwardDataFlowAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
+			result = new DataFlowAnalysisResult<T>[cfg.ForwardOrder.Length];
+		}
+
+		public DataFlowAnalysisResult<T>[] GetResult()
+		{
+			return result;
 		}
 
 		public override DataFlowAnalysisResult<T>[] Analyze()
 		{
 			var sorted_nodes = this.cfg.ForwardOrder;
 			var pending_nodes = new Queue<CFGNode>();
-			var result = new DataFlowAnalysisResult<T>[sorted_nodes.Length];
+			//var result = new DataFlowAnalysisResult<T>[sorted_nodes.Length];
 
 			for (var i = 0; i < sorted_nodes.Length; ++i)
 			{
@@ -85,7 +93,7 @@ namespace Backend.Analyses
 					}
 
 					node_result.Input = node_input;
-				}				
+				}
 
 				var old_output = node_result.Output;
 				var new_output = this.Flow(node, node_result.Input);
