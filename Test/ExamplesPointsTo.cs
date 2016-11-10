@@ -98,9 +98,20 @@ namespace Test
 			return z;
 		}
 
+		public void Example9(Node node, int n)
+		{
+			if (n > 0)
+			{
+				node.Next = new Node(n);
+				Example9(node.Next, n - 1);
+			}
+		}
+
 		public void Example8()
 		{
-			var q = Example7(4);
+			//var q = Example7(4);
+			var first = new Node(1);
+			Example9(first, 4);
 		}
 	}
 }

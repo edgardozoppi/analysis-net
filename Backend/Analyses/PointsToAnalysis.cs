@@ -282,6 +282,11 @@ namespace Backend.Analyses
 			get { return transferFunction.ResultVariable; }
 		}
 
+		public DataFlowAnalysisResult<PointsToGraph>[] Result
+		{
+			get { return result; }
+		}
+
 		public override DataFlowAnalysisResult<PointsToGraph>[] Analyze()
 		{
 			this.initialGraph = CreateInitialGraph();

@@ -116,7 +116,7 @@ namespace Backend.Analyses
 
 					if (inputChanged)
 					{
-						methodInfo.Set(PTG_INFO, pta.GetResult());
+						methodInfo.Set(PTG_INFO, pta.Result);
 
 						ptg = ptg.Clone();
 						var result = pta.Analyze(ptg);
