@@ -92,16 +92,29 @@ namespace Backend.Model
 		public PTGNode Null { get; private set; }
 
         public PointsToGraph()
+			: this(null)
         {
-            this.Null = new PTGNode(NullNodeId, PTGNodeKind.Null);
+        }
+
+		private PointsToGraph(PTGNode nullNode)
+		{
 			this.nodes = new Dictionary<int, PTGNode>();
-            this.roots = new MapSet<IVariable, PTGNode>();
+			this.roots = new MapSet<IVariable, PTGNode>();
 			this.variables = new MapSet<PTGNode, IVariable>();
 			this.targets = new Dictionary<PTGNode, MapSet<IFieldReference, PTGNode>>();
 			this.sources = new Dictionary<PTGNode, MapSet<IFieldReference, PTGNode>>();
 
+			if (nullNode == null)
+			{
+				this.Null = new PTGNode(NullNodeId, PTGNodeKind.Null);
+			}
+			else
+			{
+				this.Null = nullNode;
+			}
+
 			this.Add(this.Null);
-        }
+		}
 
         public IEnumerable<IVariable> Variables
         {
@@ -115,7 +128,7 @@ namespace Backend.Model
 
 		public PointsToGraph Clone()
 		{
-			var ptg = new PointsToGraph();
+			var ptg = new PointsToGraph(this.Null);
             ptg.Union(this);
 			return ptg;
 		}
@@ -330,7 +343,11 @@ namespace Backend.Model
 		public MapSet<IVariable, int> NewFrame(IDictionary<IVariable, IVariable> binding)
 		{
 			// Remove node -> variable edges
-			variables.Clear();
+			//variables.Clear();
+			foreach (var entry in variables)
+			{
+				entry.Value.Clear();
+			}
 
 			var callerFrame = roots;
 			// Clear variable -> node edges
@@ -367,7 +384,11 @@ namespace Backend.Model
 			var frame2 = frame.ToDictionary(entry => entry.Key, entry => entry.Value.Select(id => nodes[id])).ToMapSet();
 
 			// Remove node -> variable edges
-			variables.Clear();
+			//variables.Clear();
+			foreach (var entry in variables)
+			{
+				entry.Value.Clear();
+			}
 
 			var calleeFrame = roots;
 			// Restore variable -> node edges
