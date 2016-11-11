@@ -117,5 +117,27 @@ namespace Test
 			var first = new Node(1);
 			Example9(first, 4);
 		}
+
+		public Node Example11(Node node1, int n)
+		{
+			if (n > 0)
+			{
+				return Example12(node1, n - 1);
+			}
+
+			return node1;
+		}
+
+		public Node Example12(Node node2, int m)
+		{
+			node2.Next = new Node(m);
+			return Example11(node2.Next, m);
+		}
+
+		public void Example13()
+		{
+			var first = new Node(1);
+			var other = Example11(first, 4);
+		}
 	}
 }

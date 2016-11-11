@@ -301,7 +301,7 @@ namespace Console
 			loader.LoadAssembly(input);
 			//loader.LoadCoreAssembly();
 
-			var methodReference = new MethodReference("Example10", PlatformTypes.Void)
+			var methodReference = new MethodReference("Example13", PlatformTypes.Void)
 			{
 				ContainingType = new BasicType("ExamplesPointsTo", TypeKind.ReferenceType)
 				{
