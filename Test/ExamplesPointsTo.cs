@@ -98,6 +98,11 @@ namespace Test
 			return z;
 		}
 
+		public void Example8()
+		{
+			var q = Example7(4);
+		}
+
 		public void Example9(Node node, int n)
 		{
 			if (n > 0)
@@ -107,9 +112,8 @@ namespace Test
 			}
 		}
 
-		public void Example8()
+		public void Example10()
 		{
-			//var q = Example7(4);
 			var first = new Node(1);
 			Example9(first, 4);
 		}

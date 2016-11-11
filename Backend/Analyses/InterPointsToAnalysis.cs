@@ -96,6 +96,12 @@ namespace Backend.Analyses
 					if (ok && inputChanged)
 					{
 						ptg.Union(oldInput);
+						// Even when the graphs were different,
+						// it could be the case that one (ptg)
+						// is a subgraph of the other (oldInput)
+						// so the the result of the union of both
+						// graphs is exactly the same oldInput graph.
+						inputChanged = !ptg.GraphEquals(oldInput);
 					}
 
 					methodInfo.Set(INPUT_PTG_INFO, ptg);
