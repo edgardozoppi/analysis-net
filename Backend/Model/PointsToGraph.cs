@@ -272,7 +272,36 @@ namespace Backend.Model
 			roots.Remove(variable);
 		}
 
-        public void PointsTo(IVariable variable, PTGNode target)
+		public void Remove(PTGNode node)
+		{
+			var hasNode = Contains(node);
+			if (!hasNode) return;
+
+			var variables = GetVariables(node);
+
+			foreach (var variable in variables)
+			{
+				var variableNodes = roots[variable];
+				variableNodes.Remove(node);
+			}
+
+			this.variables.Remove(node);
+			var edges = GetTargets(node);
+
+			foreach (var edge in edges)
+			{
+				foreach (var target in edge.Value)
+				{
+					var sources = GetSources(target, edge.Key);
+
+					sources.Remove(node);
+				}
+			}
+
+			targets.Remove(node);
+		}
+
+		public void PointsTo(IVariable variable, PTGNode target)
         {
 #if DEBUG
 			if (!Contains(target))

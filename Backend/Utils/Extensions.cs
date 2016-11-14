@@ -499,23 +499,44 @@ namespace Backend.Utils
 			return result;
 		}
 
-		public static IEnumerable<PTGNode> GetReachableNodes(this PointsToGraph ptg, IVariable variable)
+		public static ISet<PTGNode> GetReachableNodes(this PointsToGraph ptg)
+		{
+			var roots = ptg.Variables;
+			var result = ptg.GetReachableNodes(roots);
+			return result;
+		}
+
+		public static ISet<PTGNode> GetReachableNodes(this PointsToGraph ptg, IVariable variable)
+		{
+			var roots = variable.ToEnumerable();
+			var result = ptg.GetReachableNodes(roots);
+			return result;
+		}
+
+		public static ISet<PTGNode> GetReachableNodes(this PointsToGraph ptg, IEnumerable<IVariable> roots)
 		{
 			var visitedNodes = new HashSet<PTGNode>();
 			var worklist = new Queue<PTGNode>();
-			var nodes = ptg.GetTargets(variable);
 
-			foreach (var node in nodes)
+			foreach (var root in roots)
 			{
-				worklist.Enqueue(node);
-				visitedNodes.Add(node);
+				var nodes = ptg.GetTargets(root);
+
+				foreach (var node in nodes)
+				{
+					if (!visitedNodes.Contains(node))
+					{
+						worklist.Enqueue(node);
+						visitedNodes.Add(node);
+					}
+				}
 			}
 
 			while (worklist.Any())
 			{
 				var node = worklist.Dequeue();
 
-				yield return node;
+				//yield return node;
 
 				if (node.Equals(ptg.Null))
 				{
@@ -536,12 +557,36 @@ namespace Backend.Utils
 					}
 				}
 			}
+
+			return visitedNodes;
 		}
 
-		public static IEnumerable<PTGNode> GetReachableNodes(this PointsToGraph ptg)
+		public static void CollectGarbage(this PointsToGraph ptg)
 		{
-			var result = ptg.Variables.SelectMany(v => ptg.GetReachableNodes(v))
-							.Distinct();
+			var reachableNodes = ptg.GetReachableNodes();
+			var nodes = ptg.Nodes.ToArray();
+
+			foreach (var node in nodes)
+			{
+				if (reachableNodes.Contains(node)) continue;
+
+				ptg.Remove(node);
+			}
+		}
+
+		public static MapSet<IVariable, PTGNode> GetEscapingNodes(this PointsToGraph ptg)
+		{
+			var result = new MapSet<IVariable, PTGNode>();
+			var parameters = ptg.Variables.Where(v => v.IsParameter);
+
+			foreach (var parameter in parameters)
+			{
+				// TODO: Change this to return only newly created nodes
+				// instead of all reachable nodes.
+				var nodes = ptg.GetReachableNodes(parameter);
+				result.AddRange(parameter, nodes);
+			}
+
 			return result;
 		}
 
