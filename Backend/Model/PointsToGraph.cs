@@ -274,31 +274,11 @@ namespace Backend.Model
 
 		public void Remove(PTGNode node)
 		{
-			var hasNode = Contains(node);
-			if (!hasNode) return;
-
-			var variables = GetVariables(node);
-
-			foreach (var variable in variables)
-			{
-				var variableNodes = roots[variable];
-				variableNodes.Remove(node);
-			}
-
-			this.variables.Remove(node);
-			var edges = GetTargets(node);
-
-			foreach (var edge in edges)
-			{
-				foreach (var target in edge.Value)
-				{
-					var sources = GetSources(target, edge.Key);
-
-					sources.Remove(node);
-				}
-			}
-
+			RemoveEdges(node);
 			targets.Remove(node);
+			sources.Remove(node);
+			variables.Remove(node);
+			nodes.Remove(node.Id);
 		}
 
 		public void PointsTo(IVariable variable, PTGNode target)
@@ -329,27 +309,84 @@ namespace Backend.Model
 			edges.Add(field, source);
         }
 
+		public void RemoveEdges(PTGNode node)
+		{
+			var hasNode = Contains(node);
+			if (!hasNode) return;
+
+			{
+				// Remove variable -> node edges
+				var variables = GetVariables(node);
+
+				foreach (var variable in variables)
+				{
+					var targets = GetTargets(variable);
+					targets.Remove(node);
+				}
+
+				// Remove only the variable edges of the node,
+				// but not the node itself
+				variables.Clear();
+			}
+
+			{
+				// Remove node -> target edges
+				var edges = GetTargets(node);
+
+				foreach (var edge in edges)
+				{
+					foreach (var target in edge.Value)
+					{
+						var sources = GetSources(target, edge.Key);
+
+						sources.Remove(node);
+					}
+				}
+
+				// Remove only the target edges of the node,
+				// but not the node itself
+				edges.Clear();
+			}
+
+			{
+				// Remove source -> node edges
+				var edges = GetSources(node);
+
+				foreach (var edge in edges)
+				{
+					foreach (var source in edge.Value)
+					{
+						var targets = GetTargets(source, edge.Key);
+
+						targets.Remove(node);
+					}
+				}
+
+				// Remove only the source edges of the node,
+				// but not the node itself
+				edges.Clear();
+			}
+		}
+
 		public void RemoveEdges(IVariable variable)
         {
 			var hasVariable = Contains(variable);
 			if (!hasVariable) return;
 
-			var targets = GetTargets(variable);
-
-			foreach (var target in targets)
 			{
-				var nodeVariables = variables[target];
-				nodeVariables.Remove(variable);
+				// Remove target -> variable edges
+				var targets = GetTargets(variable);
+
+				foreach (var target in targets)
+				{
+					var variables = GetVariables(target);
+					variables.Remove(variable);
+				}
+
+				// Remove only the target edges of the variable,
+				// but not the variable itself
+				targets.Clear();
 			}
-
-			// If we uncomment the next line
-			// the variable will be removed from
-			// the graph, not only its edges
-			// roots.Remove(variable);
-
-			// Remove only the edges of the variable,
-			// but not the variable itself
-			targets.Clear();
         }
 
         public bool GraphEquals(object obj)
