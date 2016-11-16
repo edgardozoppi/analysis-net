@@ -16,7 +16,6 @@ namespace Backend.Analyses
 	[Obsolete("The analysis implementation could have some bugs!")]
 	public class SymbolicAnalysis : ForwardDataFlowAnalysis<IDictionary<IVariable, IExpression>>
 	{
-		private DataFlowAnalysisResult<IDictionary<IVariable, IExpression>>[] result;
 		private IDictionary<IVariable, IExpression>[] GEN;
 		private ISet<IVariable>[] KILL;
 
@@ -32,7 +31,6 @@ namespace Backend.Analyses
 
 			var result = base.Analyze();
 			
-			this.result = result;
 			this.GEN = null;
 			this.KILL = null;
 

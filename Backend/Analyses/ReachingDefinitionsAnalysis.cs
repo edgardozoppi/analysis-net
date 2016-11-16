@@ -16,11 +16,11 @@ namespace Backend.Analyses
 	{
 		private DefinitionInstruction[] definitions;
 		private IDictionary<IVariable, Subset<DefinitionInstruction>> variable_definitions;
-		private DataFlowAnalysisResult<Subset<DefinitionInstruction>>[] result;
 		private MapList<DefinitionInstruction, IInstruction> def_use;
 		private MapList<IInstruction, DefinitionInstruction> use_def;
 		private Subset<DefinitionInstruction>[] GEN;
 		private Subset<DefinitionInstruction>[] KILL;
+		private bool analysisDone;
 
 		public ReachingDefinitionsAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
@@ -39,7 +39,7 @@ namespace Backend.Analyses
 
 		public void ComputeDefUseAndUseDefChains()
 		{
-			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
+			if (!analysisDone) throw new InvalidOperationException("Analysis result not available.");
 
 			this.def_use = new MapList<DefinitionInstruction, IInstruction>();
 			this.use_def = new MapList<IInstruction, DefinitionInstruction>();
@@ -106,7 +106,7 @@ namespace Backend.Analyses
 
 			var result = base.Analyze();
 
-			this.result = result;
+			this.analysisDone = true;
 			this.definitions = null;
 			this.variable_definitions = null;
 			this.GEN = null;

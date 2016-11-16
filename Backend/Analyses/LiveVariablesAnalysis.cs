@@ -16,7 +16,6 @@ namespace Backend.Analyses
 	{
 		private IVariable[] variables;
 		private IDictionary<IVariable, int> variablesIndex;
-		private DataFlowAnalysisResult<Subset<IVariable>>[] result;
 		private Subset<IVariable>[] GEN;
 		private Subset<IVariable>[] KILL;
 
@@ -38,7 +37,6 @@ namespace Backend.Analyses
 
 			var result = base.Analyze();
 
-			this.result = result;
 			this.variables = null;
 			this.variablesIndex = null;
 			this.GEN = null;

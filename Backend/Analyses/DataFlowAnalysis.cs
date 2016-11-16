@@ -112,24 +112,27 @@ namespace Backend.Analyses
 
 	public abstract class BackwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
+		protected DataFlowAnalysisResult<T>[] result;
+
 		public BackwardDataFlowAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
+			this.result = new DataFlowAnalysisResult<T>[cfg.Nodes.Count];
+
+			foreach (var node in cfg.Nodes)
+			{
+				result[node.Id] = new DataFlowAnalysisResult<T>();
+			}
 		}
 
 		public override DataFlowAnalysisResult<T>[] Analyze()
 		{
-			var sorted_nodes = this.cfg.BackwardOrder;
 			var pending_nodes = new Queue<CFGNode>();
-			var result = new DataFlowAnalysisResult<T>[sorted_nodes.Length];
 
-			for (var i = 0; i < sorted_nodes.Length; ++i)
+			foreach (var node in cfg.Nodes)
 			{
-				var node = sorted_nodes[i];
-				var node_result = new DataFlowAnalysisResult<T>();
-
+				var node_result = result[node.Id];
 				node_result.Input = this.InitialValue(node);
-				result[node.Id] = node_result;
 
 				if (node.Successors.Count > 0)
 				{
