@@ -86,9 +86,12 @@ namespace Backend.Analyses
 					var binding = GetCallerCalleeBinding(methodCall.Arguments, method.Body.Parameters);
 					var previousFrame = ptg.NewFrame(binding);
 
-					// TODO: Garbage collect unreachable nodes!
-					// They are nodes that the callee cannot access but the caller can.
-					// I believe by doing this we can reach the fixpoint faster, but not sure. 
+					//// Garbage collect unreachable nodes.
+					//// They are nodes that the callee cannot access but the caller can.
+					//// I believe by doing this we can reach the fixpoint faster, but not sure.
+					//// [Important] This doesn't work because we are removing
+					//// nodes and edges that cannot be restored later!!
+					//ptg.CollectGarbage();
 
 					PointsToGraph oldInput;
 					var ok = methodInfo.TryGet(INPUT_PTG_INFO, out oldInput);
@@ -143,9 +146,10 @@ namespace Backend.Analyses
 					//ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
 					ptg.RestoreFrame(previousFrame, binding);
 
-					// TODO: Garbage collect unreachable nodes!
-					// They are nodes created by the callee that do not escape to the caller.
-					// I believe by doing this we can reach the fixpoint faster, but not sure.
+					//// Garbage collect unreachable nodes.
+					//// They are nodes created by the callee that do not escape to the caller.
+					//// I believe by doing this we can reach the fixpoint faster, but not sure.
+					//ptg.CollectGarbage();
 
 					if (output == null)
 					{

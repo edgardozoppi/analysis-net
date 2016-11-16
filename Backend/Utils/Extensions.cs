@@ -564,12 +564,12 @@ namespace Backend.Utils
 		public static void CollectGarbage(this PointsToGraph ptg)
 		{
 			var reachableNodes = ptg.GetReachableNodes();
-			var nodes = ptg.Nodes.ToArray();
+			// Don't collect the special null node
+			reachableNodes.Add(ptg.Null);
+			var unreachableNodes = ptg.Nodes.Except(reachableNodes).ToArray();
 
-			foreach (var node in nodes)
+			foreach (var node in unreachableNodes)
 			{
-				if (reachableNodes.Contains(node)) continue;
-
 				ptg.Remove(node);
 			}
 		}

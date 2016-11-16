@@ -83,6 +83,7 @@ namespace Test
 			w.Next = n;
 		}
 
+		// Direct recursion
 		public Node Example7(int n)
 		{
 			Node z = null;
@@ -103,6 +104,7 @@ namespace Test
 			var q = Example7(4);
 		}
 
+		// Direct recursion
 		public void Example9(Node node, int n)
 		{
 			if (n > 0)
@@ -118,6 +120,7 @@ namespace Test
 			Example9(first, 4);
 		}
 
+		// Mutual recursion
 		public Node Example11(Node node1, int n)
 		{
 			if (n > 0)
@@ -128,6 +131,7 @@ namespace Test
 			return node1;
 		}
 
+		// Mutual recursion
 		public Node Example12(Node node2, int m)
 		{
 			node2.Next = new Node(m);
