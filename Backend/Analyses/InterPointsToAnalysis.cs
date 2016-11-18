@@ -141,7 +141,7 @@ namespace Backend.Analyses
 					}
 
 					var parameterKind = method.Parameters.ToDictionary(p => p.Name, p => p.Kind);
-					binding = GetCalleeCallerBinding(methodCall.Arguments, method.Body.Parameters, parameterKind, methodCall.Result, pta.ResultVariable);
+					binding = GetCalleeCallerBinding(methodCall.Arguments, method.Body.Parameters, parameterKind, methodCall.Result, ptg.ResultVariable);
 
 					//ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
 					ptg.RestoreFrame(previousFrame, binding);

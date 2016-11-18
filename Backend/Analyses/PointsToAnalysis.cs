@@ -23,27 +23,15 @@ namespace Backend.Analyses
 		{
 			private UniqueIDGenerator nodeIdGenerator;
 			private IDictionary<uint, PTGNode> nodeAtOffset;
-			private IVariable resultVariable;
 			private PointsToGraph ptg;
 
-			public TransferFunction(IType returnType, UniqueIDGenerator nodeIdGenerator)
+			public TransferFunction(UniqueIDGenerator nodeIdGenerator)
 			{
 				this.nodeIdGenerator = nodeIdGenerator;
 				this.nodeAtOffset = new Dictionary<uint, PTGNode>();
-
-				if (returnType.TypeKind != TypeKind.ValueType)
-				{
-					this.resultVariable = new LocalVariable("$result");
-					this.resultVariable.Type = returnType;
-				}
 			}
 
 			public Func<MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall;
-
-			public IVariable ResultVariable
-			{
-				get { return resultVariable; }
-			}
 
 			public PointsToGraph Evaluate(CFGNode node, PointsToGraph input)
 			{
@@ -136,7 +124,7 @@ namespace Backend.Analyses
 
 				foreach (var target in targets)
 				{
-					ptg.PointsTo(resultVariable, target);
+					ptg.PointsTo(ptg.ResultVariable, target);
 				}
 			}
 
@@ -256,30 +244,28 @@ namespace Backend.Analyses
 		private PointsToGraph initialGraph;
 		private UniqueIDGenerator nodeIdGenerator;
 		private TransferFunction transferFunction;
+		private IType returnType;
 
 		public PointsToAnalysis(ControlFlowGraph cfg, IType returnType)
 			: base(cfg)
 		{
+			this.returnType = returnType;
 			this.nodeIdGenerator = new UniqueIDGenerator(1);
-			this.transferFunction = new TransferFunction(returnType, nodeIdGenerator);
+			this.transferFunction = new TransferFunction(nodeIdGenerator);
 		}
 
 		public PointsToAnalysis(ControlFlowGraph cfg, IType returnType, UniqueIDGenerator nodeIdGenerator)
 			: base(cfg)
 		{
-            this.nodeIdGenerator = nodeIdGenerator;
-			this.transferFunction = new TransferFunction(returnType, nodeIdGenerator);
+			this.returnType = returnType;
+			this.nodeIdGenerator = nodeIdGenerator;
+			this.transferFunction = new TransferFunction(nodeIdGenerator);
 		}
 
 		public Func<MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall
 		{
 			get { return transferFunction.ProcessMethodCall; }
 			set { transferFunction.ProcessMethodCall = value; }
-		}
-
-		public IVariable ResultVariable
-		{
-			get { return transferFunction.ResultVariable; }
 		}
 
 		public DataFlowAnalysisResult<PointsToGraph>[] Result
@@ -348,9 +334,10 @@ namespace Backend.Analyses
 				}
 			}
 
-			if (this.ResultVariable != null)
+			if (returnType.TypeKind != TypeKind.ValueType)
 			{
-				ptg.Add(this.ResultVariable);
+				ptg.ResultVariable = new LocalVariable("$result") { Type = returnType };
+				ptg.Add(ptg.ResultVariable);
 			}
 
 			return ptg;
@@ -371,9 +358,10 @@ namespace Backend.Analyses
 				}
 			}
 
-			if (this.ResultVariable != null)
+			if (returnType.TypeKind != TypeKind.ValueType)
 			{
-				ptg.Add(this.ResultVariable);
+				ptg.ResultVariable = new LocalVariable("$result") { Type = returnType };
+				ptg.Add(ptg.ResultVariable);
 			}
 
 			return ptg;

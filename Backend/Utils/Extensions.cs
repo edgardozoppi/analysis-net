@@ -587,6 +587,14 @@ namespace Backend.Utils
 				result.AddRange(parameter, nodes);
 			}
 
+			if (ptg.ResultVariable != null)
+			{
+				// TODO: Change this to return only newly created nodes
+				// instead of all reachable nodes.
+				var nodes = ptg.GetReachableNodes(ptg.ResultVariable);
+				result.AddRange(ptg.ResultVariable, nodes);
+			}
+
 			return result;
 		}
 

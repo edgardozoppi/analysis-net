@@ -34,6 +34,7 @@ namespace Backend.Model
         {
 			this.Id = id;
             this.Kind = kind;
+			this.Type = PlatformTypes.Object;
         }
 
 		public PTGNode(int id, IType type, PTGNodeKind kind = PTGNodeKind.Object, uint offset = 0)
@@ -90,8 +91,9 @@ namespace Backend.Model
 		private IDictionary<PTGNode, MapSet<IFieldReference, PTGNode>> sources;
 
 		public PTGNode Null { get; private set; }
+		public IVariable ResultVariable { get; set; }
 
-        public PointsToGraph()
+		public PointsToGraph()
 			: this(null)
         {
         }
@@ -129,6 +131,7 @@ namespace Backend.Model
 		public PointsToGraph Clone()
 		{
 			var ptg = new PointsToGraph(this.Null);
+			ptg.ResultVariable = this.ResultVariable;
             ptg.Union(this);
 			return ptg;
 		}
