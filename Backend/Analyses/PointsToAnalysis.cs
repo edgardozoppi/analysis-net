@@ -21,17 +21,19 @@ namespace Backend.Analyses
 
 		private class TransferFunction : InstructionVisitor
 		{
+			private IMethodReference method;
 			private UniqueIDGenerator nodeIdGenerator;
 			private IDictionary<uint, PTGNode> nodeAtOffset;
 			private PointsToGraph ptg;
 
-			public TransferFunction(UniqueIDGenerator nodeIdGenerator)
+			public TransferFunction(IMethodReference method, UniqueIDGenerator nodeIdGenerator)
 			{
+				this.method = method;
 				this.nodeIdGenerator = nodeIdGenerator;
 				this.nodeAtOffset = new Dictionary<uint, PTGNode>();
 			}
 
-			public Func<MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall;
+			public Func<IMethodReference, MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall;
 
 			public PointsToGraph Evaluate(CFGNode node, PointsToGraph input)
 			{
@@ -99,7 +101,7 @@ namespace Backend.Analyses
 			{
 				if (ProcessMethodCall != null)
 				{
-					ptg = ProcessMethodCall(instruction, nodeIdGenerator, ptg);
+					ptg = ProcessMethodCall(method, instruction, nodeIdGenerator, ptg);
 				}
 			}
 
@@ -223,7 +225,7 @@ namespace Backend.Analyses
 				{
 					// Create a new node
 					var nodeId = nodeIdGenerator.Next;
-					node = new PTGNode(nodeId, type, kind, offset);
+					node = new PTGNode(nodeId, type, method, kind, offset);
 
 					ptg.Add(node);
 					nodeAtOffset.Add(offset, node);
@@ -244,25 +246,25 @@ namespace Backend.Analyses
 		private PointsToGraph initialGraph;
 		private UniqueIDGenerator nodeIdGenerator;
 		private TransferFunction transferFunction;
-		private IType returnType;
+		private IMethodReference method;
 
-		public PointsToAnalysis(ControlFlowGraph cfg, IType returnType)
+		public PointsToAnalysis(ControlFlowGraph cfg, IMethodReference method)
 			: base(cfg)
 		{
-			this.returnType = returnType;
+			this.method = method;
 			this.nodeIdGenerator = new UniqueIDGenerator(1);
-			this.transferFunction = new TransferFunction(nodeIdGenerator);
+			this.transferFunction = new TransferFunction(method, nodeIdGenerator);
 		}
 
-		public PointsToAnalysis(ControlFlowGraph cfg, IType returnType, UniqueIDGenerator nodeIdGenerator)
+		public PointsToAnalysis(ControlFlowGraph cfg, IMethodReference method, UniqueIDGenerator nodeIdGenerator)
 			: base(cfg)
 		{
-			this.returnType = returnType;
+			this.method = method;
 			this.nodeIdGenerator = nodeIdGenerator;
-			this.transferFunction = new TransferFunction(nodeIdGenerator);
+			this.transferFunction = new TransferFunction(method, nodeIdGenerator);
 		}
 
-		public Func<MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall
+		public Func<IMethodReference, MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall
 		{
 			get { return transferFunction.ProcessMethodCall; }
 			set { transferFunction.ProcessMethodCall = value; }
@@ -323,7 +325,7 @@ namespace Backend.Analyses
 					var isThisParameter = variable.Name == "this";
 					var kind = isThisParameter ? PTGNodeKind.Object : PTGNodeKind.Unknown;
 					var nodeId = nodeIdGenerator.Next;
-					var node = new PTGNode(nodeId, variable.Type, kind);
+					var node = new PTGNode(nodeId, variable.Type, method, kind);
 
 					ptg.Add(node);
 					ptg.PointsTo(variable, node);
@@ -334,9 +336,9 @@ namespace Backend.Analyses
 				}
 			}
 
-			if (returnType.TypeKind != TypeKind.ValueType)
+			if (method.ReturnType.TypeKind != TypeKind.ValueType)
 			{
-				ptg.ResultVariable = new LocalVariable("$result") { Type = returnType };
+				ptg.ResultVariable = new LocalVariable("$result") { Type = method.ReturnType };
 				ptg.Add(ptg.ResultVariable);
 			}
 
@@ -358,9 +360,9 @@ namespace Backend.Analyses
 				}
 			}
 
-			if (returnType.TypeKind != TypeKind.ValueType)
+			if (method.ReturnType.TypeKind != TypeKind.ValueType)
 			{
-				ptg.ResultVariable = new LocalVariable("$result") { Type = returnType };
+				ptg.ResultVariable = new LocalVariable("$result") { Type = method.ReturnType };
 				ptg.Add(ptg.ResultVariable);
 			}
 

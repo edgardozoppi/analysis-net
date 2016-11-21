@@ -43,7 +43,7 @@ namespace Backend.Analyses
 			var cfg = methodInfo.Get<ControlFlowGraph>(CFG_INFO);
 
 			// TODO: Don't create unknown nodes when doing the inter PT analysis
-			var pta = new PointsToAnalysis(cfg, method.ReturnType);
+			var pta = new PointsToAnalysis(cfg, method);
 			pta.ProcessMethodCall = ProcessMethodCall;
 
 			methodInfo.Add(PTA_INFO, pta);
@@ -56,12 +56,10 @@ namespace Backend.Analyses
 			return callGraph;
 		}
 
-		protected PointsToGraph ProcessMethodCall(MethodCallInstruction methodCall, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
+		protected PointsToGraph ProcessMethodCall(IMethodReference caller, MethodCallInstruction methodCall, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
 		{
 			PointsToGraph output = null;
 			var possibleCallees = ResolvePossibleCallees(methodCall, input);
-
-			var caller = callStack.Peek();
 
 			if (!callGraph.ContainsInvocation(caller, methodCall.Label))
 			{
@@ -119,7 +117,7 @@ namespace Backend.Analyses
 						var cfg = methodInfo.Get<ControlFlowGraph>(CFG_INFO);
 
 						// TODO: Don't create unknown nodes when doing the inter PT analysis
-						pta = new PointsToAnalysis(cfg, method.ReturnType, nodeIdGenerator);
+						pta = new PointsToAnalysis(cfg, method, nodeIdGenerator);
 						pta.ProcessMethodCall = ProcessMethodCall;
 
 						methodInfo.Add(PTA_INFO, pta);

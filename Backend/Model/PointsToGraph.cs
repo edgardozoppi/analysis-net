@@ -23,12 +23,13 @@ namespace Backend.Model
 		Unknown
     }
 
-    public class PTGNode
-    {
+	public class PTGNode
+	{
 		public int Id { get; private set; }
 		public PTGNodeKind Kind { get; private set; }
 		public uint Offset { get; set; }
-        public IType Type { get; set; }
+		public IType Type { get; set; }
+		public IMethodReference Method { get; set; }
 
 		public PTGNode(int id, PTGNodeKind kind = PTGNodeKind.Null)
         {
@@ -37,11 +38,19 @@ namespace Backend.Model
 			this.Type = PlatformTypes.Object;
         }
 
-		public PTGNode(int id, IType type, PTGNodeKind kind = PTGNodeKind.Object, uint offset = 0)
+		//public PTGNode(int id, IType type, PTGNodeKind kind = PTGNodeKind.Object, uint offset = 0)
+		//	: this(id, kind)
+		//{
+		//	this.Offset = offset;
+		//	this.Type = type;
+		//}
+
+		public PTGNode(int id, IType type, IMethodReference method, PTGNodeKind kind = PTGNodeKind.Object, uint offset = 0)
 			: this(id, kind)
 		{
 			this.Offset = offset;
 			this.Type = type;
+			this.Method = method;
 		}
 
 		public override bool Equals(object obj)

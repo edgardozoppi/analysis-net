@@ -85,7 +85,7 @@ namespace Console
 			backwardCopyAnalysis.Transform(methodBody);
 
 			// Points-To
-			var pointsTo = new PointsToAnalysis(cfg, method.ReturnType);
+			var pointsTo = new PointsToAnalysis(cfg, method);
 			var result = pointsTo.Analyze();
 
 			var ptg = result[cfg.Exit.Id].Output;
