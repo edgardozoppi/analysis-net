@@ -574,30 +574,6 @@ namespace Backend.Utils
 			}
 		}
 
-		public static MapSet<IVariable, PTGNode> GetEscapingNodes(this PointsToGraph ptg)
-		{
-			var result = new MapSet<IVariable, PTGNode>();
-			var parameters = ptg.Variables.Where(v => v.IsParameter);
-
-			foreach (var parameter in parameters)
-			{
-				// TODO: Change this to return only newly created nodes
-				// instead of all reachable nodes.
-				var nodes = ptg.GetReachableNodes(parameter);
-				result.AddRange(parameter, nodes);
-			}
-
-			if (ptg.ResultVariable != null)
-			{
-				// TODO: Change this to return only newly created nodes
-				// instead of all reachable nodes.
-				var nodes = ptg.GetReachableNodes(ptg.ResultVariable);
-				result.AddRange(ptg.ResultVariable, nodes);
-			}
-
-			return result;
-		}
-
 		#endregion
 
 		public static void Inline(this MethodBody callerBody, MethodCallInstruction methodCall, MethodBody calleeBody)

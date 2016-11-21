@@ -21,6 +21,11 @@ namespace Backend.Utils
 			this.data = new Dictionary<string, object>();
 		}
 
+		public IEnumerable<string> Keys
+		{
+			get { return data.Keys; }
+		}
+
 		public bool Contains(string key)
 		{
 			return data.ContainsKey(key);

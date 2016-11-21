@@ -329,6 +329,9 @@ namespace Console
 			var cg = pta.Analyze(methodReference.ResolvedMethod);
 			var dgml_CG = DGMLSerializer.Serialize(cg);
 
+			var esca = new EscapeAnalysis(programInfo, cg);
+			var escapeResult = esca.Analyze();
+
 			foreach (var method in cg.Methods)
 			{
 				if (method.ResolvedMethod == null) continue;
@@ -339,6 +342,8 @@ namespace Console
 				ptg.RemoveTemporalVariables();
 				//ptg.RemoveVariablesExceptParameters();
 				var dgml_PTG = DGMLSerializer.Serialize(ptg);
+
+				var escapeInfo = escapeResult[method];
 			}
 		}
 
