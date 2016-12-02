@@ -115,7 +115,8 @@ namespace Backend.Analyses
 			foreach (var parameter in parameters)
 			{
 				var nodes = ptg.GetReachableNodes(parameter)
-							   .Where(n => calleesEscapingNodes.Contains(n) || methodComparer.Equals(n.Method, method));
+							   .Where(n => n.Kind != PTGNodeKind.Null &&
+							   (calleesEscapingNodes.Contains(n) || methodComparer.Equals(n.Method, method)));
 
 				channels.AddRange(parameter, nodes);
 			}
@@ -123,7 +124,8 @@ namespace Backend.Analyses
 			if (method.ReturnType.TypeKind != TypeKind.ValueType)
 			{
 				var nodes = ptg.GetReachableNodes(ptg.ResultVariable)
-							   .Where(n => calleesEscapingNodes.Contains(n) || methodComparer.Equals(n.Method, method));
+							   .Where(n => n.Kind != PTGNodeKind.Null && 
+							   (calleesEscapingNodes.Contains(n) || methodComparer.Equals(n.Method, method)));
 
 				channels.AddRange(ptg.ResultVariable, nodes);
 			}
