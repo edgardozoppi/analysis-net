@@ -30,17 +30,18 @@ namespace Backend.Analyses
 			this.methodsInfo = methodsInfo;
 			this.callGraph = new CallGraph();
 			this.callStack = new Stack<IMethodReference>();
+			this.OnReachableMethodFound = DefaultReachableMethodFound;
 		}
+
+		public Func<MethodDefinition, ControlFlowGraph> OnReachableMethodFound;
 
 		public CallGraph Analyze(MethodDefinition method)
 		{
 			callGraph.Add(method);
 			callStack.Push(method);
 
-			OnReachableMethodFound(method);
-
-			var methodInfo = methodsInfo[method];
-			var cfg = methodInfo.Get<ControlFlowGraph>(CFG_INFO);
+			var methodInfo = methodsInfo.GetOrAdd(method);
+			var cfg = OnReachableMethodFound(method);
 
 			// TODO: Don't create unknown nodes when doing the inter PT analysis
 			var pta = new PointsToAnalysis(cfg, method);
@@ -76,9 +77,7 @@ namespace Backend.Analyses
 				{
 					callStack.Push(method);
 
-					OnReachableMethodFound(method);
-
-					var methodInfo = methodsInfo[method];
+					var methodInfo = methodsInfo.GetOrAdd(method);
 
 					var ptg = input.Clone();
 					var binding = GetCallerCalleeBinding(methodCall.Arguments, method.Body.Parameters);
@@ -114,7 +113,7 @@ namespace Backend.Analyses
 
 					if (!ok)
 					{
-						var cfg = methodInfo.Get<ControlFlowGraph>(CFG_INFO);
+						var cfg = OnReachableMethodFound(method);
 
 						// TODO: Don't create unknown nodes when doing the inter PT analysis
 						pta = new PointsToAnalysis(cfg, method, nodeIdGenerator);
@@ -250,30 +249,25 @@ namespace Backend.Analyses
 			return result;
 		}
 
-		protected virtual void OnReachableMethodFound(MethodDefinition method)
+		protected virtual ControlFlowGraph DefaultReachableMethodFound(MethodDefinition method)
 		{
-			if (method.Body.Kind == MethodBodyKind.Bytecode)
-			{
-				var disassembler = new Disassembler(method);
-				var body = disassembler.Execute();
-
-				method.Body = body;
-			}
-
-			MethodAnalysisInfo methodInfo;
-			var ok = methodsInfo.TryGet(method, out methodInfo);
+			ControlFlowGraph cfg;
+			var methodInfo = methodsInfo.GetOrAdd(method);
+			var ok = methodInfo.TryGet(CFG_INFO, out cfg);
 
 			if (!ok)
 			{
-				methodInfo = new MethodAnalysisInfo(method);
-				methodsInfo.Add(method, methodInfo);
-			}
+				if (method.Body.Kind == MethodBodyKind.Bytecode)
+				{
+					var disassembler = new Disassembler(method);
+					var body = disassembler.Execute();
 
-			if (!methodInfo.Contains(CFG_INFO))
-			{
+					method.Body = body;
+				}
+
 				var cfa = new ControlFlowAnalysis(method.Body);
-				var cfg = cfa.GenerateNormalControlFlow();
-				//var cfg = cfa.GenerateExceptionalControlFlow();
+				cfg = cfa.GenerateNormalControlFlow();
+				//cfg = cfa.GenerateExceptionalControlFlow();
 
 				var splitter = new WebAnalysis(cfg);
 				splitter.Analyze();
@@ -286,6 +280,8 @@ namespace Backend.Analyses
 
 				methodInfo.Add(CFG_INFO, cfg);
 			}
+
+			return cfg;
 		}
 	}
 }
