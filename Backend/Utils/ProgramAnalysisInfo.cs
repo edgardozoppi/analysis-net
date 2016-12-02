@@ -32,6 +32,20 @@ namespace Backend.Utils
 			methodsInfo.Add(method, info);
 		}
 
+		public MethodAnalysisInfo GetOrAdd(IMethodReference method)
+		{
+			MethodAnalysisInfo info;
+			var ok = methodsInfo.TryGetValue(method, out info);
+
+			if (!ok)
+			{
+				info = new MethodAnalysisInfo(method.ResolvedMethod);
+				methodsInfo.Add(method, info);
+			}
+
+			return info;
+		}
+
 		public void Remove(IMethodReference method)
 		{
 			methodsInfo.Remove(method);
