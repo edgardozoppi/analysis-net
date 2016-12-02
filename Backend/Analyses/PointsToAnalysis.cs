@@ -89,6 +89,11 @@ namespace Backend.Analyses
 				}
 			}
 
+			public override void Visit(PhiInstruction instruction)
+			{
+				ProcessPhi(instruction.Result, instruction.Arguments);
+			}
+
 			public override void Visit(ReturnInstruction instruction)
 			{
 				if (instruction.HasOperand)
@@ -154,6 +159,27 @@ namespace Backend.Analyses
 				ptg.RemoveEdges(dst);
 
 				foreach (var target in targets)
+				{
+					ptg.PointsTo(dst, target);
+				}
+			}
+
+			private void ProcessPhi(IVariable dst, IEnumerable<IVariable> srcs)
+			{
+				if (dst.Type.TypeKind == TypeKind.ValueType) return;
+				var allTargets = new HashSet<PTGNode>();
+
+				foreach (var src in srcs)
+				{
+					if (src.Type.TypeKind == TypeKind.ValueType) continue;
+
+					var targets = ptg.GetTargets(src);
+					allTargets.UnionWith(targets);
+				}
+				
+				ptg.RemoveEdges(dst);
+
+				foreach (var target in allTargets)
 				{
 					ptg.PointsTo(dst, target);
 				}
