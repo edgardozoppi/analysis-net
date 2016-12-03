@@ -78,6 +78,31 @@ namespace Model
 			return name;
 		}
 
+		public static string GetFullNameWithAssembly(this IType type)
+		{
+			var result = string.Empty;
+
+			if (type is IBasicType)
+			{
+				var basicType = type as IBasicType;
+				result = GetFullNameWithAssembly(basicType);
+			}
+			else if (type is ArrayType)
+			{
+				var arrayType = type as ArrayType;
+				var elementsType = GetFullNameWithAssembly(arrayType.ElementsType);
+				result = string.Format("{0}[]", elementsType);
+			}
+			else if (type is PointerType)
+			{
+				var pointerType = type as PointerType;
+				var targetType = GetFullNameWithAssembly(pointerType.TargetType);
+				result = string.Format("{0}*", targetType);
+			}
+
+			return result;
+		}
+
 		public static string GetFullNameWithAssembly(this IBasicType type)
 		{
 			var fullName = type.GetFullName();
@@ -89,6 +114,31 @@ namespace Model
 			}
 
 			return string.Format("{0}{1}", containingAssembly, fullName);
+		}
+
+		public static string GetFullName(this IType type)
+		{
+			var result = string.Empty;
+
+			if (type is IBasicType)
+			{
+				var basicType = type as IBasicType;
+				result = GetFullName(basicType);
+			}
+			else if (type is ArrayType)
+			{
+				var arrayType = type as ArrayType;
+				var elementsType = GetFullName(arrayType.ElementsType);
+				result = string.Format("{0}[]", elementsType);
+			}
+			else if (type is PointerType)
+			{
+				var pointerType = type as PointerType;
+				var targetType = GetFullName(pointerType.TargetType);
+				result = string.Format("{0}*", targetType);
+			}
+
+			return result;
 		}
 
 		public static string GetFullName(this IBasicType type)
