@@ -143,6 +143,7 @@ namespace Model
 
 		public static string GetFullName(this IBasicType type)
 		{
+			var genericTypes = string.Empty;
 			var containingNamespace = string.Empty;
 			var containingTypes = string.Empty;
 			var containingType = type.ContainingType;
@@ -158,7 +159,19 @@ namespace Model
 				containingType = containingType.ContainingType;
             }
 
-			return string.Format("{0}{1}{2}", containingNamespace, containingTypes, type.GenericName);
+			if (type.GenericArguments.Count > 0)
+			{
+				var genericArgumentTypes = type.GenericArguments.Select(a => a.GetFullName());
+				var genericArguments = string.Join(", ", genericArgumentTypes);
+				genericTypes = string.Format("<{0}>", genericArguments);
+			}
+			else if (type.GenericParameterCount > 0)
+			{
+				var genericArguments = string.Join(", T", Enumerable.Range(1, type.GenericParameterCount));
+				genericTypes = string.Format("<T{0}>", genericArguments);
+			}
+
+			return string.Format("{0}{1}{2}{3}", containingNamespace, containingTypes, type.Name, genericTypes);
 		}
 
 		public static string ToSignatureString(this IMethodReference method)
