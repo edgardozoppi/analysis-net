@@ -26,9 +26,9 @@ namespace Backend.Analyses
 
 		#endregion
 
-		private DataFlowAnalysisResult<IDictionary<IVariable, IVariable>>[] result;
 		private IDictionary<IVariable, IVariable>[] GEN;
 		private ISet<IVariable>[] KILL;
+		private bool analysisDone;
 
 		public ForwardCopyPropagationAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
@@ -37,7 +37,7 @@ namespace Backend.Analyses
 
 		public void Transform(MethodBody body)
 		{
-			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
+			if (!analysisDone) throw new InvalidOperationException("Analysis result not available.");
 			var copiesToRemove = new Dictionary<IVariable, InstructionLocation>();
 
 			foreach (var node in this.cfg.Nodes)
@@ -126,7 +126,7 @@ namespace Backend.Analyses
 
 			var result = base.Analyze();
 
-			this.result = result;
+			this.analysisDone = true;
 			this.GEN = null;
 			this.KILL = null;
 

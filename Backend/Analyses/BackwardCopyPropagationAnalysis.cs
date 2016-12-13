@@ -17,9 +17,9 @@ namespace Backend.Analyses
 	//[Obsolete("The analysis implementation could have some bugs!")]
 	public class BackwardCopyPropagationAnalysis : BackwardDataFlowAnalysis<IDictionary<IVariable, IVariable>>
 	{
-		private DataFlowAnalysisResult<IDictionary<IVariable, IVariable>>[] result;
 		private IDictionary<IVariable, IVariable>[] GEN;
 		private ISet<IVariable>[] KILL;
+		private bool analysisDone;
 
 		public BackwardCopyPropagationAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
@@ -28,7 +28,7 @@ namespace Backend.Analyses
 
 		public void Transform(MethodBody body)
 		{
-			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
+			if (!analysisDone) throw new InvalidOperationException("Analysis result not available.");
 
 			foreach (var node in this.cfg.Nodes)
 			{
@@ -103,7 +103,7 @@ namespace Backend.Analyses
 
 			var result = base.Analyze();
 
-			this.result = result;
+			this.analysisDone = true;
 			this.GEN = null;
 			this.KILL = null;
 
