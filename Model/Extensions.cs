@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
+using Model.ThreeAddressCode.Instructions;
 using Model.Types;
 using System;
 using System.Collections.Generic;
@@ -45,6 +46,21 @@ namespace Model
 			where T : struct
 		{
 			return new UnknownValueException<T>(self);
+		}
+
+		public static BinaryOperation ToBinaryOperation(this BranchOperation operation)
+		{
+			switch (operation)
+			{
+				case BranchOperation.Eq: return BinaryOperation.Eq;
+				case BranchOperation.Neq: return BinaryOperation.Neq;
+				case BranchOperation.Gt: return BinaryOperation.Gt;
+				case BranchOperation.Ge: return BinaryOperation.Ge;
+				case BranchOperation.Lt: return BinaryOperation.Lt;
+				case BranchOperation.Le: return BinaryOperation.Le;
+				
+				default: throw operation.ToUnknownValueException();
+			}
 		}
 
 		internal static bool BothNullOrMatchReference(this ITypeDefinition def, IBasicType @ref)

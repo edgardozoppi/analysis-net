@@ -696,7 +696,7 @@ namespace Model.ThreeAddressCode.Instructions
 		}
 	}
 
-	public class ConditionalBranchInstruction : BranchInstruction
+	public class ConditionalBranchInstruction : BranchInstruction, IExpressible
 	{
 		public BranchOperation Operation { get; set; }
 		public IVariable LeftOperand { get; set; }
@@ -734,6 +734,14 @@ namespace Model.ThreeAddressCode.Instructions
 		{
 			base.Accept(visitor);
 			visitor.Visit(this);
+		}
+
+		public IExpression ToExpression()
+		{
+			var operation = this.Operation.ToBinaryOperation();
+			var expression = new BinaryExpression(this.LeftOperand, operation, this.RightOperand);
+			expression.Type = PlatformTypes.Boolean;
+			return expression;
 		}
 
 		public override string ToString()

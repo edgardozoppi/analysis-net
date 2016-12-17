@@ -582,7 +582,7 @@ namespace Backend.Serialization
 			return result.ToString();
 		}
 
-		private static string GetLabel(IEnumerable<FieldDefinition> fields)
+		private static string GetLabel(IEnumerable<PTGNodeField> fields)
 		{
 			var result = new StringBuilder();
 

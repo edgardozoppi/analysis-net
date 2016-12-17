@@ -351,11 +351,11 @@ namespace Backend.Utils
 			return result;
 		}
 
-		public static IExpression ReplaceVariables<T>(this IExpression expr, IDictionary<IVariable, T> equalities) where T : IExpression
+		public static IExpression ReplaceVariables<T>(this IExpression expr, IDictionary<IVariable, T> equalities, bool replaceLocalVariables = false) where T : IExpression
 		{
 			foreach (var variable in expr.Variables)
 			{
-				if (variable.IsTemporal())
+				if (replaceLocalVariables || variable.IsTemporal())
 				{
 					var hasValue = equalities.ContainsKey(variable);
 
@@ -375,6 +375,16 @@ namespace Backend.Utils
 			}
 
 			return expr;
+		}
+
+		public static PTGNodeField ToPTGNodeField(this IFieldReference field)
+		{
+			return new PTGNodeField(field.Name, field.Type);
+		}
+
+		public static PTGNodeField ToPTGNodeField(this ArrayElementAccess access)
+		{
+			return new PTGNodeField("[]", access.Type);
 		}
 
 		public static void RemoveTemporalVariables(this PointsToGraph ptg)
@@ -403,7 +413,8 @@ namespace Backend.Utils
 
 		public static ISet<PTGNode> GetTargets(this PointsToGraph ptg, InstanceFieldAccess access)
 		{
-			var result = ptg.GetTargets(access.Instance, access.Field);
+			var field = access.Field.ToPTGNodeField();
+			var result = ptg.GetTargets(access.Instance, field);
 			return result;
 		}
 

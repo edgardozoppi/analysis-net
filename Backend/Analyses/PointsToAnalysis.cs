@@ -78,6 +78,11 @@ namespace Backend.Analyses
 					var access = instruction.Operand as InstanceFieldAccess;
 					ProcessLoad(instruction.Offset, instruction.Result, access);
 				}
+				else if (instruction.Operand is ArrayElementAccess)
+				{
+					var access = instruction.Operand as ArrayElementAccess;
+					ProcessLoad(instruction.Offset, instruction.Result, access);
+				}
 			}
 
 			public override void Visit(StoreInstruction instruction)
@@ -85,6 +90,11 @@ namespace Backend.Analyses
 				if (instruction.Result is InstanceFieldAccess)
 				{
 					var access = instruction.Result as InstanceFieldAccess;
+					ProcessStore(access, instruction.Operand);
+				}
+				else if (instruction.Result is ArrayElementAccess)
+				{
+					var access = instruction.Result as ArrayElementAccess;
 					ProcessStore(access, instruction.Operand);
 				}
 			}
@@ -189,13 +199,27 @@ namespace Backend.Analyses
 			{
 				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
 
-				IEnumerable<PTGNode> nodes = ptg.GetTargets(access.Instance);
+				var field = access.Field.ToPTGNodeField();
+				ProcessLoad(offset, dst, access.Instance, field);
+			}
+
+			private void ProcessLoad(uint offset, IVariable dst, ArrayElementAccess access)
+			{
+				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
+
+				var field = access.ToPTGNodeField();
+				ProcessLoad(offset, dst, access.Array, field);
+			}
+
+			private void ProcessLoad(uint offset, IVariable dst, IVariable src, PTGNodeField field)
+			{
+				IEnumerable<PTGNode> nodes = ptg.GetTargets(src);
 
 				// We need to copy the targets before calling
-				// RemoveEdges because of the following case:
+				// RemoveEdges because of the following cases:
 				// v = v.f
-				// where dst == access.Instance == v
-				if (dst.Equals(access.Instance))
+				// where dst == src == v
+				if (dst.Equals(src))
 				{
 					nodes = nodes.ToArray();
 				}
@@ -205,17 +229,17 @@ namespace Backend.Analyses
 				foreach (var node in nodes)
 				{
 					var nodeTargets = ptg.GetTargets(node);
-					var hasField = nodeTargets.ContainsKey(access.Field);
+					var hasField = nodeTargets.ContainsKey(field);
 
 					// TODO: Don't create an unknown node when doing the inter PT analysis
 					if (!hasField)
 					{
 						var target = GetOrCreateNode(offset, dst.Type, PTGNodeKind.Unknown);
 
-						ptg.PointsTo(node, access.Field, target);
+						ptg.PointsTo(node, field, target);
 					}
 
-					var targets = nodeTargets[access.Field];
+					var targets = nodeTargets[field];
 
 					foreach (var target in targets)
 					{
@@ -228,15 +252,29 @@ namespace Backend.Analyses
 			{
 				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
 
+				var field = access.Field.ToPTGNodeField();
+				ProcessStore(access.Instance, src, field);
+			}
+
+			private void ProcessStore(ArrayElementAccess access, IVariable src)
+			{
+				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
+
+				var field = access.ToPTGNodeField();
+				ProcessStore(access.Array, src, field);
+			}
+
+			private void ProcessStore(IVariable dst, IVariable src, PTGNodeField field)
+			{
 				// Weak update
-				var nodes = ptg.GetTargets(access.Instance);
+				var nodes = ptg.GetTargets(dst);
 				var targets = ptg.GetTargets(src);
 
 				foreach (var node in nodes)
 				{
 					foreach (var target in targets)
 					{
-						ptg.PointsTo(node, access.Field, target);
+						ptg.PointsTo(node, field, target);
 					}
 				}
 			}

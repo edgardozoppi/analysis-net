@@ -89,6 +89,39 @@ namespace Backend.Model
 		}
     }
 
+	public class PTGNodeField
+	{
+		public IType Type { get; set; }
+		public string Name { get; set; }
+
+		public PTGNodeField(string name, IType type)
+		{
+			this.Name = name;
+			this.Type = type;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0} {1}", this.Type, this.Name);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as PTGNodeField;
+
+			var result = other != null &&
+						 this.Name == other.Name &&
+						 this.Type.Equals(other.Type);
+
+			return result;
+		}
+	}
+
     public class PointsToGraph
     {
 		public const int NullNodeId = 0;
@@ -96,8 +129,8 @@ namespace Backend.Model
 		private IDictionary<int, PTGNode> nodes;
 		private MapSet<IVariable, PTGNode> roots;
 		private MapSet<PTGNode, IVariable> variables;
-		private IDictionary<PTGNode, MapSet<IFieldReference, PTGNode>> targets;
-		private IDictionary<PTGNode, MapSet<IFieldReference, PTGNode>> sources;
+		private IDictionary<PTGNode, MapSet<PTGNodeField, PTGNode>> targets;
+		private IDictionary<PTGNode, MapSet<PTGNodeField, PTGNode>> sources;
 
 		public PTGNode Null { get; private set; }
 		public IVariable ResultVariable { get; set; }
@@ -112,8 +145,8 @@ namespace Backend.Model
 			this.nodes = new Dictionary<int, PTGNode>();
 			this.roots = new MapSet<IVariable, PTGNode>();
 			this.variables = new MapSet<PTGNode, IVariable>();
-			this.targets = new Dictionary<PTGNode, MapSet<IFieldReference, PTGNode>>();
-			this.sources = new Dictionary<PTGNode, MapSet<IFieldReference, PTGNode>>();
+			this.targets = new Dictionary<PTGNode, MapSet<PTGNodeField, PTGNode>>();
+			this.sources = new Dictionary<PTGNode, MapSet<PTGNodeField, PTGNode>>();
 
 			if (nullNode == null)
 			{
@@ -216,8 +249,8 @@ namespace Backend.Model
 			nodes.Add(node.Id, node);
 
 			variables.Add(node);
-			targets.Add(node, new MapSet<IFieldReference, PTGNode>());
-			sources.Add(node, new MapSet<IFieldReference, PTGNode>());
+			targets.Add(node, new MapSet<PTGNodeField, PTGNode>());
+			sources.Add(node, new MapSet<PTGNodeField, PTGNode>());
 		}
 
 		public PTGNode GetNode(int id)
@@ -235,17 +268,17 @@ namespace Backend.Model
 			return variables[node];
 		}
 
-		public MapSet<IFieldReference, PTGNode> GetTargets(PTGNode node)
+		public MapSet<PTGNodeField, PTGNode> GetTargets(PTGNode node)
 		{
 			return targets[node];
 		}
 
-		public MapSet<IFieldReference, PTGNode> GetSources(PTGNode node)
+		public MapSet<PTGNodeField, PTGNode> GetSources(PTGNode node)
 		{
 			return sources[node];
 		}
 
-		public ISet<PTGNode> GetTargets(IVariable variable, IFieldReference field)
+		public ISet<PTGNode> GetTargets(IVariable variable, PTGNodeField field)
 		{
 			var result = new HashSet<PTGNode>();
 			var targets = GetTargets(variable);
@@ -266,13 +299,13 @@ namespace Backend.Model
 			return result;
 		}
 
-		public ISet<PTGNode> GetTargets(PTGNode node, IFieldReference field)
+		public ISet<PTGNode> GetTargets(PTGNode node, PTGNodeField field)
 		{
 			var targets = GetTargets(node);
 			return targets[field];
 		}
 
-		public ISet<PTGNode> GetSources(PTGNode node, IFieldReference field)
+		public ISet<PTGNode> GetSources(PTGNode node, PTGNodeField field)
 		{
 			var sources = GetSources(node);
 			return sources[field];
@@ -304,7 +337,7 @@ namespace Backend.Model
 			variables.Add(target, variable);
         }
 
-        public void PointsTo(PTGNode source, IFieldReference field, PTGNode target)
+        public void PointsTo(PTGNode source, PTGNodeField field, PTGNode target)
         {
 #if DEBUG
 			if (!Contains(source))
@@ -407,7 +440,7 @@ namespace Backend.Model
             var other = obj as PointsToGraph;
 
 			Func<PTGNode, PTGNode, bool> nodeEquals = (a, b) => a.Equals(b);
-			Func<MapSet<IFieldReference, PTGNode>, MapSet<IFieldReference, PTGNode>, bool> edgeEquals = (a, b) => a.MapEquals(b);
+			Func<MapSet<PTGNodeField, PTGNode>, MapSet<PTGNodeField, PTGNode>, bool> edgeEquals = (a, b) => a.MapEquals(b);
 
 			return other != null &&
 				roots.MapEquals(other.roots) &&
@@ -495,15 +528,15 @@ namespace Backend.Model
 			}
 		}
 
-		private static MapSet<IFieldReference, PTGNode> GetEdges(IDictionary<PTGNode, MapSet<IFieldReference, PTGNode>> mapping, PTGNode node)
+		private static MapSet<PTGNodeField, PTGNode> GetEdges(IDictionary<PTGNode, MapSet<PTGNodeField, PTGNode>> mapping, PTGNode node)
 		{
-			MapSet<IFieldReference, PTGNode> result;
+			MapSet<PTGNodeField, PTGNode> result;
 
 			var ok = mapping.TryGetValue(node, out result);
 
 			if (!ok)
 			{
-				result = new MapSet<IFieldReference, PTGNode>();
+				result = new MapSet<PTGNodeField, PTGNode>();
 				mapping.Add(node, result);
 			}
 
