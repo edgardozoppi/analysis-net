@@ -99,8 +99,10 @@ namespace Backend.Analyses
 
 			if (ok)
 			{
-				var result = methodInfo.Get<DataFlowAnalysisResult<PointsToGraph>[]>(InterPointsToAnalysis.PTG_INFO);
-				ptg = result[ControlFlowGraph.ExitNodeId].Output;
+				ptg = methodInfo.Get<PointsToGraph>(InterPointsToAnalysis.OUTPUT_PTG_INFO);
+
+				//var result = methodInfo.Get<DataFlowAnalysisResult<PointsToGraph>[]>(InterPointsToAnalysis.PTG_INFO);
+				//ptg = result[ControlFlowGraph.ExitNodeId].Output;
 			}
 
 			return ptg;

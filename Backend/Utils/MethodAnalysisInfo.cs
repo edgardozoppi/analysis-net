@@ -13,9 +13,9 @@ namespace Backend.Utils
 	{
 		private IDictionary<string, object> data;
 
-		public MethodDefinition Method { get; private set; }
+		public IMethodReference Method { get; private set; }
 
-		public MethodAnalysisInfo(MethodDefinition method)
+		public MethodAnalysisInfo(IMethodReference method)
 		{
 			this.Method = method;
 			this.data = new Dictionary<string, object>();

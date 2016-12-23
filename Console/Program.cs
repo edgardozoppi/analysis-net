@@ -329,21 +329,25 @@ namespace Console
 			var cg = pta.Analyze(methodReference.ResolvedMethod);
 			var dgml_CG = DGMLSerializer.Serialize(cg);
 
+			//System.IO.File.WriteAllText(@"cg.dgml", dgml_CG);
+
 			var esca = new EscapeAnalysis(programInfo, cg);
 			var escapeResult = esca.Analyze();
 
 			foreach (var method in cg.Methods)
 			{
-				if (method.ResolvedMethod == null) continue;
-
-				var methodInfo = programInfo[method.ResolvedMethod];
-				var result = methodInfo.Get<DataFlowAnalysisResult<PointsToGraph>[]>(InterPointsToAnalysis.PTG_INFO);
-				var ptg = result[ControlFlowGraph.ExitNodeId].Output;
+				MethodAnalysisInfo methodInfo;
+				var ok = programInfo.TryGet(method, out methodInfo);
+				if (!ok) continue;
+				
+				var ptg = methodInfo.Get<PointsToGraph>(InterPointsToAnalysis.OUTPUT_PTG_INFO);
 				ptg.RemoveTemporalVariables();
 				//ptg.RemoveVariablesExceptParameters();
 				var dgml_PTG = DGMLSerializer.Serialize(ptg);
 
 				var escapeInfo = escapeResult[method];
+
+				//System.IO.File.WriteAllText(@"ptg.dgml", dgml_PTG);
 			}
 		}
 

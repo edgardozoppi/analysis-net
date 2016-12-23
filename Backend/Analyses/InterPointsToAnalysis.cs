@@ -20,25 +20,30 @@ namespace Backend.Analyses
 		public const string PTG_INFO = "PTG";
 		public const string PTA_INFO = "PTA";
 		public const string INPUT_PTG_INFO = "INPUT_PTG";
+		public const string OUTPUT_PTG_INFO = "OUTPUT_PTG";
 
 		private CallGraph callGraph;
 		private ProgramAnalysisInfo methodsInfo;
-		private Stack<IMethodReference> callStack;
+		//private Stack<IMethodReference> callStack;
 
 		public InterPointsToAnalysis(ProgramAnalysisInfo methodsInfo)
 		{
 			this.methodsInfo = methodsInfo;
 			this.callGraph = new CallGraph();
-			this.callStack = new Stack<IMethodReference>();
+			//this.callStack = new Stack<IMethodReference>();
 			this.OnReachableMethodFound = DefaultReachableMethodFound;
+			this.OnUnknownMethodFound = DefaultUnknownMethodFound;
+			this.ProcessUnknownMethod = DefaultProcessUnknownMethod;
 		}
 
 		public Func<MethodDefinition, ControlFlowGraph> OnReachableMethodFound;
+		public Func<IMethodReference, bool> OnUnknownMethodFound;
+		public Func<IMethodReference, IMethodReference, MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessUnknownMethod;
 
 		public CallGraph Analyze(MethodDefinition method)
 		{
 			callGraph.Add(method);
-			callStack.Push(method);
+			//callStack.Push(method);
 
 			var methodInfo = methodsInfo.GetOrAdd(method);
 			var cfg = OnReachableMethodFound(method);
@@ -48,12 +53,14 @@ namespace Backend.Analyses
 			pta.ProcessMethodCall = ProcessMethodCall;
 
 			methodInfo.Add(PTA_INFO, pta);
+			methodInfo.Add(PTG_INFO, pta.Result);
 
 			var result = pta.Analyze();
+			
+			var ptg = result[ControlFlowGraph.ExitNodeId].Output;
+			methodInfo.Set(OUTPUT_PTG_INFO, ptg);
 
-			methodInfo.Set(PTG_INFO, result);
-
-			callStack.Pop();
+			//callStack.Pop();
 			return callGraph;
 		}
 
@@ -62,25 +69,54 @@ namespace Backend.Analyses
 			PointsToGraph output = null;
 			var possibleCallees = ResolvePossibleCallees(methodCall, input);
 
-			if (!callGraph.ContainsInvocation(caller, methodCall.Label))
 			{
-				callGraph.Add(caller, methodCall.Label, methodCall.Method);
-			}
+				// Call graph construction
+				if (!callGraph.ContainsInvocation(caller, methodCall.Label))
+				{
+					callGraph.Add(caller, methodCall.Label, methodCall.Method);
+				}
 
-			callGraph.Add(caller, methodCall.Label, possibleCallees);
+				callGraph.Add(caller, methodCall.Label, possibleCallees);
+			}
 
 			foreach (var callee in possibleCallees)
 			{
 				var method = callee.ResolvedMethod;
-
-				if (method != null)
+				var isUnknownMethod = method == null;
+				var processCallee = !isUnknownMethod || OnUnknownMethodFound(callee);
+				
+				if (processCallee)
 				{
-					callStack.Push(method);
+					//callStack.Push(callee);					
 
-					var methodInfo = methodsInfo.GetOrAdd(method);
+					IList<IVariable> parameters;
+
+					if (isUnknownMethod)
+					{
+						parameters = new List<IVariable>();
+
+						if (!callee.IsStatic)
+						{
+							var parameter = new LocalVariable("this", true) { Type = callee.ContainingType };
+
+							parameters.Add(parameter);
+						}
+
+						foreach (var p in callee.Parameters)
+						{
+							var name = string.Format("p{0}", p.Index + 1);
+							var parameter = new LocalVariable(name, true) { Type = p.Type };
+
+							parameters.Add(parameter);
+						}
+					}
+					else
+					{
+						parameters = method.Body.Parameters;
+					}
 
 					var ptg = input.Clone();
-					var binding = GetCallerCalleeBinding(methodCall.Arguments, method.Body.Parameters);
+					var binding = GetCallerCalleeBinding(methodCall.Arguments, parameters);
 					var previousFrame = ptg.NewFrame(binding);
 
 					//// Garbage collect unreachable nodes.
@@ -91,56 +127,67 @@ namespace Backend.Analyses
 					//ptg.CollectGarbage();
 
 					PointsToGraph oldInput;
-					var ok = methodInfo.TryGet(INPUT_PTG_INFO, out oldInput);
+					var methodInfo = methodsInfo.GetOrAdd(callee);
+					var hasOldInput = methodInfo.TryGet(INPUT_PTG_INFO, out oldInput);
+					var inputChanged = true;
 
-					var inputChanged = !ok || !ptg.GraphEquals(oldInput);
-
-					if (ok && inputChanged)
+					if (hasOldInput)
 					{
-						ptg.Union(oldInput);
-						// Even when the graphs were different,
-						// it could be the case that one (ptg)
-						// is a subgraph of the other (oldInput)
-						// so the the result of the union of both
-						// graphs is exactly the same oldInput graph.
 						inputChanged = !ptg.GraphEquals(oldInput);
-					}
 
-					methodInfo.Set(INPUT_PTG_INFO, ptg);
-
-					PointsToAnalysis pta;
-					ok = methodInfo.TryGet(PTA_INFO, out pta);
-
-					if (!ok)
-					{
-						var cfg = OnReachableMethodFound(method);
-
-						// TODO: Don't create unknown nodes when doing the inter PT analysis
-						pta = new PointsToAnalysis(cfg, method, nodeIdGenerator);
-						pta.ProcessMethodCall = ProcessMethodCall;
-
-						methodInfo.Add(PTA_INFO, pta);
+						if (inputChanged)
+						{
+							ptg.Union(oldInput);
+							// Even when the graphs were different,
+							// it could be the case that one (ptg)
+							// is a subgraph of the other (oldInput)
+							// so the the result of the union of both
+							// graphs is exactly the same oldInput graph.
+							inputChanged = !ptg.GraphEquals(oldInput);
+						}
 					}
 
 					if (inputChanged)
 					{
-						methodInfo.Set(PTG_INFO, pta.Result);
+						methodInfo.Set(INPUT_PTG_INFO, ptg);
 
-						ptg = ptg.Clone();
-						var result = pta.Analyze(ptg);
+						if (isUnknownMethod)
+						{
+							ptg = ProcessUnknownMethod(callee, caller, methodCall, nodeIdGenerator, ptg);
+						}
+						else
+						{
+							PointsToAnalysis pta;
+							var ok = methodInfo.TryGet(PTA_INFO, out pta);
 
-						ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
+							if (!ok)
+							{
+								var cfg = OnReachableMethodFound(method);
+
+								// TODO: Don't create unknown nodes when doing the inter PT analysis
+								pta = new PointsToAnalysis(cfg, method, nodeIdGenerator);
+								pta.ProcessMethodCall = ProcessMethodCall;
+
+								methodInfo.Add(PTA_INFO, pta);
+							}
+
+							methodInfo.Set(PTG_INFO, pta.Result);
+
+							var result = pta.Analyze(ptg);
+
+							ptg = result[ControlFlowGraph.ExitNodeId].Output;
+						}
 					}
 					else
 					{
 						var result = methodInfo.Get<DataFlowAnalysisResult<PointsToGraph>[]>(PTG_INFO);
-						ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
+						ptg = result[ControlFlowGraph.ExitNodeId].Output;
 					}
 
-					var parameterKind = method.Parameters.ToDictionary(p => p.Name, p => p.Kind);
-					binding = GetCalleeCallerBinding(methodCall.Arguments, method.Body.Parameters, parameterKind, methodCall.Result, ptg.ResultVariable);
+					methodInfo.Set(OUTPUT_PTG_INFO, ptg);
 
-					//ptg = result[ControlFlowGraph.ExitNodeId].Output.Clone();
+					ptg = ptg.Clone();
+					binding = GetCalleeCallerBinding(methodCall.Result, ptg.ResultVariable);
 					ptg.RestoreFrame(previousFrame, binding);
 
 					//// Garbage collect unreachable nodes.
@@ -148,16 +195,19 @@ namespace Backend.Analyses
 					//// I believe by doing this we can reach the fixpoint faster, but not sure.
 					//ptg.CollectGarbage();
 
-					if (output == null)
-					{
-						output = ptg;
-					}
-					else
-					{
-						output.Union(ptg);
-					}
+					//callStack.Pop();
 
-					callStack.Pop();
+					if (ptg != null)
+					{
+						if (output == null)
+						{
+							output = ptg;
+						}
+						else
+						{
+							output.Union(ptg);
+						}
+					}
 				}
 			}
 
@@ -169,7 +219,7 @@ namespace Backend.Analyses
 			return output;
 		}
 
-		// binding: parameter -> argument
+		// binding: callee parameter -> caller argument
 		private static IDictionary<IVariable, IVariable> GetCallerCalleeBinding(IList<IVariable> arguments, IList<IVariable> parameters)
 		{
 			var binding = new Dictionary<IVariable, IVariable>();
@@ -190,29 +240,10 @@ namespace Backend.Analyses
 			return binding;
 		}
 
-		// binding: parameter -> argument
-		private static IDictionary<IVariable, IVariable> GetCalleeCallerBinding(IList<IVariable> arguments, IList<IVariable> parameters, IDictionary<string, MethodParameterKind> parameterKind, IVariable callerResult, IVariable calleeResult)
+		// binding: callee variable -> caller variable
+		private static IDictionary<IVariable, IVariable> GetCalleeCallerBinding(IVariable callerResult, IVariable calleeResult)
 		{
 			var binding = new Dictionary<IVariable, IVariable>();
-
-#if DEBUG
-			if (arguments.Count != parameters.Count)
-				throw new Exception("Different ammount of parameters and arguments");
-#endif
-
-			for (var i = 0; i < arguments.Count; ++i)
-			{
-				var argument = arguments[i];
-				var parameter = parameters[i];
-
-				MethodParameterKind kind;
-				var ok = parameterKind.TryGetValue(parameter.Name, out kind);
-
-				if (ok && kind != MethodParameterKind.In)
-				{
-					binding.Add(parameter, argument);
-				}
-			}
 
 			if (callerResult != null)
 			{
@@ -282,6 +313,16 @@ namespace Backend.Analyses
 			}
 
 			return cfg;
+		}
+
+		protected virtual bool DefaultUnknownMethodFound(IMethodReference method)
+		{
+			return false;
+		}
+
+		protected virtual PointsToGraph DefaultProcessUnknownMethod(IMethodReference callee, IMethodReference caller, MethodCallInstruction methodCall, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
+		{
+			return input;
 		}
 	}
 }

@@ -39,7 +39,7 @@ namespace Backend.Utils
 
 			if (!ok)
 			{
-				info = new MethodAnalysisInfo(method.ResolvedMethod);
+				info = new MethodAnalysisInfo(method);
 				methodsInfo.Add(method, info);
 			}
 
