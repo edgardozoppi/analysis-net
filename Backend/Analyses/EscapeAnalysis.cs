@@ -34,13 +34,11 @@ namespace Backend.Analyses
 		private CallGraph callGraph;
 		private Dictionary<IMethodReference, EscapeInfo> result;
 		private ISet<IMethodReference> worklist;
-		private MethodReferenceDefinitionComparer methodComparer;
 
 		public EscapeAnalysis(ProgramAnalysisInfo methodsInfo, CallGraph callGraph)
 		{
 			this.methodsInfo = methodsInfo;
 			this.callGraph = callGraph;
-			this.methodComparer = new MethodReferenceDefinitionComparer();
 		}
 
 		public IDictionary<IMethodReference, EscapeInfo> Analyze()
@@ -110,6 +108,7 @@ namespace Backend.Analyses
 
 		private void FillEscapingChannels(EscapeInfo escapingInfo, PointsToGraph ptg, ISet<PTGNode> calleesEscapingNodes)
 		{
+			var methodComparer = MethodReferenceDefinitionComparer.Default;
 			var method = escapingInfo.Method;
 			var channels = escapingInfo.Channels;
 			var parameters = ptg.Variables.Where(v => v.IsParameter);

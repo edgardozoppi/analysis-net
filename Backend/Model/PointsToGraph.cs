@@ -89,6 +89,7 @@ namespace Backend.Model
 		}
     }
 
+	// TODO: This class should be a struct or remove it and use an string directly.
 	public class PTGNodeField
 	{
 		public IType Type { get; set; }

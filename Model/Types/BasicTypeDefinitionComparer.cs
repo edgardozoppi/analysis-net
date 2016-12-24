@@ -7,6 +7,27 @@ namespace Model.Types
 {
 	public class BasicTypeDefinitionComparer : IEqualityComparer<IBasicType>
 	{
+		private static BasicTypeDefinitionComparer _default;
+
+		public static BasicTypeDefinitionComparer Default
+		{
+			get
+			{
+				if (_default == null)
+				{
+					_default = new BasicTypeDefinitionComparer();
+				}
+
+				return _default;
+			}
+		}
+
+		private BasicTypeDefinitionComparer()
+		{
+			// Don't create a new instance of this class,
+			// use Default property instead.
+		}
+
 		public int GetHashCode(IBasicType type)
 		{
 			return type.Name.GetHashCode();

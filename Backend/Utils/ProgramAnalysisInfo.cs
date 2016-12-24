@@ -14,7 +14,7 @@ namespace Backend.Utils
 
 		public ProgramAnalysisInfo()
 		{
-			this.methodsInfo = new Dictionary<IMethodReference, MethodAnalysisInfo>(new MethodReferenceDefinitionComparer());
+			this.methodsInfo = new Dictionary<IMethodReference, MethodAnalysisInfo>(MethodReferenceDefinitionComparer.Default);
 		}
 
 		public IEnumerable<IMethodReference> Methods
