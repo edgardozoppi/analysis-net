@@ -597,6 +597,7 @@ namespace Model.Types
 		public bool IsAbstract { get; set; }
 		public bool IsVirtual { get; set; }
 		public bool IsConstructor { get; set; }
+		public bool IsExternal { get; set; }
 		public MethodBody Body { get; set; }
 
 		public MethodDefinition(string name, IType returnType)

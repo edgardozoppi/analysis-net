@@ -82,7 +82,7 @@ namespace Backend.Analyses
 			foreach (var callee in possibleCallees)
 			{
 				var method = callee.ResolvedMethod;
-				var isUnknownMethod = method == null;
+				var isUnknownMethod = method == null || method.IsExternal;
 				var processCallee = !isUnknownMethod || OnUnknownMethodFound(callee);
 				
 				if (processCallee)

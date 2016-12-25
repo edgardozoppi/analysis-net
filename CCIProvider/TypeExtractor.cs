@@ -641,12 +641,17 @@ namespace CCIProvider
 				ExtractAttributes(method.Attributes, methoddef.Attributes);
 				ExtractGenericMethodParameters(method, methoddef);
 				ExtractParameters(method.Parameters, methoddef.Parameters);
-				method.Body = ExtractBody(methoddef.Body, sourceLocationProvider);
+
+				if (!methoddef.IsExternal)
+				{
+					method.Body = ExtractBody(methoddef.Body, sourceLocationProvider);
+				}
 
 				method.IsStatic = methoddef.IsStatic;
 				method.IsAbstract = methoddef.IsAbstract;
 				method.IsVirtual = methoddef.IsVirtual;
 				method.IsConstructor = methoddef.IsConstructor;
+				method.IsExternal = methoddef.IsExternal;
 				method.ContainingType = containingType;
 				dest.Add(method);
 			}
