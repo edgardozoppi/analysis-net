@@ -113,18 +113,6 @@ namespace CCIProvider
 			foreach (var op in operations)
 			{
 				var instruction = ExtractInstruction(op);
-
-				if (instruction == null)
-				{
-					Console.WriteLine("Unknown bytecode: {0}", op.OperationCode);
-					//throw new UnknownBytecodeException(op);
-					//continue;
-
-					// Quick fix to preserve the offset in case it is a target location of some jump
-					// Otherwise it will break the control-flow analysis later.
-					instruction = new BasicInstruction(op.Offset, BasicOperation.Nop);					
-				}
-
 				instructions.Add(instruction);
 			}
 		}
@@ -308,9 +296,9 @@ namespace CCIProvider
 				//    expression = new MethodCall() { Arguments = new List<IExpression>(1) { operand }, IsStaticCall = true, Type = operand.Type, MethodToCall = chkfinite };
 				//    break;
 
-				case Cci.OperationCode.Constrained_:
-					// This prefix is redundant and is not represented in the code model.
-					break;
+				//case Cci.OperationCode.Constrained_:
+				//	// This prefix is redundant and is not represented in the code model.
+				//	break;
 
 				case Cci.OperationCode.Cpblk:
 					instruction = ProcessBasic(operation);
@@ -431,10 +419,10 @@ namespace CCIProvider
 					instruction = ProcessCreateObject(operation);
 					break;
 
-				case Cci.OperationCode.No_:
-					//if code out there actually uses this, I need to know sooner rather than later.
-					//TODO: need object model support
-					throw new NotImplementedException("Invalid opcode: No.");
+				//case Cci.OperationCode.No_:
+				//	// If code out there actually uses this, I need to know sooner rather than later.
+				//	// TODO: need object model support
+				//	throw new NotImplementedException("Invalid opcode: No.");
 
 				case Cci.OperationCode.Pop:
 					instruction = ProcessBasic(operation);
@@ -529,8 +517,13 @@ namespace CCIProvider
 				//    break;
 
 				default:
-					Console.WriteLine("Unknown bytecode: {0}", operation.OperationCode);
-					//throw new UnknownBytecodeException(op);
+					//Console.WriteLine("Unknown bytecode: {0}", operation.OperationCode);
+					//throw new UnknownBytecodeException(operation);
+					//continue;
+
+					// Quick fix to preserve the offset in case it is a target location of some jump
+					// Otherwise it will break the control-flow analysis later.
+					instruction = new BasicInstruction(operation.Offset, BasicOperation.Nop);
 					break;
 			}
 

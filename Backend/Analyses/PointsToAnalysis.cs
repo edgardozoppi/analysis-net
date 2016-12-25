@@ -378,6 +378,8 @@ namespace Backend.Analyses
 		private PointsToGraph CreateInitialGraph()
 		{
 			var ptg = new PointsToGraph();
+			// TODO: We are missing to add the parameters
+			// that are not actually used in the cfg.
 			var variables = cfg.GetVariables();
 
 			foreach (var variable in variables)
