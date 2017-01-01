@@ -25,7 +25,7 @@ namespace Backend.Analyses
 		}
 
 		public ClassHierarchyAnalysis(Host host)
-			: this(host, new ClassHierarchy(host))
+			: this(host, new ClassHierarchy())
 		{
 		}
 
@@ -47,7 +47,7 @@ namespace Backend.Analyses
 			var visitedMethods = new HashSet<MethodDefinition>();
 			var worklist = new Queue<MethodDefinition>();
 
-			classHierarchy.Analyze();
+			classHierarchy.Analyze(host);
 
 			foreach (var root in roots)
 			{

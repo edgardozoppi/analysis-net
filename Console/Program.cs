@@ -171,8 +171,8 @@ namespace Console
 
 			methodDefinition = host.ResolveReference(method) as MethodDefinition;
 
-			var ch = new ClassHierarchy(host);
-			ch.Analyze();
+			var ch = new ClassHierarchy();
+			ch.Analyze(host);
 
 			var dgml = DGMLSerializer.Serialize(ch);
 

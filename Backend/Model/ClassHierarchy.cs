@@ -27,13 +27,11 @@ namespace Backend.Model
 
 		#endregion
 
-		private Host host;
 		private IDictionary<IBasicType, ClassHierarchyInfo> types;
 		private bool analyzed;
 
-		public ClassHierarchy(Host host)
+		public ClassHierarchy()
 		{
-			this.host = host;
 			this.types = new Dictionary<IBasicType, ClassHierarchyInfo>(BasicTypeDefinitionComparer.Default);
 		}
 
@@ -80,13 +78,29 @@ namespace Backend.Model
 			return result;
 		}
 
-		public void Analyze()
+		public void Analyze(Host host)
 		{
 			if (analyzed) return;
 			analyzed = true;
 
 			var definedTypes = host.Assemblies
 				.SelectMany(a => a.RootNamespace.GetAllTypes())
+				.Where(t => t is StructDefinition ||
+							t is ClassDefinition ||
+							t is InterfaceDefinition);
+
+			foreach (var type in definedTypes)
+			{
+				Analyze(type);
+			}
+		}
+
+		public void Analyze(Assembly assembly)
+		{
+			if (analyzed) return;
+			analyzed = true;
+
+			var definedTypes = assembly.RootNamespace.GetAllTypes()
 				.Where(t => t is StructDefinition ||
 							t is ClassDefinition ||
 							t is InterfaceDefinition);
