@@ -176,9 +176,9 @@ namespace Console
 
 			var dgml = DGMLSerializer.Serialize(ch);
 
-			var chcga = new ClassHierarchyAnalysis(host, ch);
+			var chcga = new ClassHierarchyAnalysis(ch);
 			var roots = host.GetRootMethods();
-			var cg = chcga.Analyze(roots);
+			var cg = chcga.Analyze(host, roots);
 
 			dgml = DGMLSerializer.Serialize(cg);
 		}

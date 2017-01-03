@@ -15,39 +15,58 @@ namespace Backend.Analyses
 {
 	public class ClassHierarchyAnalysis
 	{
-		private Host host;
 		private ClassHierarchy classHierarchy;
 
-		public ClassHierarchyAnalysis(Host host, ClassHierarchy hierarchy)
+		public ClassHierarchyAnalysis(ClassHierarchy hierarchy)
 		{
-			this.host = host;
 			this.classHierarchy = hierarchy;
+			this.OnReachableMethodFound = DefaultReachableMethodFound;
 		}
 
-		public ClassHierarchyAnalysis(Host host)
-			: this(host, new ClassHierarchy())
+		public ClassHierarchyAnalysis()
+			: this(new ClassHierarchy())
 		{
 		}
 
-		public CallGraph Analyze()
-		{
-			var allDefinedMethods = from a in host.Assemblies
-									from t in a.RootNamespace.GetAllTypes()
-									from m in t.Members.OfType<MethodDefinition>()
-									where m.HasBody
-									select m;
+		public Action<MethodDefinition> OnReachableMethodFound;
 
-			var result = Analyze(allDefinedMethods);
+		public CallGraph Analyze(Host host)
+		{
+			var definedMethods = from a in host.Assemblies
+								 from t in a.RootNamespace.GetAllTypes()
+								 from m in t.Members.OfType<MethodDefinition>()
+								 where m.HasBody
+								 select m;
+
+			classHierarchy.Analyze(host);
+			var result = Analyze(definedMethods);
 			return result;
 		}
 
-		public CallGraph Analyze(IEnumerable<MethodDefinition> roots)
+		public CallGraph Analyze(Assembly assembly)
+		{
+			var definedMethods = from t in assembly.RootNamespace.GetAllTypes()
+								 from m in t.Members.OfType<MethodDefinition>()
+								 where m.HasBody
+								 select m;
+
+			classHierarchy.Analyze(assembly);
+			var result = Analyze(definedMethods);
+			return result;
+		}
+
+		public CallGraph Analyze(Host host, IEnumerable<MethodDefinition> roots)
+		{
+			classHierarchy.Analyze(host);
+			var result = Analyze(roots);
+			return result;
+		}
+
+		private CallGraph Analyze(IEnumerable<MethodDefinition> roots)
 		{
 			var result = new CallGraph();
 			var visitedMethods = new HashSet<MethodDefinition>();
 			var worklist = new Queue<MethodDefinition>();
-
-			classHierarchy.Analyze(host);
 
 			foreach (var root in roots)
 			{
@@ -75,7 +94,7 @@ namespace Backend.Analyses
 
 					foreach (var calleeref in possibleCallees)
 					{
-						var calleedef = host.ResolveReference(calleeref) as MethodDefinition;
+						var calleedef = calleeref.ResolvedMethod;
 
 						if (calleedef != null)
 						{
@@ -93,7 +112,7 @@ namespace Backend.Analyses
 			return result;
 		}
 
-		protected virtual void OnReachableMethodFound(MethodDefinition method)
+		protected virtual void DefaultReachableMethodFound(MethodDefinition method)
 		{
 			if (method.Body.Kind == MethodBodyKind.Bytecode)
 			{

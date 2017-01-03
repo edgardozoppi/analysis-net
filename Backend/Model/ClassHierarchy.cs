@@ -83,11 +83,12 @@ namespace Backend.Model
 			if (analyzed) return;
 			analyzed = true;
 
-			var definedTypes = host.Assemblies
-				.SelectMany(a => a.RootNamespace.GetAllTypes())
-				.Where(t => t is StructDefinition ||
-							t is ClassDefinition ||
-							t is InterfaceDefinition);
+			var definedTypes = from a in host.Assemblies
+							   from t in a.RootNamespace.GetAllTypes()
+							   where t is StructDefinition ||
+									 t is ClassDefinition ||
+									 t is InterfaceDefinition
+							   select t;
 
 			foreach (var type in definedTypes)
 			{
@@ -100,10 +101,11 @@ namespace Backend.Model
 			if (analyzed) return;
 			analyzed = true;
 
-			var definedTypes = assembly.RootNamespace.GetAllTypes()
-				.Where(t => t is StructDefinition ||
-							t is ClassDefinition ||
-							t is InterfaceDefinition);
+			var definedTypes = from t in assembly.RootNamespace.GetAllTypes()
+							   where t is StructDefinition ||
+									 t is ClassDefinition ||
+									 t is InterfaceDefinition
+							   select t;
 
 			foreach (var type in definedTypes)
 			{

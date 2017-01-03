@@ -23,12 +23,12 @@ namespace Backend.Analyses
 		public const string OUTPUT_PTG_INFO = "OUTPUT_PTG";
 
 		private CallGraph callGraph;
-		private ProgramAnalysisInfo methodsInfo;
+		private ProgramAnalysisInfo programInfo;
 		//private Stack<IMethodReference> callStack;
 
-		public InterPointsToAnalysis(ProgramAnalysisInfo methodsInfo)
+		public InterPointsToAnalysis(ProgramAnalysisInfo programInfo)
 		{
-			this.methodsInfo = methodsInfo;
+			this.programInfo = programInfo;
 			this.callGraph = new CallGraph();
 			//this.callStack = new Stack<IMethodReference>();
 			this.OnReachableMethodFound = DefaultReachableMethodFound;
@@ -45,7 +45,7 @@ namespace Backend.Analyses
 			callGraph.Add(method);
 			//callStack.Push(method);
 
-			var methodInfo = methodsInfo.GetOrAdd(method);
+			var methodInfo = programInfo.GetOrAdd(method);
 			var cfg = OnReachableMethodFound(method);
 
 			// TODO: Don't create unknown nodes when doing the inter PT analysis
@@ -127,7 +127,7 @@ namespace Backend.Analyses
 					//ptg.CollectGarbage();
 
 					PointsToGraph oldInput;
-					var methodInfo = methodsInfo.GetOrAdd(callee);
+					var methodInfo = programInfo.GetOrAdd(callee);
 					var hasOldInput = methodInfo.TryGet(INPUT_PTG_INFO, out oldInput);
 					var inputChanged = true;
 
@@ -283,7 +283,7 @@ namespace Backend.Analyses
 		protected virtual ControlFlowGraph DefaultReachableMethodFound(MethodDefinition method)
 		{
 			ControlFlowGraph cfg;
-			var methodInfo = methodsInfo.GetOrAdd(method);
+			var methodInfo = programInfo.GetOrAdd(method);
 			var ok = methodInfo.TryGet(CFG_INFO, out cfg);
 
 			if (!ok)
