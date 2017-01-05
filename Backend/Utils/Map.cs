@@ -11,16 +11,16 @@ namespace Backend.Utils
 	public abstract class Map<TKey, TValue, TCollection> : Dictionary<TKey, TCollection>
 		where TCollection : ICollection<TValue>, new()
 	{
-		public Map()
+		protected Map()
 		{
 		}
 
-		public Map(IEnumerable<KeyValuePair<TKey, IEnumerable<TValue>>> other)
+		protected Map(IEnumerable<KeyValuePair<TKey, IEnumerable<TValue>>> other)
 		{
 			this.UnionWith(other);
 		}
 
-		public Map(IEnumerable<KeyValuePair<TKey, TValue>> other)
+		protected Map(IEnumerable<KeyValuePair<TKey, TValue>> other)
 		{
 			this.UnionWith(other);
 		}

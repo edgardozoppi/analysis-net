@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Backend.Utils
 {
-	public class ProgramAnalysisInfo
+	public class ProgramAnalysisInfo : AnalysisInfo
 	{
 		private IDictionary<IMethodReference, MethodAnalysisInfo> methodsInfo;
 

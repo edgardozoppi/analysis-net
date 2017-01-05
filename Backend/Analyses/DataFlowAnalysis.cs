@@ -18,7 +18,7 @@ namespace Backend.Analyses
 	{
 		protected ControlFlowGraph cfg;
 
-		public DataFlowAnalysis(ControlFlowGraph cfg)
+		protected DataFlowAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
 		}
@@ -43,7 +43,7 @@ namespace Backend.Analyses
 	{
 		protected DataFlowAnalysisResult<T>[] result;
 
-		public ForwardDataFlowAnalysis(ControlFlowGraph cfg)
+		protected ForwardDataFlowAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
 			this.result = new DataFlowAnalysisResult<T>[cfg.Nodes.Count];
@@ -114,7 +114,7 @@ namespace Backend.Analyses
 	{
 		protected DataFlowAnalysisResult<T>[] result;
 
-		public BackwardDataFlowAnalysis(ControlFlowGraph cfg)
+		protected BackwardDataFlowAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
 			this.result = new DataFlowAnalysisResult<T>[cfg.Nodes.Count];

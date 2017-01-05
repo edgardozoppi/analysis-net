@@ -114,7 +114,7 @@ namespace Model.ThreeAddressCode.Instructions
 			get { return this.Result != null; }
 		}
 
-		public DefinitionInstruction(uint label, IVariable result)
+		protected DefinitionInstruction(uint label, IVariable result)
 			: base(label)
 		{
 			this.Result = result;
@@ -631,13 +631,13 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public string Target { get; set; }
 
-		public BranchInstruction(uint label, uint target)
+		protected BranchInstruction(uint label, uint target)
 			: base(label)
 		{
 			this.Target = string.Format("L_{0:X4}", target);
 		}
 
-		public BranchInstruction(uint label, string target)
+		protected BranchInstruction(uint label, string target)
 			: base(label)
 		{
 			this.Target = target;
