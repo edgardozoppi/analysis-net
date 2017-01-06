@@ -37,6 +37,11 @@ namespace Model
 			}
 		}
 
+		public static ISet<T> ToSet<T>(this IEnumerable<T> self)
+		{
+			return new HashSet<T>(self);
+		}
+
 		public static IEnumerable<T> ToEnumerable<T>(this T item)
 		{
 			yield return item;

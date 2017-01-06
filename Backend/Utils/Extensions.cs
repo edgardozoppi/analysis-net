@@ -263,6 +263,16 @@ namespace Backend.Utils
 			//return result;
 		}
 
+		public static ISet<IVariable> GetVariables(this CFGLoop loop)
+		{
+			var result = from n in loop.Body
+						 from v in n.GetVariables()
+						 select v;
+
+			//var result = loop.Body.SelectMany(n => n.GetVariables());
+			return new HashSet<IVariable>(result);
+		}
+
 		public static ISet<IVariable> GetModifiedVariables(this CFGLoop loop)
 		{
 			var result = from n in loop.Body
@@ -270,6 +280,26 @@ namespace Backend.Utils
 						 select v;
 
 			//var result = loop.Body.SelectMany(n => n.GetModifiedVariables());
+			return new HashSet<IVariable>(result);
+		}
+
+		public static ISet<IVariable> GetUsedVariables(this CFGLoop loop)
+		{
+			var result = from n in loop.Body
+						 from v in n.GetUsedVariables()
+						 select v;
+
+			//var result = loop.Body.SelectMany(n => n.GetUsedVariables());
+			return new HashSet<IVariable>(result);
+		}
+
+		public static ISet<IVariable> GetDefinedVariables(this CFGLoop loop)
+		{
+			var result = from n in loop.Body
+						 from v in n.GetDefinedVariables()
+						 select v;
+
+			//var result = loop.Body.SelectMany(n => n.GetDefinedVariables());
 			return new HashSet<IVariable>(result);
 		}
 
@@ -318,7 +348,7 @@ namespace Backend.Utils
 			return result;
 		}
 
-		public static bool IsTemporal(this IVariable variable)
+		public static IVariable GetOriginal(this IVariable variable)
 		{
 			while (variable is DerivedVariable)
 			{
@@ -326,7 +356,12 @@ namespace Backend.Utils
 				variable = derived.Original;
 			}
 
-			var result = variable is TemporalVariable;
+			return variable;
+		}
+
+		public static bool IsTemporal(this IVariable variable)
+		{
+			var result = variable.GetOriginal() is TemporalVariable;
 			return result;
 		}
 
@@ -672,6 +707,112 @@ namespace Backend.Utils
 					index++;
 				}
 			}
+		}
+
+		public static InputOutputInfo GetInputOutputInfo(this IInstructionContainer region, IEnumerable<IVariable> liveVariablesAtExit)
+		{
+			var variables = region.GetVariables();
+			var definedVariables = region.GetDefinedVariables();
+			var inputs = variables.Except(definedVariables);
+
+			var outputs = from output in definedVariables
+						  let variable = output.GetOriginal()
+						  where liveVariablesAtExit.Contains(variable)
+						  select output;
+
+			var results = from ins in region.Instructions
+						  let ret = ins as ReturnInstruction
+						  where ret != null && ret.HasOperand
+						  select ret.Operand;
+
+			var result = new InputOutputInfo(inputs, outputs, results);
+			return result;
+		}
+
+		public static InputOutputInfo GetInputOutputInfo(this CFGLoop loop, IList<ISet<IVariable>> liveVariablesAtNodesExit)
+		{
+			var variables = loop.GetVariables();
+			var definedVariables = loop.GetDefinedVariables();
+			var inputs = variables.Except(definedVariables);
+
+			var outputs = from node in loop.GetExitNodes()
+						  let liveVariablesAtExit = liveVariablesAtNodesExit[node.Id]
+						  from output in definedVariables
+						  let variable = output.GetOriginal()
+						  where liveVariablesAtExit.Contains(variable)
+						  select output;
+
+			var results = from node in loop.Body
+						  from ins in node.Instructions
+						  let ret = ins as ReturnInstruction
+						  where ret != null && ret.HasOperand
+						  select ret.Operand;
+
+			var result = new InputOutputInfo(inputs, outputs, results);
+			return result;
+		}
+
+		public static InputOutputInfo GetInputOutputInfo(this ControlFlowGraph cfg)
+		{
+			var inputs = from variable in cfg.GetVariables()
+						 where variable.IsParameter
+						 select variable;
+
+			// At the exit node of the CFG all variables are dead.
+			var outputs = Enumerable.Empty<IVariable>();
+
+			var results = from node in cfg.Nodes
+						  from ins in node.Instructions
+						  let ret = ins as ReturnInstruction
+						  where ret != null && ret.HasOperand
+						  select ret.Operand;
+
+			var result = new InputOutputInfo(inputs, outputs, results);
+			return result;
+		}
+
+		public static EscapeInfo GetEscapeInfo(this IMethodReference method, ProgramAnalysisInfo programInfo, InputOutputInfo ioInfo, IEnumerable<IInstruction> instructions)
+		{
+			var methodInfo = programInfo[method];
+			var ptg = methodInfo.Get<PointsToGraph>(InterPointsToAnalysis.OUTPUT_PTG_INFO);
+
+			var allocatedNodes = from ins in instructions
+								 let def = ins as DefinitionInstruction
+								 where (def is CreateObjectInstruction || def is CreateArrayInstruction) &&
+										def.HasResult && def.Result.Type.TypeKind != TypeKind.ValueType
+								 let targets = ptg.GetTargets(def.Result)
+								 from node in targets
+								 select node;
+
+			var cg = programInfo.Get<CallGraph>(InterPointsToAnalysis.CG_INFO);
+
+			var calleesEscapingNodes = from ins in instructions
+									   where ins is MethodCallInstruction
+									   let def = ins as DefinitionInstruction
+									   let inv = cg.GetInvocation(method, def.Label)
+									   from callee in inv.PossibleCallees
+									   let calleeInfo = programInfo[callee]
+									   let escInfo = calleeInfo.Get<EscapeInfo>(EscapeAnalysis.ESC_INFO)
+									   from node in escInfo.EscapingNodes
+									   select node;
+
+			var escapingVariables = ioInfo.Inputs.Union(ioInfo.Outputs).Union(ioInfo.Results);
+			var newNodes = calleesEscapingNodes.Union(allocatedNodes).ToSet();
+			var escapeInfo = new EscapeInfo();
+
+			foreach (var variable in escapingVariables)
+			{
+				if (variable.Type.TypeKind == TypeKind.ValueType) continue;
+
+				var nodes = from node in ptg.GetReachableNodes(variable)
+							where node.Kind != PTGNodeKind.Null &&
+								  newNodes.Contains(node)
+							select node;
+
+				escapeInfo.Channels.AddRange(variable, nodes);
+			}
+
+			return escapeInfo;
 		}
 	}
 }

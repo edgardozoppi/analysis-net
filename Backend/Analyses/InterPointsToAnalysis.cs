@@ -16,6 +16,7 @@ namespace Backend.Analyses
 	// Interprocedural May Points-To Analysis
 	public class InterPointsToAnalysis
 	{
+		public const string CG_INFO = "CG";
 		public const string CFG_INFO = "CFG";
 		public const string PTG_INFO = "PTG";
 		public const string PTA_INFO = "PTA";
@@ -29,8 +30,6 @@ namespace Backend.Analyses
 		public InterPointsToAnalysis(ProgramAnalysisInfo programInfo)
 		{
 			this.programInfo = programInfo;
-			this.callGraph = new CallGraph();
-			//this.callStack = new Stack<IMethodReference>();
 			this.OnReachableMethodFound = DefaultReachableMethodFound;
 			this.OnUnknownMethodFound = DefaultUnknownMethodFound;
 			this.ProcessUnknownMethod = DefaultProcessUnknownMethod;
@@ -42,7 +41,12 @@ namespace Backend.Analyses
 
 		public CallGraph Analyze(MethodDefinition method)
 		{
+			callGraph = new CallGraph();
 			callGraph.Add(method);
+
+			programInfo.Add(CG_INFO, callGraph);
+
+			//callStack = new Stack<IMethodReference>();
 			//callStack.Push(method);
 
 			var methodInfo = programInfo.GetOrAdd(method);

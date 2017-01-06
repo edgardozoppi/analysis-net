@@ -11,14 +11,37 @@ using System.Text;
 
 namespace Backend.Analyses
 {
+	public class InputOutputInfo
+	{
+		public ISet<IVariable> Inputs { get; private set; }
+		public ISet<IVariable> Outputs { get; private set; }
+		public ISet<IVariable> Results { get; private set; }
+
+		public InputOutputInfo()
+		{
+			this.Inputs = new HashSet<IVariable>();
+			this.Outputs = new HashSet<IVariable>();
+			this.Results = new HashSet<IVariable>();
+		}
+
+		public InputOutputInfo(IEnumerable<IVariable> inputs, IEnumerable<IVariable> outputs, IEnumerable<IVariable> results)
+			: this()
+		{
+			this.Inputs.UnionWith(inputs);
+			this.Outputs.UnionWith(outputs);
+			this.Results.UnionWith(results);
+		}
+	}
+
 	public class EscapeInfo
 	{
-		public IMethodReference Method { get; private set; }
+		//public IMethodReference Method { get; private set; }
 		public MapSet<IVariable, PTGNode> Channels { get; private set; }
 
-		public EscapeInfo(IMethodReference method)
+		//public EscapeInfo(IMethodReference method)
+		public EscapeInfo()
 		{
-			this.Method = method;
+			//this.Method = method;
 			this.Channels = new MapSet<IVariable, PTGNode>();
 		}
 
@@ -30,14 +53,16 @@ namespace Backend.Analyses
 
 	public class EscapeAnalysis
 	{
-		private ProgramAnalysisInfo methodsInfo;
+		public const string ESC_INFO = "ESC";
+
+		private ProgramAnalysisInfo programInfo;
 		private CallGraph callGraph;
 		private Dictionary<IMethodReference, EscapeInfo> result;
 		private ISet<IMethodReference> worklist;
 
-		public EscapeAnalysis(ProgramAnalysisInfo methodsInfo, CallGraph callGraph)
+		public EscapeAnalysis(ProgramAnalysisInfo programInfo, CallGraph callGraph)
 		{
-			this.methodsInfo = methodsInfo;
+			this.programInfo = programInfo;
 			this.callGraph = callGraph;
 		}
 
@@ -59,13 +84,20 @@ namespace Backend.Analyses
 
 		private void Analyze(IMethodReference method)
 		{
+			// Avoid analyzing the same method several times in case of recursion.
+			if (result.ContainsKey(method)) return;
+
 			var calleesEscapingNodes = new HashSet<PTGNode>();
 			var invocations = callGraph.GetInvocations(method);
 			var callees = invocations.SelectMany(inv => inv.PossibleCallees);
-			var escapeInfo = new EscapeInfo(method);
+			//var escapeInfo = new EscapeInfo(method);
+			var escapeInfo = new EscapeInfo();
 
 			result.Add(method, escapeInfo);
 			worklist.Remove(method);
+
+			var methodInfo = programInfo.GetOrAdd(method);
+			methodInfo.Add(ESC_INFO, escapeInfo);
 
 			foreach (var callee in callees)
 			{
@@ -85,32 +117,35 @@ namespace Backend.Analyses
 
 			if (ptg != null)
 			{
-				FillEscapingChannels(escapeInfo, ptg, calleesEscapingNodes);
+				//FillEscapingChannels(escapeInfo, ptg, calleesEscapingNodes);
+				FillEscapingChannels(method, escapeInfo, ptg, calleesEscapingNodes);
 			}
 		}
 
 		private PointsToGraph GetPTGAtExit(IMethodReference method)
 		{
 			PointsToGraph ptg = null;
-			MethodAnalysisInfo methodInfo;
-			var ok = methodsInfo.TryGet(method, out methodInfo);
+			var methodInfo = programInfo[method];
+			var ok = methodInfo.TryGet(InterPointsToAnalysis.OUTPUT_PTG_INFO, out ptg);
 
-			if (ok)
-			{
-				ptg = methodInfo.Get<PointsToGraph>(InterPointsToAnalysis.OUTPUT_PTG_INFO);
+			//// Previous alternative code
+			//DataFlowAnalysisResult<PointsToGraph>[] result;
+			//var methodInfo = programInfo[method];
+			//var ok = methodInfo.TryGet(InterPointsToAnalysis.PTG_INFO, out result);
 
-				//var result = methodInfo.Get<DataFlowAnalysisResult<PointsToGraph>[]>(InterPointsToAnalysis.PTG_INFO);
-				//ptg = result[ControlFlowGraph.ExitNodeId].Output;
-			}
+			//if (ok)
+			//{
+			//	ptg = result[ControlFlowGraph.ExitNodeId].Output;
+			//}
 
 			return ptg;
 		}
 
-		private void FillEscapingChannels(EscapeInfo escapingInfo, PointsToGraph ptg, ISet<PTGNode> calleesEscapingNodes)
+		private static void FillEscapingChannels(IMethodReference method, EscapeInfo escapeInfo, PointsToGraph ptg, ISet<PTGNode> calleesEscapingNodes)
 		{
 			var methodComparer = MethodReferenceDefinitionComparer.Default;
-			var method = escapingInfo.Method;
-			var channels = escapingInfo.Channels;
+			//var method = escapingInfo.Method;
+			var channels = escapeInfo.Channels;
 			var parameters = ptg.Variables.Where(v => v.IsParameter);
 
 			foreach (var parameter in parameters)
