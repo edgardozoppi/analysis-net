@@ -150,7 +150,8 @@ namespace Backend.Analysis
 				{
 					var definition = instruction as DefinitionInstruction;
 
-					if (definition.HasResult && indices.ContainsKey(definition.Result))
+					//if (definition.HasResult && indices.ContainsKey(definition.Result))
+					if (definition.HasResult)
 					{
 						var result = definition.Result;
 						var index = indices[result];
@@ -162,6 +163,9 @@ namespace Backend.Analysis
 
 				foreach (var variable in instruction.UsedVariables)
 				{
+					// When the instruction is a phi, its arguments (used variables)
+					// are already derived variables, so there is no entry in
+					// derived_variables dictionary for them.
 					if (!derived_variables.ContainsKey(variable)) continue;
 
 					var stack = derived_variables[variable];
@@ -207,7 +211,7 @@ namespace Backend.Analysis
 				{
 					var definition = instruction as DefinitionInstruction;
 
-					if (definition.HasResult && derived_variables.ContainsKey(definition.Result))
+					if (definition.HasResult)
 					{
 						var derived = definition.Result as DerivedVariable;
 						var result = derived.Original;
