@@ -339,15 +339,21 @@ namespace Console
 				MethodAnalysisInfo methodInfo;
 				var ok = programInfo.TryGet(method, out methodInfo);
 				if (!ok) continue;
-				
-				var ptg = methodInfo.Get<PointsToGraph>(InterPointsToAnalysis.OUTPUT_PTG_INFO);
-				ptg.RemoveTemporalVariables();
-				//ptg.RemoveVariablesExceptParameters();
-				var dgml_PTG = DGMLSerializer.Serialize(ptg);
 
-				var escapeInfo = escapeResult[method];
+				PointsToGraph ptg;
+				ok = methodInfo.TryGet(InterPointsToAnalysis.OUTPUT_PTG_INFO, out ptg);
 
-				//System.IO.File.WriteAllText(@"ptg.dgml", dgml_PTG);
+				if (ok)
+				{
+					ptg.RemoveTemporalVariables();
+					//ptg.RemoveVariablesExceptParameters();
+					var dgml_PTG = DGMLSerializer.Serialize(ptg);
+
+					//System.IO.File.WriteAllText(@"ptg.dgml", dgml_PTG);
+				}
+
+				EscapeInfo escapeInfo;
+				ok = escapeResult.TryGetValue(method, out escapeInfo);
 			}
 		}
 
