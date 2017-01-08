@@ -327,7 +327,7 @@ namespace Model.ThreeAddressCode.Values
 		public override bool Equals(object obj)
 		{
 			if (object.ReferenceEquals(this, obj)) return true;
-			var other = obj as IVariable;
+			var other = obj as LocalVariable;
 
 			return other != null &&
 				this.Name.Equals(other.Name);
@@ -346,15 +346,17 @@ namespace Model.ThreeAddressCode.Values
 
 	public class TemporalVariable : IVariable
 	{
-		private string name;
+		private string prefix;
+		private uint index;
 
+		public string Name { get; private set; }
 		public IType Type { get; set; }
-		public uint Index { get; set; }
 
-		public TemporalVariable(string name, uint index)
+		public TemporalVariable(string prefix, uint index)
 		{
-			this.name = name;
-			this.Index = index;
+			this.prefix = prefix;
+			this.index = index;
+			UpdateName();
 		}
 
 		public TemporalVariable(uint index)
@@ -362,9 +364,24 @@ namespace Model.ThreeAddressCode.Values
 		{
 		}
 
-		public string Name
+		public string Prefix
 		{
-			get { return string.Format("{0}{1}", this.name, this.Index); }
+			get { return prefix; }
+			set
+			{
+				prefix = value;
+				UpdateName();
+			}
+		}
+
+		public uint Index
+		{
+			get { return index; }
+			set
+			{
+				index = value;
+				UpdateName();
+			}
 		}
 
 		public bool IsParameter
@@ -395,7 +412,7 @@ namespace Model.ThreeAddressCode.Values
 		public override bool Equals(object obj)
 		{
 			if (object.ReferenceEquals(this, obj)) return true;
-			var other = obj as IVariable;
+			var other = obj as TemporalVariable;
 
 			return other != null &&
 				this.Name.Equals(other.Name);
@@ -410,43 +427,56 @@ namespace Model.ThreeAddressCode.Values
 		{
 			return this.Name;
 		}
+
+		private void UpdateName()
+		{
+			this.Name = string.Format("{0}{1}", prefix, index);
+		}
 	}
 
 	public class DerivedVariable : IVariable
 	{
-		public IVariable Original { get; set; }
-		public uint Index { get; set; }
+		private IVariable original;
+		private uint index;
+
+		public string Name { get; private set; }
 
 		public DerivedVariable(IVariable original, uint index)
 		{
-			this.Original = original;
-			this.Index = index;
+			this.original = original;
+			this.index = index;
+			UpdateName();
 		}
 
-		public string Name
+		public IVariable Original
 		{
-			get
+			get { return original; }
+			set
 			{
-				var result = this.Original.Name;
+				original = value;
+				UpdateName();
+			}
+		}
 
-				if (this.Index > 0)
-				{
-					result = string.Format("{0}_{1}", result, this.Index);
-				}
-
-				return result;
+		public uint Index
+		{
+			get { return index; }
+			set
+			{
+				index = value;
+				UpdateName();
 			}
 		}
 
 		public bool IsParameter
 		{
-			get { return this.Original.IsParameter && this.Index == 0; }
+			get { return original.IsParameter && index == 0; }
 		}
 
 		public IType Type
 		{
-			get { return this.Original.Type; }
-			set { this.Original.Type = value; }
+			get { return original.Type; }
+			set { original.Type = value; }
 		}
 
 		ISet<IVariable> IVariableContainer.Variables
@@ -472,7 +502,7 @@ namespace Model.ThreeAddressCode.Values
 		public override bool Equals(object obj)
 		{
 			if (object.ReferenceEquals(this, obj)) return true;
-			var other = obj as IVariable;
+			var other = obj as DerivedVariable;
 
 			return other != null &&
 				this.Name.Equals(other.Name);
@@ -487,6 +517,18 @@ namespace Model.ThreeAddressCode.Values
 		{
 			return this.Name;
 		}
+
+		private void UpdateName()
+		{
+			var result = original.Name;
+
+			if (index > 0)
+			{
+				result = string.Format("{0}_{1}", result, index);
+			}
+
+			this.Name = result;
+		}
 	}
 
 	public interface IFieldAccess : IExpression
@@ -497,26 +539,34 @@ namespace Model.ThreeAddressCode.Values
 
 	public class StaticFieldAccess : IFieldAccess, IAssignableValue, IReferenceable
 	{
-		public IFieldReference Field { get; set; }
+		private IFieldReference field;
+
+		public string Name { get; private set; }
 
 		public StaticFieldAccess(IFieldReference field)
 		{
-			this.Field = field;
+			this.field = field;
+			UpdateName();
+		}
+
+		public IFieldReference Field
+		{
+			get { return field; }
+			set
+			{
+				field = value;
+				UpdateName();
+			}
 		}
 
 		public string FieldName
 		{
-			get { return this.Field.Name; }
-		}
-
-		public string Name
-		{
-			get { return string.Format("{0}::{1}", this.Field.ContainingType, this.FieldName); }
+			get { return field.Name; }
 		}
 
 		public IType Type
 		{
-			get { return this.Field.Type; }
+			get { return field.Type; }
 		}
 
 		public ISet<IVariable> Variables
@@ -542,7 +592,7 @@ namespace Model.ThreeAddressCode.Values
 		public override bool Equals(object obj)
 		{
 			if (object.ReferenceEquals(this, obj)) return true;
-			var other = obj as IVariable;
+			var other = obj as StaticFieldAccess;
 
 			return other != null &&
 				this.Name.Equals(other.Name);
@@ -557,42 +607,65 @@ namespace Model.ThreeAddressCode.Values
 		{
 			return this.Name;
 		}
+
+		private void UpdateName()
+		{
+			this.Name = string.Format("{0}::{1}", field.ContainingType, this.FieldName);
+		}
 	}
 
 	public class InstanceFieldAccess : IFieldAccess, IAssignableValue, IReferenceable
 	{
-		public IFieldReference Field { get; set; }
-		public IVariable Instance { get; set; }
+		private IFieldReference field;
+		private IVariable instance;
+
+		public string Name { get; private set; }
 
 		public InstanceFieldAccess(IVariable instance, IFieldReference field)
 		{
-			this.Instance = instance;
-			this.Field = field;
+			this.instance = instance;
+			this.field = field;
+			UpdateName();
+		}
+
+		public IVariable Instance
+		{
+			get { return instance; }
+			set
+			{
+				instance = value;
+				UpdateName();
+			}
+		}
+
+		public IFieldReference Field
+		{
+			get { return field; }
+			set
+			{
+				field = value;
+				UpdateName();
+			}
 		}
 
 		public string FieldName
 		{
-			get { return this.Field.Name; }
-		}
-
-		public string Name
-		{
-			get { return string.Format("{0}.{1}", this.Instance, this.FieldName); }
+			get { return field.Name; }
 		}
 
 		public IType Type
 		{
-			get { return this.Field.Type; }
+			get { return field.Type; }
 		}
 
 		public ISet<IVariable> Variables
 		{
-			get { return new HashSet<IVariable>() { this.Instance }; }
+			get { return new HashSet<IVariable>() { instance }; }
 		}
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
-			if (this.Instance.Equals(oldvar)) this.Instance = newvar;
+			if (instance.Equals(oldvar)) instance = newvar;
 		}
 
 		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)
@@ -602,8 +675,8 @@ namespace Model.ThreeAddressCode.Values
 
 			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var instance = (this.Instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
-				result = new InstanceFieldAccess(instance, this.Field);
+				var instance = (this.instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
+				result = new InstanceFieldAccess(instance, field);
 			}
 
 			return result;
@@ -617,7 +690,7 @@ namespace Model.ThreeAddressCode.Values
 		public override bool Equals(object obj)
 		{
 			if (object.ReferenceEquals(this, obj)) return true;
-			var other = obj as IVariable;
+			var other = obj as InstanceFieldAccess;
 
 			return other != null &&
 				this.Name.Equals(other.Name);
@@ -632,25 +705,38 @@ namespace Model.ThreeAddressCode.Values
 		{
 			return this.Name;
 		}
+
+		private void UpdateName()
+		{
+			this.Name = string.Format("{0}.{1}", instance, this.FieldName);
+		}
 	}
 
 	public class ArrayLengthAccess : IFieldAccess
 	{
-		public IVariable Instance { get; set; }
+		private IVariable instance;
+
+		public string Name { get; private set; }
 
 		public ArrayLengthAccess(IVariable instance)
 		{
-			this.Instance = instance;
+			this.instance = instance;
+			UpdateName();
+		}
+
+		public IVariable Instance
+		{
+			get { return instance; }
+			set
+			{
+				instance = value;
+				UpdateName();
+			}
 		}
 
 		public string FieldName
 		{
 			get { return "Length"; }
-		}
-
-		public string Name
-		{
-			get { return string.Format("{0}.{1}", this.Instance, this.FieldName); }
 		}
 
 		public IType Type
@@ -660,12 +746,12 @@ namespace Model.ThreeAddressCode.Values
 
 		public ISet<IVariable> Variables
 		{
-			get { return new HashSet<IVariable>() { this.Instance }; }
+			get { return new HashSet<IVariable>() { instance }; }
 		}
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
-			if (this.Instance.Equals(oldvar)) this.Instance = newvar;
+			if (this.Instance.Equals(oldvar)) instance = newvar;
 		}
 
 		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)
@@ -675,7 +761,7 @@ namespace Model.ThreeAddressCode.Values
 
 			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var instance = (this.Instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
+				var instance = (this.instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
 				result = new ArrayLengthAccess(instance);
 			}
 
@@ -690,7 +776,7 @@ namespace Model.ThreeAddressCode.Values
 		public override bool Equals(object obj)
 		{
 			if (object.ReferenceEquals(this, obj)) return true;
-			var other = obj as IVariable;
+			var other = obj as ArrayLengthAccess;
 
 			return other != null &&
 				this.Name.Equals(other.Name);
@@ -704,6 +790,11 @@ namespace Model.ThreeAddressCode.Values
 		public override string ToString()
 		{
 			return this.Name;
+		}
+
+		private void UpdateName()
+		{
+			this.Name = string.Format("{0}.{1}", instance, this.FieldName);
 		}
 	}
 
@@ -793,7 +884,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public override string ToString()
 		{
-            var indices = string.Join(", ",this.Indices);
+            var indices = string.Join(", ", this.Indices);
 			return string.Format("{0}[{1}]", this.Array, indices);
 		}
 	}
