@@ -324,6 +324,16 @@ namespace Backend.Utils
 			return new HashSet<CFGNode>(result);
 		}
 
+		public static ISet<CFGNode> GetSuccessors(this CFGLoop loop)
+		{
+			var result = from n in loop.Body
+						 from m in n.Successors
+						 where !loop.Body.Contains(m)
+						 select m;
+
+			return new HashSet<CFGNode>(result);
+		}
+
 		public static IExpression ToExpression(this IValue value)
 		{
 			return value as IExpression;
@@ -748,9 +758,16 @@ namespace Backend.Utils
 			var definedVariables = loop.GetDefinedVariables();
 			var inputs = variables.Except(definedVariables);
 
-			var outputs = from node in loop.GetExitNodes()
+			//var outputs = from node in loop.GetExitNodes()
+			//			  let livenessNodeInfo = livenessInfo[node.Id]
+			//			  let liveVariablesAtExit = livenessNodeInfo.Output.ToSet()
+			//			  from output in definedVariables
+			//			  where liveVariablesAtExit.Contains(output)
+			//			  select output;
+
+			var outputs = from node in loop.GetSuccessors()
 						  let livenessNodeInfo = livenessInfo[node.Id]
-						  let liveVariablesAtExit = livenessNodeInfo.Output.ToSet()
+						  let liveVariablesAtExit = livenessNodeInfo.Input.ToSet()
 						  from output in definedVariables
 						  where liveVariablesAtExit.Contains(output)
 						  select output;
