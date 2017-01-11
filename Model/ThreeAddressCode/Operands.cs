@@ -665,7 +665,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
-			if (instance.Equals(oldvar)) instance = newvar;
+			if (instance.Equals(oldvar)) this.Instance = newvar;
 		}
 
 		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)
@@ -751,7 +751,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
-			if (this.Instance.Equals(oldvar)) instance = newvar;
+			if (instance.Equals(oldvar)) this.Instance = newvar;
 		}
 
 		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)
