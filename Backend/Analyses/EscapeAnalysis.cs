@@ -53,11 +53,11 @@ namespace Backend.Analyses
 
 	public class EscapeAnalysis
 	{
-		public const string ESC_INFO = "ESC";
+		public const string INFO_ESC = "ESC";
 
 		private ProgramAnalysisInfo programInfo;
 		private CallGraph callGraph;
-		private Dictionary<IMethodReference, EscapeInfo> result;
+		private IDictionary<IMethodReference, EscapeInfo> result;
 		private ISet<IMethodReference> worklist;
 
 		public EscapeAnalysis(ProgramAnalysisInfo programInfo, CallGraph callGraph)
@@ -68,8 +68,8 @@ namespace Backend.Analyses
 
 		public IDictionary<IMethodReference, EscapeInfo> Analyze()
 		{
-			result = new Dictionary<IMethodReference, EscapeInfo>();
-			worklist = new HashSet<IMethodReference>(callGraph.Methods);
+			result = new Dictionary<IMethodReference, EscapeInfo>(MethodReferenceDefinitionComparer.Default);
+			worklist = new HashSet<IMethodReference>(callGraph.Methods, MethodReferenceDefinitionComparer.Default);
 
 			while (worklist.Count > 0)
 			{
@@ -97,7 +97,7 @@ namespace Backend.Analyses
 			worklist.Remove(method);
 
 			var methodInfo = programInfo.GetOrAdd(method);
-			methodInfo.Add(ESC_INFO, escapeInfo);
+			methodInfo.Add(INFO_ESC, escapeInfo);
 
 			foreach (var callee in callees)
 			{
@@ -124,19 +124,16 @@ namespace Backend.Analyses
 
 		private PointsToGraph GetPTGAtExit(IMethodReference method)
 		{
+			InterPointsToInfo pti;
 			PointsToGraph ptg = null;
 			var methodInfo = programInfo[method];
-			var ok = methodInfo.TryGet(InterPointsToAnalysis.OUTPUT_PTG_INFO, out ptg);
+			var ok = methodInfo.TryGet(InterPointsToAnalysis.INFO_IPTA_RESULT, out pti);
 
-			//// Previous alternative code
-			//DataFlowAnalysisResult<PointsToGraph>[] result;
-			//var methodInfo = programInfo[method];
-			//var ok = methodInfo.TryGet(InterPointsToAnalysis.PTG_INFO, out result);
-
-			//if (ok)
-			//{
-			//	ptg = result[ControlFlowGraph.ExitNodeId].Output;
-			//}
+			if (ok)
+			{
+				ptg = pti.Output;
+				//ptg = pti.IntraPointsToInfo[ControlFlowGraph.ExitNodeId].Output;
+			}
 
 			return ptg;
 		}

@@ -365,6 +365,20 @@ namespace Backend.Utils
 			return result;
 		}
 
+		public static bool ContainsAnyOriginal(this ISet<IVariable> set, IVariable variable)
+		{
+			var ok = set.Contains(variable);
+
+			while (!ok && variable is DerivedVariable)
+			{
+				var derived = variable as DerivedVariable;
+				variable = derived.Original;
+				ok = set.Contains(variable);
+			}
+
+			return ok;
+		}
+
 		public static bool IsCopy(this IInstruction instruction, out IVariable left, out IVariable right)
 		{
 			var result = false;
@@ -709,15 +723,14 @@ namespace Backend.Utils
 			}
 		}
 
-		public static InputOutputInfo GetInputOutputInfo(this IInstructionContainer region, IEnumerable<IVariable> liveVariablesAtExit)
+		public static InputOutputInfo GetInputOutputInfo(this IInstructionContainer region, ISet<IVariable> liveVariablesAtExit)
 		{
 			var variables = region.GetVariables();
 			var definedVariables = region.GetDefinedVariables();
 			var inputs = variables.Except(definedVariables);
 
 			var outputs = from output in definedVariables
-						  let variable = output.GetOriginal()
-						  where liveVariablesAtExit.Contains(variable)
+						  where liveVariablesAtExit.Contains(output)
 						  select output;
 
 			var results = from ins in region.Instructions
@@ -729,17 +742,17 @@ namespace Backend.Utils
 			return result;
 		}
 
-		public static InputOutputInfo GetInputOutputInfo(this CFGLoop loop, IList<ISet<IVariable>> liveVariablesAtNodesExit)
+		public static InputOutputInfo GetInputOutputInfo(this CFGLoop loop, DataFlowAnalysisResult<Subset<IVariable>>[] livenessInfo)
 		{
 			var variables = loop.GetVariables();
 			var definedVariables = loop.GetDefinedVariables();
 			var inputs = variables.Except(definedVariables);
 
 			var outputs = from node in loop.GetExitNodes()
-						  let liveVariablesAtExit = liveVariablesAtNodesExit[node.Id]
+						  let livenessNodeInfo = livenessInfo[node.Id]
+						  let liveVariablesAtExit = livenessNodeInfo.Output.ToSet()
 						  from output in definedVariables
-						  let variable = output.GetOriginal()
-						  where liveVariablesAtExit.Contains(variable)
+						  where liveVariablesAtExit.Contains(output)
 						  select output;
 
 			var results = from node in loop.Body
@@ -774,7 +787,8 @@ namespace Backend.Utils
 		public static EscapeInfo GetEscapeInfo(this IMethodReference method, ProgramAnalysisInfo programInfo, InputOutputInfo ioInfo, IEnumerable<IInstruction> instructions)
 		{
 			var methodInfo = programInfo[method];
-			var ptg = methodInfo.Get<PointsToGraph>(InterPointsToAnalysis.OUTPUT_PTG_INFO);
+			var pti = methodInfo.Get<InterPointsToInfo>(InterPointsToAnalysis.INFO_IPTA_RESULT);
+			var ptg = pti.Output;
 
 			var allocatedNodes = from ins in instructions
 								 let def = ins as DefinitionInstruction
@@ -784,7 +798,7 @@ namespace Backend.Utils
 								 from node in targets
 								 select node;
 
-			var cg = programInfo.Get<CallGraph>(InterPointsToAnalysis.CG_INFO);
+			var cg = programInfo.Get<CallGraph>(InterPointsToAnalysis.INFO_CG);
 
 			var calleesEscapingNodes = from ins in instructions
 									   where ins is MethodCallInstruction
@@ -792,7 +806,7 @@ namespace Backend.Utils
 									   let inv = cg.GetInvocation(method, def.Label)
 									   from callee in inv.PossibleCallees
 									   let calleeInfo = programInfo[callee]
-									   let escInfo = calleeInfo.Get<EscapeInfo>(EscapeAnalysis.ESC_INFO)
+									   let escInfo = calleeInfo.Get<EscapeInfo>(EscapeAnalysis.INFO_ESC)
 									   from node in escInfo.EscapingNodes
 									   select node;
 

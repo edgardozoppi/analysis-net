@@ -9,6 +9,7 @@ using Model.ThreeAddressCode.Instructions;
 using Model.Types;
 using Backend.Analyses;
 using Backend.Model;
+using Backend.Utils;
 
 namespace Backend.Transformations
 {
@@ -41,23 +42,19 @@ namespace Backend.Transformations
 			method.Kind = MethodBodyKind.StaticSingleAssignment;
 		}
 
-		public void Prune(LiveVariablesAnalysis liveVariables)
+		// Liveness info should be generated before SSA transformation.
+		public void Prune(DataFlowAnalysisResult<Subset<IVariable>>[] livenessInfo)
 		{
 			foreach (var node in cfg.Nodes)
 			{
-				var result = liveVariables.Result[node.Id];
-				var input = result.Input.ToSet();
+				var livenessNodeInfo = livenessInfo[node.Id];
+				var input = livenessNodeInfo.Input.ToSet();
 				var phiInstructions = node.Instructions.OfType<PhiInstruction>().ToArray();
 
 				foreach (var phi in phiInstructions)
 				{
-					var isLive = input.Contains(phi.Result);
-
-					if (!isLive && phi.Result is DerivedVariable)
-					{
-						var derived = phi.Result as DerivedVariable;
-						isLive = input.Contains(derived.Original);
-					}
+					var original = phi.Result.GetOriginal();
+					var isLive = input.Contains(original);
 
 					if (!isLive)
 					{

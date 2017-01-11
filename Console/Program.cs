@@ -96,12 +96,12 @@ namespace Console
 
 			// Live Variables
 			var liveVariables = new LiveVariablesAnalysis(cfg);
-			liveVariables.Analyze();
+			var livenessInfo = liveVariables.Analyze();
 
 			// SSA
 			var ssa = new StaticSingleAssignment(methodBody, cfg);
 			ssa.Transform();
-			ssa.Prune(liveVariables);
+			ssa.Prune(livenessInfo);
 
 			methodBody.UpdateVariables();
 
@@ -340,11 +340,12 @@ namespace Console
 				var ok = programInfo.TryGet(method, out methodInfo);
 				if (!ok) continue;
 
-				PointsToGraph ptg;
-				ok = methodInfo.TryGet(InterPointsToAnalysis.OUTPUT_PTG_INFO, out ptg);
+				InterPointsToInfo pti;
+				ok = methodInfo.TryGet(InterPointsToAnalysis.INFO_IPTA_RESULT, out pti);
 
 				if (ok)
 				{
+					var ptg = pti.Output;
 					ptg.RemoveTemporalVariables();
 					//ptg.RemoveVariablesExceptParameters();
 					var dgml_PTG = DGMLSerializer.Serialize(ptg);

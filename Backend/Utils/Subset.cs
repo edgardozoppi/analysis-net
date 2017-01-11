@@ -134,7 +134,7 @@ namespace Backend.Utils
 
 		public override string ToString()
 		{
-			var sb = new StringBuilder(" ");
+			var elements = new List<T>();
 
 			for (var i = 0; i < this.universe.Length; ++i)
 			{
@@ -143,11 +143,12 @@ namespace Backend.Utils
 				if (isMember)
 				{
 					var element = this.universe[i];
-					sb.AppendFormat("{0} ", element);
+					elements.Add(element);
 				}
 			}
 
-			return sb.ToString();
+			var result = string.Join(", ", elements);
+			return string.Format("{{ {0} }}", result);
 		}
 	}
 }

@@ -13,15 +13,18 @@ using Model.ThreeAddressCode.Values;
 
 namespace Backend.Analyses
 {
+	public class InterPointsToInfo : DataFlowAnalysisResult<PointsToGraph>
+	{
+		public DataFlowAnalysisResult<PointsToGraph>[] IntraPointsToInfo { get; set; }
+	}
+
 	// Interprocedural May Points-To Analysis
 	public class InterPointsToAnalysis
 	{
-		public const string CG_INFO = "CG";
-		public const string CFG_INFO = "CFG";
-		public const string PTG_INFO = "PTG";
-		public const string PTA_INFO = "PTA";
-		public const string INPUT_PTG_INFO = "INPUT_PTG";
-		public const string OUTPUT_PTG_INFO = "OUTPUT_PTG";
+		public const string INFO_CG = "CG";
+		public const string INFO_CFG = "CFG";
+		public const string INFO_PTA = "PTA";
+		public const string INFO_IPTA_RESULT = "IPTA_RESULT";
 
 		private CallGraph callGraph;
 		private ProgramAnalysisInfo programInfo;
@@ -44,27 +47,32 @@ namespace Backend.Analyses
 			callGraph = new CallGraph();
 			callGraph.Add(method);
 
-			programInfo.Add(CG_INFO, callGraph);
+			programInfo.Add(INFO_CG, callGraph);
 
 			//callStack = new Stack<IMethodReference>();
 			//callStack.Push(method);
 
 			var methodInfo = programInfo.GetOrAdd(method);
-			var cfg = OnReachableMethodFound(method);
 
+			var cfg = OnReachableMethodFound(method);
 			// TODO: Don't create unknown nodes when doing the inter PT analysis
 			var pta = new PointsToAnalysis(cfg, method);
 			pta.ProcessMethodCall = ProcessMethodCall;
 
-			methodInfo.Add(PTA_INFO, pta);
-			methodInfo.Add(PTG_INFO, pta.Result);
+			methodInfo.Add(INFO_PTA, pta);
+
+			var info = new InterPointsToInfo();
+			methodInfo.Add(INFO_IPTA_RESULT, info);
+			info.IntraPointsToInfo = pta.Result;
 
 			var result = pta.Analyze();
 			
 			var ptg = result[ControlFlowGraph.ExitNodeId].Output;
-			methodInfo.Set(OUTPUT_PTG_INFO, ptg);
+			info.Output = ptg;
 
 			//callStack.Pop();
+
+			// TODO: Remove INFO_PTA from all method infos.
 			return callGraph;
 		}
 
@@ -87,8 +95,39 @@ namespace Backend.Analyses
 			{
 				var method = callee.ResolvedMethod;
 				var isUnknownMethod = method == null || method.IsExternal;
-				var processCallee = !isUnknownMethod || OnUnknownMethodFound(callee);
-				
+
+				InterPointsToInfo info;
+				var processCallee = true;
+				var methodInfo = programInfo.GetOrAdd(callee);
+				var ok = methodInfo.TryGet(INFO_IPTA_RESULT, out info);
+
+				if (!ok)
+				{
+					if (isUnknownMethod)
+					{
+						processCallee = OnUnknownMethodFound(callee);
+
+						if (processCallee)
+						{
+							info = new InterPointsToInfo();
+							methodInfo.Add(INFO_IPTA_RESULT, info);
+						}
+					}
+					else
+					{
+						var cfg = OnReachableMethodFound(method);
+						// TODO: Don't create unknown nodes when doing the inter PT analysis
+						var pta = new PointsToAnalysis(cfg, method, nodeIdGenerator);
+						pta.ProcessMethodCall = ProcessMethodCall;
+
+						methodInfo.Add(INFO_PTA, pta);
+
+						info = new InterPointsToInfo();
+						methodInfo.Add(INFO_IPTA_RESULT, info);
+						info.IntraPointsToInfo = pta.Result;
+					}
+				}
+
 				if (processCallee)
 				{
 					//callStack.Push(callee);					
@@ -130,12 +169,10 @@ namespace Backend.Analyses
 					//// nodes and edges that cannot be restored later!!
 					//ptg.CollectGarbage();
 
-					PointsToGraph oldInput;
-					var methodInfo = programInfo.GetOrAdd(callee);
-					var hasOldInput = methodInfo.TryGet(INPUT_PTG_INFO, out oldInput);
+					var oldInput = info.Input;
 					var inputChanged = true;
 
-					if (hasOldInput)
+					if (oldInput != null)
 					{
 						inputChanged = !ptg.GraphEquals(oldInput);
 
@@ -153,7 +190,7 @@ namespace Backend.Analyses
 
 					if (inputChanged)
 					{
-						methodInfo.Set(INPUT_PTG_INFO, ptg);
+						info.Input = ptg;
 
 						if (isUnknownMethod)
 						{
@@ -161,35 +198,29 @@ namespace Backend.Analyses
 						}
 						else
 						{
-							PointsToAnalysis pta;
-							var ok = methodInfo.TryGet(PTA_INFO, out pta);
-
-							if (!ok)
-							{
-								var cfg = OnReachableMethodFound(method);
-
-								// TODO: Don't create unknown nodes when doing the inter PT analysis
-								pta = new PointsToAnalysis(cfg, method, nodeIdGenerator);
-								pta.ProcessMethodCall = ProcessMethodCall;
-
-								methodInfo.Add(PTA_INFO, pta);
-							}
-
-							methodInfo.Set(PTG_INFO, pta.Result);
-
+							var pta = methodInfo.Get<PointsToAnalysis>(INFO_PTA);
 							var result = pta.Analyze(ptg);
 
 							ptg = result[ControlFlowGraph.ExitNodeId].Output;
 						}
+
+						info.Output = ptg;
 					}
 					else
 					{
-						var result = methodInfo.Get<DataFlowAnalysisResult<PointsToGraph>[]>(PTG_INFO);
-						ptg = result[ControlFlowGraph.ExitNodeId].Output;
+						if (isUnknownMethod)
+						{
+							ptg = info.Output;
+						}
+						else
+						{
+							// We cannot use info.Output here because it could be a recursive call
+							// and info.Output is assigned after analyzing the callee.
+							ptg = info.IntraPointsToInfo[ControlFlowGraph.ExitNodeId].Output;
+							info.Output = ptg;
+						}
 					}
-
-					methodInfo.Set(OUTPUT_PTG_INFO, ptg);
-
+					
 					ptg = ptg.Clone();
 					binding = GetCalleeCallerBinding(methodCall.Result, ptg.ResultVariable);
 					ptg.RestoreFrame(previousFrame, binding);
@@ -288,7 +319,7 @@ namespace Backend.Analyses
 		{
 			ControlFlowGraph cfg;
 			var methodInfo = programInfo.GetOrAdd(method);
-			var ok = methodInfo.TryGet(CFG_INFO, out cfg);
+			var ok = methodInfo.TryGet(INFO_CFG, out cfg);
 
 			if (!ok)
 			{
@@ -313,7 +344,7 @@ namespace Backend.Analyses
 				var typeAnalysis = new TypeInferenceAnalysis(cfg);
 				typeAnalysis.Analyze();
 
-				methodInfo.Add(CFG_INFO, cfg);
+				methodInfo.Add(INFO_CFG, cfg);
 			}
 
 			return cfg;

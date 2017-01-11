@@ -431,6 +431,10 @@ namespace Backend.Analyses
 				ptg.ResultVariable = new LocalVariable("$result") { Type = method.ReturnType };
 				ptg.Add(ptg.ResultVariable);
 			}
+			else
+			{
+				//ptg.ResultVariable = null;
+			}
 
 			return ptg;
 		}
