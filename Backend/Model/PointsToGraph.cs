@@ -13,13 +13,14 @@ using Model;
 namespace Backend.Model
 {
 	// Unknown PTG nodes represent placeholders
-	// (external objects that can be null or
-	// stand for multiple objects).
+	// (external nodes that can be null or
+	// stand for multiple nodes).
 	// Useful to model parameter values.
     public enum PTGNodeKind
     {
         Null,
         Object,
+		Global,
 		Unknown
     }
 
@@ -78,6 +79,10 @@ namespace Backend.Model
 			{
 				case PTGNodeKind.Null:
 					result = "null";
+					break;
+
+				case PTGNodeKind.Global:
+					result = string.Format("{0}", this.Type);
 					break;
 
 				default:

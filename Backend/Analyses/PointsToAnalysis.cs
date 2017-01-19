@@ -73,6 +73,11 @@ namespace Backend.Analyses
 					var variable = instruction.Operand as IVariable;
 					ProcessCopy(instruction.Result, variable);
 				}
+				else if (instruction.Operand is StaticFieldAccess)
+				{
+					var access = instruction.Operand as StaticFieldAccess;
+					ProcessLoad(instruction.Offset, instruction.Result, access);
+				}
 				else if (instruction.Operand is InstanceFieldAccess)
 				{
 					var access = instruction.Operand as InstanceFieldAccess;
@@ -87,7 +92,12 @@ namespace Backend.Analyses
 
 			public override void Visit(StoreInstruction instruction)
 			{
-				if (instruction.Result is InstanceFieldAccess)
+				if (instruction.Result is StaticFieldAccess)
+				{
+					var access = instruction.Result as StaticFieldAccess;
+					ProcessStore(access, instruction.Operand);
+				}
+				else if (instruction.Result is InstanceFieldAccess)
 				{
 					var access = instruction.Result as InstanceFieldAccess;
 					ProcessStore(access, instruction.Operand);
@@ -195,6 +205,15 @@ namespace Backend.Analyses
 				}
 			}
 
+			private void ProcessLoad(IVariable dst, StaticFieldAccess access)
+			{
+				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
+
+				var src = access.Type.ToPTGGlobalVariable();
+				var field = access.Field.ToPTGNodeField();
+				ProcessLoad(offset, dst, src, field);
+			}
+
 			private void ProcessLoad(uint offset, IVariable dst, InstanceFieldAccess access)
 			{
 				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
@@ -246,6 +265,15 @@ namespace Backend.Analyses
 						ptg.PointsTo(dst, target);
 					}
 				}
+			}
+
+			private void ProcessStore(StaticFieldAccess access, IVariable src)
+			{
+				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
+
+				var dst = access.Type.ToPTGGlobalVariable();
+				var field = access.Field.ToPTGNodeField();
+				ProcessStore(dst, src, field);
 			}
 
 			private void ProcessStore(InstanceFieldAccess access, IVariable src)
