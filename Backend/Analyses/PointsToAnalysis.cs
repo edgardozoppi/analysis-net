@@ -24,16 +24,18 @@ namespace Backend.Analyses
 			private IMethodReference method;
 			private UniqueIDGenerator nodeIdGenerator;
 			private IDictionary<uint, PTGNode> nodeAtOffset;
+			private IDictionary<IBasicType, PTGNode> globalNodes;
 			private PointsToGraph ptg;
 
-			public TransferFunction(IMethodReference method, UniqueIDGenerator nodeIdGenerator)
+			public TransferFunction(IMethodReference method, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator)
 			{
 				this.method = method;
+				this.globalNodes = globalNodes;
 				this.nodeIdGenerator = nodeIdGenerator;
 				this.nodeAtOffset = new Dictionary<uint, PTGNode>();
 			}
 
-			public Func<IMethodReference, MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall;
+			public Func<IMethodReference, MethodCallInstruction, IDictionary<IBasicType, PTGNode>, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall;
 
 			public PointsToGraph Evaluate(CFGNode node, PointsToGraph input)
 			{
@@ -126,7 +128,7 @@ namespace Backend.Analyses
 			{
 				if (ProcessMethodCall != null)
 				{
-					ptg = ProcessMethodCall(method, instruction, nodeIdGenerator, ptg);
+					ptg = ProcessMethodCall(method, instruction, globalNodes, nodeIdGenerator, ptg);
 				}
 			}
 
@@ -205,12 +207,12 @@ namespace Backend.Analyses
 				}
 			}
 
-			private void ProcessLoad(IVariable dst, StaticFieldAccess access)
+			private void ProcessLoad(uint offset, IVariable dst, StaticFieldAccess access)
 			{
 				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
 
-				var src = access.Type.ToPTGGlobalVariable();
-				var field = access.Field.ToPTGNodeField();
+				var src = GetGlobalVariable(access);
+				var field = access.ToPTGNodeField();
 				ProcessLoad(offset, dst, src, field);
 			}
 
@@ -218,7 +220,7 @@ namespace Backend.Analyses
 			{
 				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
 
-				var field = access.Field.ToPTGNodeField();
+				var field = access.ToPTGNodeField();
 				ProcessLoad(offset, dst, access.Instance, field);
 			}
 
@@ -271,8 +273,8 @@ namespace Backend.Analyses
 			{
 				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
 
-				var dst = access.Type.ToPTGGlobalVariable();
-				var field = access.Field.ToPTGNodeField();
+				var dst = GetGlobalVariable(access);
+				var field = access.ToPTGNodeField();
 				ProcessStore(dst, src, field);
 			}
 
@@ -280,7 +282,7 @@ namespace Backend.Analyses
 			{
 				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
 
-				var field = access.Field.ToPTGNodeField();
+				var field = access.ToPTGNodeField();
 				ProcessStore(access.Instance, src, field);
 			}
 
@@ -297,6 +299,8 @@ namespace Backend.Analyses
 				// Weak update
 				var nodes = ptg.GetTargets(dst);
 				var targets = ptg.GetTargets(src);
+
+				// There should be at least one node in nodes
 
 				foreach (var node in nodes)
 				{
@@ -330,6 +334,33 @@ namespace Backend.Analyses
 				return node;
 			}
 
+			private IVariable GetGlobalVariable(StaticFieldAccess access)
+			{
+				var variable = access.ToPTGGlobalVariable();
+				var global = GetOrCreateGlobalNode(access.Field.ContainingType);
+
+				ptg.PointsTo(variable, global);
+				return variable;
+			}
+
+			private PTGNode GetOrCreateGlobalNode(IBasicType type)
+			{
+				PTGNode global;
+				var ok = globalNodes.TryGetValue(type, out global);
+
+				if (!ok)
+				{
+					// Create a new global node
+					var nodeId = nodeIdGenerator.Next;
+					global = new PTGNode(nodeId, type, null, PTGNodeKind.Global);
+
+					ptg.Add(global);
+					globalNodes.Add(type, global);
+				}
+
+				return global;
+			}
+
 			#endregion
 		}
 
@@ -343,20 +374,22 @@ namespace Backend.Analyses
 		public PointsToAnalysis(ControlFlowGraph cfg, IMethodReference method)
 			: base(cfg)
 		{
+			var globalNodes = new Dictionary<IBasicType, PTGNode>();
+
 			this.method = method;
 			this.nodeIdGenerator = new UniqueIDGenerator(1);
-			this.transferFunction = new TransferFunction(method, nodeIdGenerator);
+			this.transferFunction = new TransferFunction(method, globalNodes, nodeIdGenerator);
 		}
 
-		public PointsToAnalysis(ControlFlowGraph cfg, IMethodReference method, UniqueIDGenerator nodeIdGenerator)
+		public PointsToAnalysis(ControlFlowGraph cfg, IMethodReference method, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator)
 			: base(cfg)
 		{
 			this.method = method;
 			this.nodeIdGenerator = nodeIdGenerator;
-			this.transferFunction = new TransferFunction(method, nodeIdGenerator);
+			this.transferFunction = new TransferFunction(method, globalNodes, nodeIdGenerator);
 		}
 
-		public Func<IMethodReference, MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall
+		public Func<IMethodReference, MethodCallInstruction, IDictionary<IBasicType, PTGNode>, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall
 		{
 			get { return transferFunction.ProcessMethodCall; }
 			set { transferFunction.ProcessMethodCall = value; }

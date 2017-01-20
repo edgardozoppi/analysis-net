@@ -293,15 +293,10 @@ namespace Model.ThreeAddressCode.Values
 		public IType Type { get; set; }
 		public bool IsParameter { get; set; }
 
-		public LocalVariable(string name, bool isParameter)
+		public LocalVariable(string name, bool isParameter = false)
 		{
 			this.Name = name;
 			this.IsParameter = isParameter;
-		}
-
-		public LocalVariable(string name)
-		{
-			this.Name = name;
 		}
 
 		ISet<IVariable> IVariableContainer.Variables

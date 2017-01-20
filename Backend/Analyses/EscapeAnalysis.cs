@@ -143,12 +143,13 @@ namespace Backend.Analyses
 			var methodComparer = MethodReferenceDefinitionComparer.Default;
 			//var method = escapingInfo.Method;
 			var channels = escapeInfo.Channels;
-			var parameters = ptg.Variables.Where(v => v.IsParameter);
+			// TODO: Replace v.Name.StartsWith("#") by a better way to recognize global variables!
+			var parameters = ptg.Variables.Where(v => v.IsParameter || v.Name.StartsWith("#"));
 
 			foreach (var parameter in parameters)
 			{
 				var nodes = ptg.GetReachableNodes(parameter)
-							   .Where(n => n.Kind != PTGNodeKind.Null &&
+							   .Where(n => n.Kind != PTGNodeKind.Null && n.Kind != PTGNodeKind.Global &&
 							   (calleesEscapingNodes.Contains(n) || methodComparer.Equals(n.Method, method)));
 
 				channels.AddRange(parameter, nodes);
@@ -157,7 +158,7 @@ namespace Backend.Analyses
 			if (method.ReturnType.TypeKind != TypeKind.ValueType)
 			{
 				var nodes = ptg.GetReachableNodes(ptg.ResultVariable)
-							   .Where(n => n.Kind != PTGNodeKind.Null && 
+							   .Where(n => n.Kind != PTGNodeKind.Null && n.Kind != PTGNodeKind.Global &&
 							   (calleesEscapingNodes.Contains(n) || methodComparer.Equals(n.Method, method)));
 
 				channels.AddRange(ptg.ResultVariable, nodes);

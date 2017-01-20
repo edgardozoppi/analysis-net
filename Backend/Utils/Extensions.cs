@@ -436,14 +436,21 @@ namespace Backend.Utils
 			return expr;
 		}
 
-		public static PTGNodeField ToPTGNodeField(this IFieldReference field)
+		public static PTGNodeField ToPTGNodeField(this IFieldAccess access)
 		{
-			return new PTGNodeField(field.Name, field.Type);
+			return new PTGNodeField(access.FieldName, access.Type);
 		}
 
 		public static PTGNodeField ToPTGNodeField(this ArrayElementAccess access)
 		{
 			return new PTGNodeField("[]", access.Type);
+		}
+
+		public static IVariable ToPTGGlobalVariable(this StaticFieldAccess access)
+		{
+			var name = access.Field.ContainingType.GetFullName();
+			name = string.Format("#{0}", name);
+			return new LocalVariable(name) { Type = access.Field.ContainingType };
 		}
 
 		public static void RemoveTemporalVariables(this PointsToGraph ptg)
@@ -472,7 +479,7 @@ namespace Backend.Utils
 
 		public static ISet<PTGNode> GetTargets(this PointsToGraph ptg, InstanceFieldAccess access)
 		{
-			var field = access.Field.ToPTGNodeField();
+			var field = access.ToPTGNodeField();
 			var result = ptg.GetTargets(access.Instance, field);
 			return result;
 		}
@@ -807,6 +814,9 @@ namespace Backend.Utils
 			var pti = methodInfo.Get<InterPointsToInfo>(InterPointsToAnalysis.INFO_IPTA_RESULT);
 			var ptg = pti.Output;
 
+			// TODO: Replace v.Name.StartsWith("#") by a better way to recognize global variables!
+			var globals = ptg.Variables.Where(v => v.Name.StartsWith("#"));
+
 			var allocatedNodes = from ins in instructions
 								 let def = ins as DefinitionInstruction
 								 where (def is CreateObjectInstruction || def is CreateArrayInstruction) &&
@@ -827,7 +837,7 @@ namespace Backend.Utils
 									   from node in escInfo.EscapingNodes
 									   select node;
 
-			var escapingVariables = ioInfo.Inputs.Union(ioInfo.Outputs).Union(ioInfo.Results);
+			var escapingVariables = ioInfo.Inputs.Union(ioInfo.Outputs).Union(ioInfo.Results).Union(globals);
 			var newNodes = calleesEscapingNodes.Union(allocatedNodes).ToSet();
 			var escapeInfo = new EscapeInfo();
 
@@ -836,7 +846,7 @@ namespace Backend.Utils
 				if (variable.Type.TypeKind == TypeKind.ValueType) continue;
 
 				var nodes = from node in ptg.GetReachableNodes(variable)
-							where node.Kind != PTGNodeKind.Null &&
+							where node.Kind != PTGNodeKind.Null && node.Kind != PTGNodeKind.Global &&
 								  newNodes.Contains(node)
 							select node;
 

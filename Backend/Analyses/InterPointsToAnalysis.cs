@@ -76,7 +76,7 @@ namespace Backend.Analyses
 			return callGraph;
 		}
 
-		protected PointsToGraph ProcessMethodCall(IMethodReference caller, MethodCallInstruction methodCall, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
+		protected PointsToGraph ProcessMethodCall(IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
 		{
 			PointsToGraph output = null;
 			var possibleCallees = ResolvePossibleCallees(methodCall, input);
@@ -117,7 +117,7 @@ namespace Backend.Analyses
 					{
 						var cfg = OnReachableMethodFound(method);
 						// TODO: Don't create unknown nodes when doing the inter PT analysis
-						var pta = new PointsToAnalysis(cfg, method, nodeIdGenerator);
+						var pta = new PointsToAnalysis(cfg, method, globalNodes, nodeIdGenerator);
 						pta.ProcessMethodCall = ProcessMethodCall;
 
 						methodInfo.Add(INFO_PTA, pta);
