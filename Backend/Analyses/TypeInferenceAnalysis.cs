@@ -51,14 +51,17 @@ namespace Backend.Analyses
 					instruction.Result.Type = instruction.Method.ReturnType;
 				}
 
-				for (var i = 0; i < instruction.Arguments.Count; ++i)
+				// Skip implicit "this" parameter
+				var offset = instruction.Method.IsStatic ? 0 : 1;
+
+				for (var i = offset; i < instruction.Arguments.Count; ++i)
 				{
 					var argument = instruction.Arguments[i];
 
 					// Set the null variable a type.
 					if (argument.Type == null)
 					{
-						var parameter = instruction.Method.Parameters.ElementAt(i);
+						var parameter = instruction.Method.Parameters[i - offset];
 
 						argument.Type = parameter.Type;
 					}
@@ -72,14 +75,17 @@ namespace Backend.Analyses
 					instruction.Result.Type = instruction.Function.ReturnType;
 				}
 
-				for (var i = 0; i < instruction.Arguments.Count; ++i)
+				// Skip implicit "this" parameter
+				var offset = instruction.Function.IsStatic ? 0 : 1;
+
+				for (var i = offset; i < instruction.Arguments.Count; ++i)
 				{
 					var argument = instruction.Arguments[i];
 
 					// Set the null variable a type.
 					if (argument.Type == null)
 					{
-						var parameter = instruction.Function.Parameters.ElementAt(i);
+						var parameter = instruction.Function.Parameters[i - offset];
 
 						argument.Type = parameter.Type;
 					}
@@ -97,12 +103,14 @@ namespace Backend.Analyses
 				if (operandAsConstant != null &&
 					operandAsConstant.Value == null)
 				{
-					//instruction.Result.Type = PlatformTypes.Object;
+					instruction.Result.Type = PlatformTypes.Object;
 				}
 				// If we have variable to variable assignment where the result was assigned
 				// a type but the operand was not, then we set the operand type accordingly.
-				else if (operandAsVariable != null &&
-						 operandAsVariable.Type == null)
+				else if (instruction.Result.Type != null &&
+						operandAsVariable != null &&
+						(operandAsVariable.Type == null ||
+						 operandAsVariable.Type.Equals(PlatformTypes.Object)))
 				{
 					operandAsVariable.Type = instruction.Result.Type;
 				}
