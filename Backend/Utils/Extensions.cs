@@ -576,9 +576,16 @@ namespace Backend.Utils
 			return result;
 		}
 
-		public static ISet<PTGNode> GetReachableNodes(this PointsToGraph ptg)
+		public static ISet<PTGNode> GetReachableNodes(this PointsToGraph ptg, bool alsoFromGlobals = true)
 		{
 			var roots = ptg.Variables;
+
+			if (!alsoFromGlobals)
+			{
+				// TODO: Replace v.Name.StartsWith("#") by a better way to recognize global variables!
+				roots = roots.Where(v => !v.Name.StartsWith("#"));
+			}
+
 			var result = ptg.GetReachableNodes(roots);
 			return result;
 		}

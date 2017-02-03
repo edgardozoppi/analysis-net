@@ -94,7 +94,7 @@ namespace Backend.Model
 		}
     }
 
-	// TODO: This class should be a struct or remove it and use an string directly.
+	// TODO: This class should be a struct or remove it and just use an string.
 	public class PTGNodeField
 	{
 		public IType Type { get; set; }
@@ -459,6 +459,8 @@ namespace Backend.Model
 		// binding: parameter -> argument
 		public MapSet<IVariable, int> NewFrame(IDictionary<IVariable, IVariable> binding)
 		{
+			// TODO: We should keep global variables (variables with names starting with # and points-to global nodes)
+
 			// Remove node -> variable edges
 			//variables.Clear();
 			foreach (var entry in variables)
