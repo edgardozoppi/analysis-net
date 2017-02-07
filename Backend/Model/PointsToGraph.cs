@@ -121,8 +121,9 @@ namespace Backend.Model
 			var other = obj as PTGNodeField;
 
 			var result = other != null &&
-						 this.Name == other.Name &&
-						 this.Type.Equals(other.Type);
+						 this.Name == other.Name;
+						 // Sometimes we don't know the type of an special field like []
+						 //&& this.Type.Equals(other.Type);
 
 			return result;
 		}
