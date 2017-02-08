@@ -24,11 +24,6 @@ namespace Backend.Analyses
 		{
 		}
 
-		public DataFlowAnalysisResult<Subset<IVariable>>[] Result
-		{
-			get { return result; }
-		}
-
 		public override DataFlowAnalysisResult<Subset<IVariable>>[] Analyze()
 		{
 			this.ComputeVariables();

@@ -17,10 +17,21 @@ namespace Backend.Analyses
 	public abstract class DataFlowAnalysis<T>
 	{
 		protected ControlFlowGraph cfg;
+		protected DataFlowAnalysisResult<T>[] result;
 
 		protected DataFlowAnalysis(ControlFlowGraph cfg)
 		{
 			this.cfg = cfg;
+		}
+
+		public DataFlowAnalysisResult<T>[] Result
+		{
+			get { return result; }
+		}
+
+		public DataFlowAnalysisResult<T> this[CFGNode node]
+		{
+			get { return result[node.Id]; }
 		}
 
 		public abstract DataFlowAnalysisResult<T>[] Analyze();
@@ -41,8 +52,6 @@ namespace Backend.Analyses
 
 	public abstract class ForwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
-		protected DataFlowAnalysisResult<T>[] result;
-
 		protected ForwardDataFlowAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{
@@ -112,8 +121,6 @@ namespace Backend.Analyses
 
 	public abstract class BackwardDataFlowAnalysis<T> : DataFlowAnalysis<T>
 	{
-		protected DataFlowAnalysisResult<T>[] result;
-
 		protected BackwardDataFlowAnalysis(ControlFlowGraph cfg)
 			: base(cfg)
 		{

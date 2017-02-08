@@ -395,11 +395,6 @@ namespace Backend.Analyses
 			set { transferFunction.ProcessMethodCall = value; }
 		}
 
-		public DataFlowAnalysisResult<PointsToGraph>[] Result
-		{
-			get { return result; }
-		}
-
 		public override DataFlowAnalysisResult<PointsToGraph>[] Analyze()
 		{
 			this.initialGraph = CreateInitialGraph();

@@ -37,11 +37,6 @@ namespace Backend.Analyses
 			return result;
 		}
 
-		public DataFlowAnalysisResult<IDictionary<IVariable, IExpression>> this[CFGNode node]
-		{
-			get { return this.result[node.Id]; }
-		}
-
 		protected override IDictionary<IVariable, IExpression> InitialValue(CFGNode node)
 		{
 			return GEN[node.Id];
