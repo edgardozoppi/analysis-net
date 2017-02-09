@@ -477,10 +477,66 @@ namespace Backend.Utils
 			}
 		}
 
+		public static ISet<PTGNode> GetTargets(this PointsToGraph ptg, IValue value)
+		{
+			ISet<PTGNode> result = null;
+
+			if (value is IVariable)
+			{
+				var variable = value as IVariable;
+				result = ptg.GetTargets(variable);
+			}
+			else if (value is IFieldAccess)
+			{
+				var access = value as IFieldAccess;
+				result = ptg.GetTargets(access);
+			}
+			else if (value is ArrayElementAccess)
+			{
+				var access = value as ArrayElementAccess;
+				result = ptg.GetTargets(access);
+			}
+
+			return result;
+		}
+
+		public static ISet<PTGNode> GetTargets(this PointsToGraph ptg, IFieldAccess access)
+		{
+			ISet<PTGNode> result = null;
+
+			if (access is InstanceFieldAccess)
+			{
+				var instanceAccess = access as InstanceFieldAccess;
+				result = ptg.GetTargets(instanceAccess);
+			}
+			else if (access is StaticFieldAccess)
+			{
+				var staticAccess = access as StaticFieldAccess;
+				result = ptg.GetTargets(staticAccess);
+			}
+
+			return result;
+		}
+
 		public static ISet<PTGNode> GetTargets(this PointsToGraph ptg, InstanceFieldAccess access)
 		{
 			var field = access.ToPTGNodeField();
 			var result = ptg.GetTargets(access.Instance, field);
+			return result;
+		}
+
+		public static ISet<PTGNode> GetTargets(this PointsToGraph ptg, StaticFieldAccess access)
+		{
+			var variable = access.ToPTGGlobalVariable();
+			var field = access.ToPTGNodeField();
+			var result = ptg.GetTargets(variable, field);
+			return result;
+		}
+
+		public static ISet<PTGNode> GetTargets(this PointsToGraph ptg, ArrayElementAccess access)
+		{
+			var field = access.ToPTGNodeField();
+			var result = ptg.GetTargets(access.Array, field);
 			return result;
 		}
 
