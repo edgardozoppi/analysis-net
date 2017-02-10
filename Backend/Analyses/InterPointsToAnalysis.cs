@@ -280,7 +280,7 @@ namespace Backend.Analyses
 		{
 			var binding = new Dictionary<IVariable, IVariable>();
 
-			if (callerResult != null)
+			if (calleeResult != null && callerResult != null)
 			{
 				binding.Add(calleeResult, callerResult);
 			}
