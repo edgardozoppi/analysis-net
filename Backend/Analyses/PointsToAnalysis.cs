@@ -209,9 +209,11 @@ namespace Backend.Analyses
 
 			private void ProcessLoad(uint offset, IVariable dst, StaticFieldAccess access)
 			{
+				// We want to create the static/global node even when the field have a value type
+				var src = GetGlobalVariable(access);
+
 				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
 
-				var src = GetGlobalVariable(access);
 				var field = access.ToPTGNodeField();
 				ProcessLoad(offset, dst, src, field);
 			}
@@ -271,9 +273,11 @@ namespace Backend.Analyses
 
 			private void ProcessStore(StaticFieldAccess access, IVariable src)
 			{
-				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
-
+				// We want to create the static/global node even when the field have a value type
 				var dst = GetGlobalVariable(access);
+
+				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
+				
 				var field = access.ToPTGNodeField();
 				ProcessStore(dst, src, field);
 			}
@@ -354,10 +358,10 @@ namespace Backend.Analyses
 					var nodeId = nodeIdGenerator.Next;
 					global = new PTGNode(nodeId, type, null, PTGNodeKind.Global);
 
-					ptg.Add(global);
 					globalNodes.Add(type, global);
 				}
 
+				ptg.Add(global);
 				return global;
 			}
 
