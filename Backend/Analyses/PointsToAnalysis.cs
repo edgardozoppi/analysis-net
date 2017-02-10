@@ -59,6 +59,11 @@ namespace Backend.Analyses
 				ProcessAllocation(instruction.Offset, instruction.Result);
 			}
 
+			public override void Visit(ConvertInstruction instruction)
+			{
+				ProcessCopy(instruction.Result, instruction.Operand);
+			}
+
 			public override void Visit(LoadInstruction instruction)
 			{
 				if (instruction.Operand is Constant)
