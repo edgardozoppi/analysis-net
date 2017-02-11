@@ -176,7 +176,7 @@ namespace Model
 
             while (containingType != null)
             {
-                containingTypes = string.Format("{0}{1}.", containingTypes, containingType);
+                containingTypes = string.Format("{0}{1}.", containingTypes, containingType.Name);
 				containingType = containingType.ContainingType;
             }
 
