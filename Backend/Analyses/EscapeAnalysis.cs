@@ -36,21 +36,35 @@ namespace Backend.Analyses
 	public class EscapeInfo
 	{
 		//public IMethodReference Method { get; private set; }
-		public MapSet<IVariable, PTGNode> Channels { get; private set; }
+		public MapSet<IVariable, PTGNode> EscapeChannels { get; private set; }
+		// Nodes already existing from before.
+		public IEnumerable<PTGNode> ExternalNodes { get; private set; }
+		// Internal nodes that do not escape.
+		public IEnumerable<PTGNode> CapturedNodes { get; private set; }
 
 		//public EscapeInfo(IMethodReference method)
 		public EscapeInfo()
 		{
 			//this.Method = method;
-			this.Channels = new MapSet<IVariable, PTGNode>();
+			this.EscapeChannels = new MapSet<IVariable, PTGNode>();
+			this.ExternalNodes = new HashSet<PTGNode>();
+			this.CapturedNodes = new HashSet<PTGNode>();
 		}
 
+		// Internal nodes that escape.
 		public IEnumerable<PTGNode> EscapingNodes
 		{
-			get { return this.Channels.SelectMany(entry => entry.Value).Distinct(); }
+			get { return this.EscapeChannels.SelectMany(entry => entry.Value).Distinct(); }
+		}
+
+		// Newly created nodes (including callees).
+		public IEnumerable<PTGNode> InternalNodes
+		{
+			get { return this.CapturedNodes.Union(this.EscapingNodes); }
 		}
 	}
 
+	// TODO: Fill EscapeInfo.ExternalNodes and EscapeInfo.CapturedNodes.
 	public class EscapeAnalysis
 	{
 		public const string INFO_ESC = "ESC";
@@ -82,6 +96,7 @@ namespace Backend.Analyses
 			return result;
 		}
 
+		// TODO: Fill EscapeInfo.ExternalNodes and EscapeInfo.CapturedNodes.
 		private void Analyze(IMethodReference method)
 		{
 			// Avoid analyzing the same method several times in case of recursion.
@@ -117,8 +132,8 @@ namespace Backend.Analyses
 
 			if (ptg != null)
 			{
-				//FillEscapingChannels(escapeInfo, ptg, calleesEscapingNodes);
-				FillEscapingChannels(method, escapeInfo, ptg, calleesEscapingNodes);
+				//FillEscapeChannels(escapeInfo, ptg, calleesEscapingNodes);
+				FillEscapeChannels(method, escapeInfo, ptg, calleesEscapingNodes);
 			}
 		}
 
@@ -138,11 +153,11 @@ namespace Backend.Analyses
 			return ptg;
 		}
 
-		private static void FillEscapingChannels(IMethodReference method, EscapeInfo escapeInfo, PointsToGraph ptg, ISet<PTGNode> calleesEscapingNodes)
+		private static void FillEscapeChannels(IMethodReference method, EscapeInfo escapeInfo, PointsToGraph ptg, ISet<PTGNode> calleesEscapingNodes)
 		{
 			var methodComparer = MethodReferenceDefinitionComparer.Default;
 			//var method = escapingInfo.Method;
-			var channels = escapeInfo.Channels;
+			var channels = escapeInfo.EscapeChannels;
 			// TODO: Replace v.Name.StartsWith("#") by a better way to recognize global variables!
 			var parameters = ptg.Variables.Where(v => v.IsParameter || v.Name.StartsWith("#"));
 

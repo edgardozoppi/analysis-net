@@ -299,6 +299,18 @@ namespace Backend.Analyses
 				var receiver = methodCall.Arguments.First();
 				var targets = ptg.GetTargets(receiver);
 
+				if (targets.Count == 0)
+				{
+					// TODO: Unknown receiver found. Use CHA to get all possible subtypes of the receiver's declared static type.
+					// We should create an unknown ptg node for the receiver.
+					// But it would be much better to have the node already created from before.
+					// It make no sense to have a reference pointing to nothing at all,
+					// it should at least points-to Null or an unknown node.
+#if DEBUG
+					System.Diagnostics.Debugger.Break();
+#endif
+				}
+
 				foreach (var target in targets)
 				{
 					var receiverType = target.Type as IBasicType;

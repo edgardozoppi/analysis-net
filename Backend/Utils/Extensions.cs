@@ -913,8 +913,10 @@ namespace Backend.Utils
 								  newNodes.Contains(node)
 							select node;
 
-				escapeInfo.Channels.AddRange(variable, nodes);
+				escapeInfo.EscapeChannels.AddRange(variable, nodes);
 			}
+
+			// TODO: Fill EscapeInfo.ExternalNodes and EscapeInfo.CapturedNodes.
 
 			return escapeInfo;
 		}

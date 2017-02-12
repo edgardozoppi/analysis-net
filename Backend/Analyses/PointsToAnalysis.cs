@@ -359,11 +359,16 @@ namespace Backend.Analyses
 
 				if (!ok)
 				{
-					// Create a new global node
+					// Create a new global/static node
 					var nodeId = nodeIdGenerator.Next;
 					global = new PTGNode(nodeId, type, null, PTGNodeKind.Global);
 
 					globalNodes.Add(type, global);
+
+					// TODO: Simulate an invocation to the static constructor.
+					// Since this is the first time the global/static node is used
+					// we should create a fake invocation to the static constructor
+					// of "type" (if exists).
 				}
 
 				ptg.Add(global);
