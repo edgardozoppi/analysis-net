@@ -2,6 +2,7 @@
 
 using Backend.Model;
 using Backend.Utils;
+using Model;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
 using System;
@@ -37,10 +38,10 @@ namespace Backend.Analyses
 	{
 		//public IMethodReference Method { get; private set; }
 		public MapSet<IVariable, PTGNode> EscapeChannels { get; private set; }
-		// Nodes already existing from before.
-		public IEnumerable<PTGNode> ExternalNodes { get; private set; }
+		// Reachable nodes already existing from before.
+		public ISet<PTGNode> ExternalNodes { get; private set; }
 		// Internal nodes that do not escape.
-		public IEnumerable<PTGNode> CapturedNodes { get; private set; }
+		public ISet<PTGNode> CapturedNodes { get; private set; }
 
 		//public EscapeInfo(IMethodReference method)
 		public EscapeInfo()
@@ -64,7 +65,6 @@ namespace Backend.Analyses
 		}
 	}
 
-	// TODO: Fill EscapeInfo.ExternalNodes and EscapeInfo.CapturedNodes.
 	public class EscapeAnalysis
 	{
 		public const string INFO_ESC = "ESC";
@@ -96,7 +96,6 @@ namespace Backend.Analyses
 			return result;
 		}
 
-		// TODO: Fill EscapeInfo.ExternalNodes and EscapeInfo.CapturedNodes.
 		private void Analyze(IMethodReference method)
 		{
 			// Avoid analyzing the same method several times in case of recursion.
@@ -134,6 +133,7 @@ namespace Backend.Analyses
 			{
 				//FillEscapeChannels(escapeInfo, ptg, calleesEscapingNodes);
 				FillEscapeChannels(method, escapeInfo, ptg, calleesEscapingNodes);
+				FillExternalAndCapturedNodes(method, escapeInfo, ptg, calleesEscapingNodes);
 			}
 		}
 
@@ -156,28 +156,49 @@ namespace Backend.Analyses
 		private static void FillEscapeChannels(IMethodReference method, EscapeInfo escapeInfo, PointsToGraph ptg, ISet<PTGNode> calleesEscapingNodes)
 		{
 			var methodComparer = MethodReferenceDefinitionComparer.Default;
-			//var method = escapingInfo.Method;
 			var channels = escapeInfo.EscapeChannels;
+			//var method = escapingInfo.Method;
+
 			// TODO: Replace v.Name.StartsWith("#") by a better way to recognize global variables!
-			var parameters = ptg.Variables.Where(v => v.IsParameter || v.Name.StartsWith("#"));
-
-			foreach (var parameter in parameters)
-			{
-				var nodes = ptg.GetReachableNodes(parameter)
-							   .Where(n => n.Kind != PTGNodeKind.Null && n.Kind != PTGNodeKind.Global &&
-							   (calleesEscapingNodes.Contains(n) || methodComparer.Equals(n.Method, method)));
-
-				channels.AddRange(parameter, nodes);
-			}
+			var variables = ptg.Variables
+							   .Where(v => v.IsParameter || v.Name.StartsWith("#"))
+							   .ToSet();
 
 			if (method.ReturnType.TypeKind != TypeKind.ValueType)
 			{
-				var nodes = ptg.GetReachableNodes(ptg.ResultVariable)
+				variables.Add(ptg.ResultVariable);
+			}
+
+			foreach (var variable in variables)
+			{
+				var nodes = ptg.GetReachableNodes(variable)
 							   .Where(n => n.Kind != PTGNodeKind.Null && n.Kind != PTGNodeKind.Global &&
 							   (calleesEscapingNodes.Contains(n) || methodComparer.Equals(n.Method, method)));
 
-				channels.AddRange(ptg.ResultVariable, nodes);
+				channels.AddRange(variable, nodes);
 			}
+		}
+
+		private void FillExternalAndCapturedNodes(IMethodReference method, EscapeInfo escapeInfo, PointsToGraph ptg, ISet<PTGNode> calleesEscapingNodes)
+		{
+			var methodComparer = MethodReferenceDefinitionComparer.Default;
+			var escapingNodes = escapeInfo.EscapingNodes;
+			var capturedNodes = escapeInfo.CapturedNodes;
+			var externalNodes = escapeInfo.ExternalNodes;
+			var reachableNodes = ptg.GetReachableNodes()
+									.Where(n => n.Kind != PTGNodeKind.Null);
+
+			var newlyCreatedNodes = reachableNodes
+									.Where(n => n.Kind != PTGNodeKind.Global &&
+									methodComparer.Equals(n.Method, method));
+
+			capturedNodes.UnionWith(calleesEscapingNodes);
+			capturedNodes.UnionWith(newlyCreatedNodes);
+			capturedNodes.ExceptWith(escapingNodes);
+
+			// External nodes include reachable global\static nodes.
+			externalNodes.UnionWith(reachableNodes);
+			externalNodes.ExceptWith(capturedNodes);
 		}
 	}
 }
