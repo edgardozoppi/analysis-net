@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Backend.Model;
 using Model;
 
 namespace Backend.Utils
@@ -13,6 +14,11 @@ namespace Backend.Utils
 	{
 		protected Map()
 		{
+		}
+
+		protected Map(IEnumerable<KeyValuePair<TKey, TCollection>> other)
+		{
+			this.UnionWith(other);
 		}
 
 		protected Map(IEnumerable<KeyValuePair<TKey, IEnumerable<TValue>>> other)
@@ -42,7 +48,16 @@ namespace Backend.Utils
 			collection.AddRange(values);
 		}
 
-		public void UnionWith(IEnumerable<KeyValuePair<TKey, IEnumerable<TValue>>> other)
+		public bool ContainsValue(TKey key, TValue value)
+		{
+			TCollection values;
+			var result = this.TryGetValue(key, out values);
+			result = result && values.Contains(value);
+			return result;
+		}
+
+		public void UnionWith<TValues>(IEnumerable<KeyValuePair<TKey, TValues>> other)
+			where TValues : IEnumerable<TValue>
 		{
 			foreach (var entry in other)
 			{
@@ -58,7 +73,8 @@ namespace Backend.Utils
 			}
 		}
 
-		public void IntersectWith(IEnumerable<KeyValuePair<TKey, IEnumerable<TValue>>> other)
+		public void IntersectWith<TValues>(IEnumerable<KeyValuePair<TKey, TValues>> other)
+			where TValues : IEnumerable<TValue>
 		{
 			var keys = new HashSet<TKey>();
 
@@ -122,6 +138,11 @@ namespace Backend.Utils
 		{
 		}
 
+		protected MapSet(IEnumerable<KeyValuePair<TKey, HashSet<TValue>>> other)
+			: base(other)
+		{
+		}
+
 		public MapSet(IEnumerable<KeyValuePair<TKey, IEnumerable<TValue>>> other)
 			: base(other)
 		{
@@ -154,6 +175,11 @@ namespace Backend.Utils
 	public class MapList<TKey, TValue> : Map<TKey, TValue, List<TValue>>
 	{
 		public MapList()
+		{
+		}
+
+		protected MapList(IEnumerable<KeyValuePair<TKey, List<TValue>>> other)
+			: base(other)
 		{
 		}
 
