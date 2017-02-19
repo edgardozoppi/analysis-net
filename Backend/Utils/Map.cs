@@ -31,6 +31,11 @@ namespace Backend.Utils
 			this.UnionWith(other);
 		}
 
+		public IEnumerable<TValue> AllValues
+		{
+			get { return this.Values.SelectMany(vs => vs); }
+		}
+
 		public void Add(TKey key)
 		{
 			this.AddKeyAndGetValues(key);
