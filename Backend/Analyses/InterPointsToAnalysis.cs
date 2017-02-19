@@ -313,6 +313,10 @@ namespace Backend.Analyses
 
 				foreach (var target in targets)
 				{
+					// If the receiver points-to null the callee cannot be resolved.
+					// TODO: Maybe we can simulate throwing a null reference exception.
+					if (target.Kind == PTGNodeKind.Null) continue;
+
 					var receiverType = target.Type as IBasicType;
 					var callee = Helper.FindMethodImplementation(receiverType, staticCallee);
 

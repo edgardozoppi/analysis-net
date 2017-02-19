@@ -81,12 +81,8 @@ namespace Backend.Model
 					result = "null";
 					break;
 
-				case PTGNodeKind.Global:
-					result = string.Format("{0}", this.Type);
-					break;
-
 				default:
-					result = string.Format("{0:X4}: {1}", this.Offset, this.Type);
+					result = string.Format("{0}: {1}", this.Id, this.Type);
 					break;
 			}
 
@@ -353,6 +349,8 @@ namespace Backend.Model
 			if (!Contains(target))
 				throw new ArgumentException("Target node does not belong to this Points-to graph.", "target");
 #endif
+			// Null node cannot points-to other nodes.
+			if (source.Kind == PTGNodeKind.Null) return;
 
 			var edges = GetEdges(targets, source);
 			edges.Add(field, target);
@@ -480,7 +478,13 @@ namespace Backend.Model
 					continue;
 
 				// Get argument targets
-				var targets = callerFrame[entry.Value];
+				IEnumerable<PTGNode> targets = callerFrame[entry.Value];
+
+				if (entry.Key.IsParameter && entry.Key.Name == "this")
+				{
+					// Implicit this parameter cannot points-to null.
+					targets = targets.Where(n => n.Kind != PTGNodeKind.Null);
+				}
 
 				// Add parameter -> node edges
 				roots.AddRange(entry.Key, targets);

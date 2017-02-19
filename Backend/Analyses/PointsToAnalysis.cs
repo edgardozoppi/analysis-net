@@ -256,6 +256,11 @@ namespace Backend.Analyses
 
 				foreach (var node in nodes)
 				{
+					// Null node cannot points-to other nodes.
+					// We don't want to create an unknown node to be the target of null (null -field-> unknown).
+					// TODO: Maybe we can simulate throwing a null reference exception.
+					if (node.Kind == PTGNodeKind.Null) continue;
+
 					var nodeTargets = ptg.GetTargets(node);
 					var hasField = nodeTargets.ContainsKey(field);
 
@@ -309,10 +314,14 @@ namespace Backend.Analyses
 				var nodes = ptg.GetTargets(dst);
 				var targets = ptg.GetTargets(src);
 
-				// There should be at least one node in nodes
+				// There should be at least one node in nodes.
 
 				foreach (var node in nodes)
 				{
+					// Null node cannot points-to other nodes.
+					// TODO: Maybe we can simulate throwing a null reference exception.
+					if (node.Kind == PTGNodeKind.Null) continue;
+
 					foreach (var target in targets)
 					{
 						ptg.PointsTo(node, field, target);
