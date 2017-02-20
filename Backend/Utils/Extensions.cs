@@ -138,6 +138,68 @@ namespace Backend.Utils
 		//	}
 		//}
 
+		private static IEnumerable<KeyValuePair<TKey, TResultCollection>> Select<TKey, TValue, TCollection, TResultValue, TResultCollection>
+			(this IEnumerable<KeyValuePair<TKey, TCollection>> self, Func<TKey, TValue, TResultValue> action)
+			where TCollection : ICollection<TValue>, new()
+			where TResultCollection : ICollection<TResultValue>, new()
+		{
+			var result = self.Select(e =>
+			{
+				var value = new TResultCollection();
+				var values = e.Value.Select(v => action(e.Key, v));
+
+				value.AddRange(values);
+				return new KeyValuePair<TKey, TResultCollection>(e.Key, value);
+			});
+
+			return result;
+		}
+
+		public static IEnumerable<KeyValuePair<TKey, HashSet<TResultValue>>> Select<TKey, TValue, TResultValue>
+			(this IEnumerable<KeyValuePair<TKey, HashSet<TValue>>> self, Func<TKey, TValue, TResultValue> action)
+		{
+			var result = self.Select<TKey, TValue, HashSet<TValue>, TResultValue, HashSet<TResultValue>>(action);
+			return result;
+		}
+
+		public static IEnumerable<KeyValuePair<TKey, List<TResultValue>>> Select<TKey, TValue, TResultValue>
+			(this IEnumerable<KeyValuePair<TKey, List<TValue>>> self, Func<TKey, TValue, TResultValue> action)
+		{
+			var result = self.Select<TKey, TValue, List<TValue>, TResultValue, List<TResultValue>>(action);
+			return result;
+		}
+
+		private static TResult Select<TKey, TValue, TCollection, TResult, TResultValue, TResultCollection>
+			(this Map<TKey, TValue, TCollection> self, Func<TKey, TValue, TResultValue> action)
+			where TCollection : ICollection<TValue>, new()
+			where TResultCollection : ICollection<TResultValue>, new()
+			where TResult : Map<TKey, TResultValue, TResultCollection>, new()
+		{
+			var result = new TResult();
+
+			foreach (var entry in self)
+			{
+				var values = entry.Value.Select(v => action(entry.Key, v));
+				result.AddRange(entry.Key, values);
+			}
+
+			return result;
+		}
+
+		public static MapSet<TKey, TResultValue> Select<TKey, TValue, TResultValue>
+			(this MapSet<TKey, TValue> self, Func<TKey, TValue, TResultValue> action)
+		{
+			var result = self.Select<TKey, TValue, HashSet<TValue>, MapSet<TKey, TResultValue>, TResultValue, HashSet<TResultValue>>(action);
+			return result;
+		}
+
+		public static MapList<TKey, TResultValue> Select<TKey, TValue, TResultValue>
+			(this MapList<TKey, TValue> self, Func<TKey, TValue, TResultValue> action)
+		{
+			var result = self.Select<TKey, TValue, List<TValue>, MapList<TKey, TResultValue>, TResultValue, List<TResultValue>>(action);
+			return result;
+		}
+
 		public static MapSet<K, V> ToMapSet<K, V>(this IEnumerable<KeyValuePair<K, IEnumerable<V>>> elements)
 		{
 			var result = new MapSet<K, V>();
@@ -448,7 +510,7 @@ namespace Backend.Utils
 
 		public static IVariable ToPTGGlobalVariable(this StaticFieldAccess access)
 		{
-			var name = access.Field.ContainingType.GetFullName();
+			var name = access.Field.ContainingType.GetFullName().Replace(".", "_");
 			name = string.Format("#{0}", name);
 			return new LocalVariable(name) { Type = access.Field.ContainingType };
 		}
