@@ -66,8 +66,9 @@ namespace Backend.Analyses
 		public override DataFlowAnalysisResult<T>[] Analyze()
 		{
 			var pending_nodes = new Queue<CFGNode>();
+			var sorted_nodes = cfg.ForwardOrder;
 
-			foreach (var node in cfg.Nodes)
+			foreach (var node in sorted_nodes)
 			{
 				var node_result = result[node.Id];
 				node_result.Output = this.InitialValue(node);
@@ -135,8 +136,9 @@ namespace Backend.Analyses
 		public override DataFlowAnalysisResult<T>[] Analyze()
 		{
 			var pending_nodes = new Queue<CFGNode>();
+			var sorted_nodes = cfg.BackwardOrder;
 
-			foreach (var node in cfg.Nodes)
+			foreach (var node in sorted_nodes)
 			{
 				var node_result = result[node.Id];
 				node_result.Input = this.InitialValue(node);
