@@ -111,6 +111,45 @@ namespace Backend.Utils
 			}
 		}
 
+		public void IntersectWith(IEnumerable<KeyValuePair<TKey, TValue>> other)
+		{
+			var elements = other.GroupBy(e => e.Key, e => e.Value)
+								.Select(g => new KeyValuePair<TKey, IEnumerable<TValue>>(g.Key, g));
+
+			IntersectWith(elements);
+		}
+
+		public void ExceptWith<TValues>(IEnumerable<KeyValuePair<TKey, TValues>> other)
+			where TValues : IEnumerable<TValue>
+		{
+			foreach (var entry in other)
+			{
+				TCollection value;
+
+				if (this.TryGetValue(entry.Key, out value))
+				{
+					value = ValueExcept(value, entry.Value);
+
+					if (value != null)
+					{
+						this[entry.Key] = value;
+					}
+					else
+					{
+						this.Remove(entry.Key);
+					}
+				}
+			}
+		}
+
+		public void ExceptWith(IEnumerable<KeyValuePair<TKey, TValue>> other)
+		{
+			var elements = other.GroupBy(e => e.Key, e => e.Value)
+								.Select(g => new KeyValuePair<TKey, IEnumerable<TValue>>(g.Key, g));
+
+			ExceptWith(elements);
+		}
+
 		public bool MapEquals(Map<TKey, TValue, TCollection> other)
 		{
 			return this.DictionaryEquals(other, ValueEquals);
@@ -118,6 +157,7 @@ namespace Backend.Utils
 
 		protected abstract bool ValueEquals(TCollection a, TCollection b);
 		protected abstract TCollection ValueIntersect(TCollection a, IEnumerable<TValue> b);
+		protected abstract TCollection ValueExcept(TCollection a, IEnumerable<TValue> b);
 
 		private TCollection AddKeyAndGetValues(TKey key)
 		{
@@ -175,6 +215,19 @@ namespace Backend.Utils
 
 			return result;
 		}
+
+		protected override HashSet<TValue> ValueExcept(HashSet<TValue> a, IEnumerable<TValue> b)
+		{
+			a.ExceptWith(b);
+			var result = a;
+
+			if (result.Count == 0)
+			{
+				result = null;
+			}
+
+			return result;
+		}
 	}
 
 	public class MapList<TKey, TValue> : Map<TKey, TValue, List<TValue>>
@@ -206,6 +259,18 @@ namespace Backend.Utils
 		protected override List<TValue> ValueIntersect(List<TValue> a, IEnumerable<TValue> b)
 		{
 			var result = a.Intersect(b).ToList();
+
+			if (result.Count == 0)
+			{
+				result = null;
+			}
+
+			return result;
+		}
+
+		protected override List<TValue> ValueExcept(List<TValue> a, IEnumerable<TValue> b)
+		{
+			var result = a.Except(b).ToList();
 
 			if (result.Count == 0)
 			{
