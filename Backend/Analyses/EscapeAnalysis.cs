@@ -55,7 +55,7 @@ namespace Backend.Analyses
 		// Internal nodes that escape.
 		public IEnumerable<PTGNode> EscapingNodes
 		{
-			get { return this.EscapeChannels.SelectMany(entry => entry.Value).Distinct(); }
+			get { return this.EscapeChannels.AllValues.Distinct(); }
 		}
 
 		// Newly created nodes (including callees).

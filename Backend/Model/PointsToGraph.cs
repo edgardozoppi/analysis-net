@@ -128,6 +128,7 @@ namespace Backend.Model
     public class PointsToGraph
     {
 		public const int NullNodeId = 0;
+		public const string ResultVariableName = "$result";
 
 		private IDictionary<int, PTGNode> nodes;
 		private MapSet<IVariable, PTGNode> roots;

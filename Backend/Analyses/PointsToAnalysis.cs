@@ -483,7 +483,7 @@ namespace Backend.Analyses
 
 			if (method.ReturnType.TypeKind != TypeKind.ValueType)
 			{
-				ptg.ResultVariable = new LocalVariable("$result") { Type = method.ReturnType };
+				ptg.ResultVariable = new LocalVariable(PointsToGraph.ResultVariableName) { Type = method.ReturnType };
 				ptg.Add(ptg.ResultVariable);
 			}
 
@@ -507,7 +507,7 @@ namespace Backend.Analyses
 
 			if (method.ReturnType.TypeKind != TypeKind.ValueType)
 			{
-				ptg.ResultVariable = new LocalVariable("$result") { Type = method.ReturnType };
+				ptg.ResultVariable = new LocalVariable(PointsToGraph.ResultVariableName) { Type = method.ReturnType };
 				ptg.Add(ptg.ResultVariable);
 			}
 			else
