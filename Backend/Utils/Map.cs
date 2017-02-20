@@ -61,6 +61,17 @@ namespace Backend.Utils
 			return result;
 		}
 
+		public void ClearValues(TKey key)
+		{
+			TCollection values;
+			var ok = this.TryGetValue(key, out values);
+
+			if (ok)
+			{
+				values.Clear();
+			}
+		}
+
 		public void UnionWith<TValues>(IEnumerable<KeyValuePair<TKey, TValues>> other)
 			where TValues : IEnumerable<TValue>
 		{
