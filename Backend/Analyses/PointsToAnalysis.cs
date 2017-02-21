@@ -61,6 +61,8 @@ namespace Backend.Analyses
 
 			public override void Visit(ConvertInstruction instruction)
 			{
+				// TODO: Simulate the Boxing operation by creating a new node to hold the scalar value.
+				// TODO: Support the Unboxing operation.
 				ProcessCopy(instruction.Result, instruction.Operand);
 			}
 
