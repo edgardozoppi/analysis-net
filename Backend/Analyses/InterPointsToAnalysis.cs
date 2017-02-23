@@ -128,6 +128,11 @@ namespace Backend.Analyses
 					}
 				}
 
+				// TODO: If the callee is not processed we should
+				// return an unknown node representing the result
+				// of the method call (if the return type is a
+				// reference type).
+
 				if (processCallee)
 				{
 					//callStack.Push(callee);					

@@ -133,6 +133,11 @@ namespace Backend.Analyses
 
 			public override void Visit(MethodCallInstruction instruction)
 			{
+				// TODO: If the callee is not processed we should
+				// return an unknown node representing the result
+				// of the method call (if the return type is a
+				// reference type).
+
 				if (ProcessMethodCall != null)
 				{
 					ptg = ProcessMethodCall(method, instruction, globalNodes, nodeIdGenerator, ptg);
