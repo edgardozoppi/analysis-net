@@ -251,10 +251,13 @@ namespace Backend.Analyses
 				}
 			}
 
-			if (output == null)
-			{
-				output = input;
-			}
+			// This is commented because we want to return null
+			// when the method call is not processed.
+			//
+			//if (output == null)
+			//{
+			//	output = input;
+			//}
 
 			return output;
 		}

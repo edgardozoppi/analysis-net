@@ -133,14 +133,24 @@ namespace Backend.Analyses
 
 			public override void Visit(MethodCallInstruction instruction)
 			{
-				// TODO: If the callee is not processed we should
-				// return an unknown node representing the result
-				// of the method call (if the return type is a
-				// reference type).
+				PointsToGraph output = null;
 
 				if (ProcessMethodCall != null)
 				{
-					ptg = ProcessMethodCall(method, instruction, globalNodes, nodeIdGenerator, ptg);
+					output = ProcessMethodCall(method, instruction, globalNodes, nodeIdGenerator, ptg);
+				}
+
+				if (output == null)
+				{
+					// Method call not processed.
+					if (instruction.HasResult)
+					{
+						DefaultProcessMethodCall(instruction.Offset, instruction.Result);
+					}
+				}
+				else
+				{
+					ptg = output;
 				}
 			}
 
@@ -177,6 +187,23 @@ namespace Backend.Analyses
 
 				ptg.RemoveEdges(dst);
 				ptg.PointsTo(dst, node);
+			}
+
+			private void DefaultProcessMethodCall(uint offset, IVariable dst)
+			{
+				if (dst.Type.TypeKind == TypeKind.ValueType) return;
+
+				// If the callee is was not processed we should return an
+				// unknown node representing the result of the method call. 
+				var targets = ptg.GetTargets(dst);
+
+				if (targets.Count == 0)
+				{
+					var node = GetOrCreateNode(offset, dst.Type, PTGNodeKind.Unknown);
+
+					ptg.RemoveEdges(dst);
+					ptg.PointsTo(dst, node);
+				}
 			}
 
 			private void ProcessCopy(IVariable dst, IVariable src)
