@@ -962,6 +962,12 @@ namespace Backend.Transformations
 						//var successorIsHandlerHeader = cfg.Regions.OfType<CFGExceptionHandlerRegion>().Where(r => r.Header.Equals(successor)).Any();
 						var successorIsHandlerHeader = false;
 
+						if (successor.Instructions.Count > 0)
+						{
+							var firstInstruction = successor.Instructions.First();
+							successorIsHandlerHeader = exceptionHandlersStart.ContainsKey(firstInstruction.Label);
+						}
+
 						stackSize = stackSizeAtEntry[successor.Id];
 
 						if (!stackSize.HasValue)
