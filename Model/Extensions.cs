@@ -245,9 +245,15 @@ namespace Model
 				var assembly = loader.Host.ResolveReference(reference);
 				if (assembly != null) continue;
 
-				fileName = Path.ChangeExtension(reference.Name, "dll");
+				fileName = string.Format("{0}.dll", reference.Name);
 				fileName = Path.Combine(directory, fileName);
-				if (!File.Exists(fileName)) continue;
+
+				if (!File.Exists(fileName))
+				{
+					fileName = string.Format("{0}.exe", reference.Name);
+					fileName = Path.Combine(directory, fileName);
+					if (!File.Exists(fileName)) continue;
+				}
 
 				assembly = loader.LoadAssembly(fileName);
 				references.UnionWith(assembly.References);
