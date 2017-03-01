@@ -21,8 +21,9 @@ namespace Backend.Model
         Null,
         Object,
 		Global,
+		Delegate,
 		Unknown
-    }
+	}
 
 	public class PTGNode
 	{
@@ -82,13 +83,28 @@ namespace Backend.Model
 					break;
 
 				default:
-					result = string.Format("{0}: {1}", this.Id, this.Type);
+					result = string.Format("{0}: ({1}) {2}", this.Id, this.Kind, this.Type);
 					break;
 			}
 
 			return result;
 		}
     }
+
+	public class PTGDelegateNode : PTGNode
+	{
+		public IFunctionReference Target { get; set; }
+
+		public PTGDelegateNode(int id, IType type, IMethodReference method, uint offset = 0)
+			: base(id, type, method, PTGNodeKind.Delegate, offset)
+		{
+		}
+
+		public bool IsStatic
+		{
+			get { return this.Target is StaticMethodReference; }
+		}
+	}
 
 	// TODO: This class should be a struct or remove it and just use an string.
 	public class PTGNodeField

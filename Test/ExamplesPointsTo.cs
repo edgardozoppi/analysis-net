@@ -143,5 +143,18 @@ namespace Test
 			var first = new Node(1);
 			var other = Example11(first, 4);
 		}
+
+		// Lambdas
+		public void ExampleLambdaCaller()
+		{
+			var c = 5;
+			var result = ExampleLambdaCallee(x => x + c++);
+			result = c;
+		}
+
+		public int ExampleLambdaCallee(Func<int, int> lambda)
+		{
+			return lambda(3);
+		}
 	}
 }

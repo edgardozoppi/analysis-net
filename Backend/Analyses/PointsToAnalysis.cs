@@ -183,7 +183,14 @@ namespace Backend.Analyses
 			{
 				if (dst.Type.TypeKind == TypeKind.ValueType) return;
 
-				var node = GetOrCreateNode(offset, dst.Type, PTGNodeKind.Object);
+				var kind = PTGNodeKind.Object;
+
+				if (dst.Type.IsDelegate())
+				{
+					kind = PTGNodeKind.Delegate;
+				}
+
+				var node = GetOrCreateNode(offset, dst.Type, kind);
 
 				ptg.RemoveEdges(dst);
 				ptg.PointsTo(dst, node);
@@ -373,7 +380,15 @@ namespace Backend.Analyses
 				{
 					// Create a new node
 					var nodeId = nodeIdGenerator.Next;
-					node = new PTGNode(nodeId, type, method, kind, offset);
+
+					if (kind == PTGNodeKind.Delegate)
+					{
+						node = new PTGDelegateNode(nodeId, type, method, offset);
+					}
+					else
+					{
+						node = new PTGNode(nodeId, type, method, kind, offset);
+					}
 
 					ptg.Add(node);
 					nodeAtOffset.Add(offset, node);

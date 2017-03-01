@@ -283,5 +283,38 @@ namespace Model
 							  select m;
 			return rootMethods;
 		}
+
+		public static bool IsDelegate(this IType type)
+		{
+			var result = false;
+
+			if (type is IBasicType)
+			{
+				var basicType = type as IBasicType;
+
+				if (basicType.GenericType != null)
+				{
+					basicType = basicType.GenericType;
+				}
+
+				if (basicType.ResolvedType is ClassDefinition)
+				{
+					var resolvedType = basicType.ResolvedType as ClassDefinition;
+					result = resolvedType.IsDelegate;
+				}
+				else
+				{
+					var delegateTypes = new HashSet<string>
+					{
+						"System.Func<T1, T2>"
+					};
+
+					var fullName = basicType.GetFullName();
+					result = delegateTypes.Contains(fullName);
+				}
+			}
+
+			return result;
+		}
 	}
 }
