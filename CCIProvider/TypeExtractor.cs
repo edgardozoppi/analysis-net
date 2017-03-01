@@ -152,6 +152,12 @@ namespace CCIProvider
 			{
 				var basicType = result as BasicType;
 				basicType.Resolve(host);
+
+				if (basicType.GenericType is BasicType)
+				{
+					basicType = basicType.GenericType as BasicType;
+					basicType.Resolve(host);
+				}
 			}
 
 			return result;
