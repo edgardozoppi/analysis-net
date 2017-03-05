@@ -306,11 +306,11 @@ namespace Model
 				{
 					var delegateTypes = new HashSet<string>
 					{
-						"System.Func<T1, T2>"
+						"System.Func", "System.Action", "System.Predicate"
 					};
 
 					var fullName = basicType.GetFullName();
-					result = delegateTypes.Contains(fullName);
+					result = delegateTypes.Any(name => fullName.StartsWith(name));
 				}
 			}
 

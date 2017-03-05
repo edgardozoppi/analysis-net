@@ -156,5 +156,35 @@ namespace Test
 		{
 			return lambda(3);
 		}
+
+		// Delegates
+		public delegate int MyDelegate(int w);
+
+		public void ExampleDelegateCaller()
+		{
+			MyDelegate del = this.Function;
+
+			if (del == null)
+			{
+				del = this.Function2;
+			}
+
+			var result = ExampleDelegateCallee(del);
+		}
+
+		public int ExampleDelegateCallee(MyDelegate lambda)
+		{
+			return lambda(3);
+		}
+
+		public int Function(int x)
+		{
+			return x + 1;
+		}
+
+		public int Function2(int x)
+		{
+			return x + 1;
+		}
 	}
 }

@@ -25,6 +25,7 @@ namespace Backend.Analyses
 			private UniqueIDGenerator nodeIdGenerator;
 			private IDictionary<uint, PTGNode> nodeAtOffset;
 			private IDictionary<IBasicType, PTGNode> globalNodes;
+			private IDictionary<IVariable, IFunctionReference> functions;
 			private PointsToGraph ptg;
 
 			public TransferFunction(IMethodReference method, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator)
@@ -33,6 +34,7 @@ namespace Backend.Analyses
 				this.globalNodes = globalNodes;
 				this.nodeIdGenerator = nodeIdGenerator;
 				this.nodeAtOffset = new Dictionary<uint, PTGNode>();
+				this.functions = new Dictionary<IVariable, IFunctionReference>();
 			}
 
 			public Func<IMethodReference, MethodCallInstruction, IDictionary<IBasicType, PTGNode>, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall;
@@ -97,6 +99,11 @@ namespace Backend.Analyses
 					var access = instruction.Operand as ArrayElementAccess;
 					ProcessLoad(instruction.Offset, instruction.Result, access);
 				}
+				else if (instruction.Operand is IFunctionReference)
+				{
+					var function = instruction.Operand as IFunctionReference;
+					functions[instruction.Result] = function;
+				}
 			}
 
 			public override void Visit(StoreInstruction instruction)
@@ -147,10 +154,43 @@ namespace Backend.Analyses
 					{
 						DefaultProcessMethodCall(instruction.Offset, instruction.Result);
 					}
+					else if (instruction.Method.Name == ".ctor" && instruction.Method.ContainingType.IsDelegate())
+					{
+						// Delegate constructor call.
+						ProcessDelegateConstructorCall(instruction);
+					}
 				}
 				else
 				{
 					ptg = output;
+				}
+			}
+
+			private void ProcessDelegateConstructorCall(MethodCallInstruction instruction)
+			{
+				var receiver = instruction.Arguments.First();
+				var functionArg = instruction.Arguments.Last();
+				var function = functions[functionArg];
+				var nodes = ptg.GetTargets(receiver).OfType<PTGDelegateNode>();
+
+				foreach (var node in nodes)
+				{
+					node.Target = function;
+				}
+
+				if (instruction.Arguments.Count == 3)
+				{
+					var field = new PTGNodeField("instance", PlatformTypes.Object);
+					var instance = instruction.Arguments[1];
+					var targets = ptg.GetTargets(instance);
+
+					foreach (var node in nodes)
+					{
+						foreach (var target in targets)
+						{
+							ptg.PointsTo(node, field, target);
+						}
+					}
 				}
 			}
 

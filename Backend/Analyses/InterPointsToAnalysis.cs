@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using Model.ThreeAddressCode.Instructions;
 using Model.ThreeAddressCode.Values;
+using Model;
 
 namespace Backend.Analyses
 {
@@ -77,6 +78,56 @@ namespace Backend.Analyses
 		}
 
 		protected PointsToGraph ProcessMethodCall(IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
+		{
+			PointsToGraph output = null;
+
+			if (methodCall.Method.Name == "Invoke" && methodCall.Method.ContainingType.IsDelegate())
+			{
+				output = ProcessDelegateMethodCall(caller, methodCall, globalNodes, nodeIdGenerator, input);
+			}
+			else
+			{
+				output = ProcessDirectMethodCall(caller, methodCall, globalNodes, nodeIdGenerator, input);
+			}
+
+			return output;
+		}
+
+		private PointsToGraph ProcessDelegateMethodCall(IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
+		{
+			PointsToGraph output = null;
+			var methodCalls = ResolveDelegateMethodCall(methodCall, input);
+
+			foreach (var call in methodCalls)
+			{
+				var ptg = ProcessDirectMethodCall(caller, call, globalNodes, nodeIdGenerator, input);
+
+				if (call.Operation == MethodCallOperation.Virtual)
+				{
+					var instance = call.Arguments.First();
+
+					// Remove $instance variables from input and ptg.
+					input.Remove(instance);
+					ptg.Remove(instance);
+				}
+
+				if (ptg != null)
+				{
+					if (output == null)
+					{
+						output = ptg;
+					}
+					else
+					{
+						output.Union(ptg);
+					}
+				}
+			}
+
+			return output;
+		}
+
+		protected PointsToGraph ProcessDirectMethodCall(IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
 		{
 			PointsToGraph output = null;
 			var possibleCallees = ResolvePossibleCallees(methodCall, input);
@@ -294,6 +345,48 @@ namespace Backend.Analyses
 			}
 
 			return binding;
+		}
+
+		private static IEnumerable<MethodCallInstruction> ResolveDelegateMethodCall(MethodCallInstruction methodCall, PointsToGraph ptg)
+		{
+			var result = new HashSet<MethodCallInstruction>();
+			var receiver = methodCall.Arguments.First();
+			var field = new PTGNodeField("instance", PlatformTypes.Object);
+			var original = new LocalVariable("$instance") { Type = PlatformTypes.Object };
+			var nodes = ptg.GetTargets(receiver).OfType<PTGDelegateNode>();
+
+			foreach (var node in nodes)
+			{
+				MethodCallOperation operation;
+				var arguments = new List<IVariable>();
+				var targets = ptg.GetTargets(node, field);
+
+				if (targets.Count > 0)
+				{
+					// This is a delegate to an instance method.
+					var instance = new DerivedVariable(original, (uint)node.Id);
+
+					foreach (var target in targets)
+					{
+						ptg.PointsTo(instance, target);
+					}
+
+					operation = MethodCallOperation.Virtual;
+					arguments.Add(instance);
+					arguments.AddRange(methodCall.Arguments.Skip(1));
+				}
+				else
+				{
+					// This is a delegate to a static method.
+					operation = MethodCallOperation.Static;
+					arguments.AddRange(methodCall.Arguments);
+				}
+
+				var call = new MethodCallInstruction(methodCall.Offset, methodCall.Result, operation, node.Target.Method, arguments);
+				result.Add(call);
+			}
+
+			return result;
 		}
 
 		private static IEnumerable<IMethodReference> ResolvePossibleCallees(MethodCallInstruction methodCall, PointsToGraph ptg)

@@ -302,7 +302,7 @@ namespace Console
 			//loader.LoadCoreAssembly();
 
 			//var methodReference = new MethodReference("Example6", PlatformTypes.Void)
-			var methodReference = new MethodReference("ExampleLambdaCaller", PlatformTypes.Void)
+			var methodReference = new MethodReference("ExampleDelegateCaller", PlatformTypes.Void)
 			{
 				ContainingType = new BasicType("ExamplesPointsTo", TypeKind.ReferenceType)
 				{
