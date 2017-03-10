@@ -37,6 +37,7 @@ namespace Backend.Analyses
 				this.functions = new Dictionary<IVariable, IFunctionReference>();
 			}
 
+			public Func<IType, bool> IsScalarType;
 			public Func<IMethodReference, MethodCallInstruction, IDictionary<IBasicType, PTGNode>, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall;
 
 			public PointsToGraph Evaluate(CFGNode node, PointsToGraph input)
@@ -200,7 +201,7 @@ namespace Backend.Analyses
 
 			private void ProcessNull(IVariable dst)
 			{
-				if (dst.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(dst.Type)) return;
 
 				ptg.RemoveEdges(dst);
 				ptg.PointsTo(dst, ptg.Null);
@@ -208,7 +209,7 @@ namespace Backend.Analyses
 
 			private void ProcessReturn(IVariable src)
 			{
-				if (src.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(src.Type)) return;
 
 				// Weak update to preserve all possible return values
 				var targets = ptg.GetTargets(src);
@@ -221,7 +222,7 @@ namespace Backend.Analyses
 
 			private void ProcessAllocation(uint offset, IVariable dst)
 			{
-				if (dst.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(dst.Type)) return;
 
 				var kind = PTGNodeKind.Object;
 
@@ -238,7 +239,7 @@ namespace Backend.Analyses
 
 			private void DefaultProcessMethodCall(uint offset, IVariable dst)
 			{
-				if (dst.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(dst.Type)) return;
 
 				// If the callee is was not processed we should return an
 				// unknown node representing the result of the method call. 
@@ -255,7 +256,7 @@ namespace Backend.Analyses
 
 			private void ProcessCopy(IVariable dst, IVariable src)
 			{
-				if (dst.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(dst.Type) || IsScalarType(src.Type)) return;
 
 				// Avoid the following case:
 				// v = v
@@ -274,12 +275,12 @@ namespace Backend.Analyses
 
 			private void ProcessPhi(IVariable dst, IEnumerable<IVariable> srcs)
 			{
-				if (dst.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(dst.Type)) return;
 				var allTargets = new HashSet<PTGNode>();
 
 				foreach (var src in srcs)
 				{
-					if (src.Type.TypeKind == TypeKind.ValueType) continue;
+					if (IsScalarType(src.Type)) continue;
 
 					var targets = ptg.GetTargets(src);
 					allTargets.UnionWith(targets);
@@ -298,7 +299,7 @@ namespace Backend.Analyses
 				// We want to create the static/global node even when the field have a value type
 				var src = GetGlobalVariable(access);
 
-				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(dst.Type) || IsScalarType(access.Type)) return;
 
 				var field = access.ToPTGNodeField();
 				ProcessLoad(offset, dst, src, field);
@@ -306,7 +307,7 @@ namespace Backend.Analyses
 
 			private void ProcessLoad(uint offset, IVariable dst, InstanceFieldAccess access)
 			{
-				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(dst.Type) || IsScalarType(access.Type)) return;
 
 				var field = access.ToPTGNodeField();
 				ProcessLoad(offset, dst, access.Instance, field);
@@ -314,7 +315,7 @@ namespace Backend.Analyses
 
 			private void ProcessLoad(uint offset, IVariable dst, ArrayElementAccess access)
 			{
-				if (dst.Type.TypeKind == TypeKind.ValueType || access.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(dst.Type) || IsScalarType(access.Type)) return;
 
 				var field = access.ToPTGNodeField();
 				ProcessLoad(offset, dst, access.Array, field);
@@ -367,7 +368,7 @@ namespace Backend.Analyses
 				// We want to create the static/global node even when the field have a value type
 				var dst = GetGlobalVariable(access);
 
-				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(access.Type) || IsScalarType(src.Type)) return;
 				
 				var field = access.ToPTGNodeField();
 				ProcessStore(dst, src, field);
@@ -375,7 +376,7 @@ namespace Backend.Analyses
 
 			private void ProcessStore(InstanceFieldAccess access, IVariable src)
 			{
-				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(access.Type) || IsScalarType(src.Type)) return;
 
 				var field = access.ToPTGNodeField();
 				ProcessStore(access.Instance, src, field);
@@ -383,7 +384,7 @@ namespace Backend.Analyses
 
 			private void ProcessStore(ArrayElementAccess access, IVariable src)
 			{
-				if (access.Type.TypeKind == TypeKind.ValueType || src.Type.TypeKind == TypeKind.ValueType) return;
+				if (IsScalarType(access.Type) || IsScalarType(src.Type)) return;
 
 				var field = access.ToPTGNodeField();
 				ProcessStore(access.Array, src, field);
@@ -491,6 +492,7 @@ namespace Backend.Analyses
 			this.method = method;
 			this.nodeIdGenerator = new UniqueIDGenerator(1);
 			this.transferFunction = new TransferFunction(method, globalNodes, nodeIdGenerator);
+			this.IsScalarType = DefaultIsScalarType;
 		}
 
 		public PointsToAnalysis(ControlFlowGraph cfg, IMethodReference method, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator)
@@ -499,6 +501,13 @@ namespace Backend.Analyses
 			this.method = method;
 			this.nodeIdGenerator = nodeIdGenerator;
 			this.transferFunction = new TransferFunction(method, globalNodes, nodeIdGenerator);
+			this.IsScalarType = DefaultIsScalarType;
+		}
+
+		public Func<IType, bool> IsScalarType
+		{
+			get { return transferFunction.IsScalarType; }
+			set { transferFunction.IsScalarType = value; }
 		}
 
 		public Func<IMethodReference, MethodCallInstruction, IDictionary<IBasicType, PTGNode>, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall
@@ -543,6 +552,12 @@ namespace Backend.Analyses
             return output;
         }
 
+		protected bool DefaultIsScalarType(IType type)
+		{
+			var result = type.TypeKind == TypeKind.ValueType;
+			return result;
+		}
+
 		private PointsToGraph CreateInitialGraph()
 		{
 			var ptg = new PointsToGraph();
@@ -552,7 +567,7 @@ namespace Backend.Analyses
 
 			foreach (var variable in variables)
 			{
-				if (variable.Type.TypeKind == TypeKind.ValueType) continue;
+				if (IsScalarType(variable.Type)) continue;
 
 				if (variable.IsParameter)
 				{
@@ -570,7 +585,7 @@ namespace Backend.Analyses
 				}
 			}
 
-			if (method.ReturnType.TypeKind != TypeKind.ValueType)
+			if (!IsScalarType(method.ReturnType))
 			{
 				ptg.ResultVariable = new LocalVariable(PointsToGraph.ResultVariableName) { Type = method.ReturnType };
 				ptg.Add(ptg.ResultVariable);
@@ -586,7 +601,7 @@ namespace Backend.Analyses
 
 			foreach (var variable in variables)
 			{
-				if (variable.Type.TypeKind == TypeKind.ValueType) continue;
+				if (IsScalarType(variable.Type)) continue;
 
 				if (!variable.IsParameter)
 				{
@@ -594,7 +609,7 @@ namespace Backend.Analyses
 				}
 			}
 
-			if (method.ReturnType.TypeKind != TypeKind.ValueType)
+			if (!IsScalarType(method.ReturnType))
 			{
 				ptg.ResultVariable = new LocalVariable(PointsToGraph.ResultVariableName) { Type = method.ReturnType };
 				ptg.Add(ptg.ResultVariable);

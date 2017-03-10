@@ -39,6 +39,7 @@ namespace Backend.Analyses
 			this.ProcessUnknownMethod = DefaultProcessUnknownMethod;
 		}
 
+		public Func<IType, bool> IsScalarType;
 		public Func<MethodDefinition, ControlFlowGraph> OnReachableMethodFound;
 		public Func<IMethodReference, bool> OnUnknownMethodFound;
 		public Func<IMethodReference, IMethodReference, MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessUnknownMethod;
@@ -58,6 +59,7 @@ namespace Backend.Analyses
 			var cfg = OnReachableMethodFound(method);
 			// TODO: Don't create unknown nodes when doing the inter PT analysis
 			var pta = new PointsToAnalysis(cfg, method);
+			pta.IsScalarType = IsScalarType;
 			pta.ProcessMethodCall = ProcessMethodCall;
 
 			methodInfo.Add(INFO_PTA, pta);
@@ -169,6 +171,7 @@ namespace Backend.Analyses
 						var cfg = OnReachableMethodFound(method);
 						// TODO: Don't create unknown nodes when doing the inter PT analysis
 						var pta = new PointsToAnalysis(cfg, method, globalNodes, nodeIdGenerator);
+						pta.IsScalarType = IsScalarType;
 						pta.ProcessMethodCall = ProcessMethodCall;
 
 						methodInfo.Add(INFO_PTA, pta);

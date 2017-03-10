@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
-using Model.ThreeAddressCode.Instructions;
 using Model.ThreeAddressCode.Values;
 using Backend.Utils;
 using System;
@@ -490,9 +489,7 @@ namespace Backend.Model
 
 			foreach (var entry in binding)
 			{
-				if (entry.Key.Type.TypeKind == TypeKind.ValueType ||
-					entry.Value.Type.TypeKind == TypeKind.ValueType)
-					continue;
+				if (!callerFrame.ContainsKey(entry.Value)) continue;
 
 				// Get argument targets
 				IEnumerable<PTGNode> targets = callerFrame[entry.Value];
@@ -537,9 +534,7 @@ namespace Backend.Model
 
 			foreach (var entry in binding)
 			{
-				if (entry.Key.Type.TypeKind == TypeKind.ValueType ||
-					entry.Value.Type.TypeKind == TypeKind.ValueType)
-					continue;
+				if (!calleeFrame.ContainsKey(entry.Key)) continue;
 
 				// Get parameter targets
 				var targets = calleeFrame[entry.Key];
