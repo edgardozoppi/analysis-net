@@ -231,6 +231,27 @@ namespace Model
             return result;
         }
 
+		public static BasicType Instantiate(this IBasicType type, params IType[] genericArguments)
+		{
+			return type.Instantiate(genericArguments.AsEnumerable());
+		}
+
+		public static BasicType Instantiate(this IBasicType type, IEnumerable<IType> genericArguments)
+		{
+			var result = new BasicType(type.Name, type.TypeKind)
+			{
+				ContainingAssembly = type.ContainingAssembly,
+				ContainingNamespace = type.ContainingNamespace,
+				ContainingType = type.ContainingType,
+				GenericParameterCount = type.GenericParameterCount,
+				GenericType = type
+			};
+
+			result.GenericArguments.AddRange(genericArguments);
+			//result.Resolve(host);
+			return result;
+		}
+
 		public static Assembly LoadAssemblyWithReferences(this ILoader loader, string fileName)
 		{
 			var directory = Path.GetDirectoryName(fileName);

@@ -17,6 +17,8 @@ namespace Backend.Analyses
 	// Intraprocedural May Points-To Analysis
     public class PointsToAnalysis : ForwardDataFlowAnalysis<PointsToGraph>
     {
+		public delegate PointsToGraph ProcessMethodCallDelegate(IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input);
+
 		#region class TransferFunction
 
 		private class TransferFunction : InstructionVisitor
@@ -38,7 +40,7 @@ namespace Backend.Analyses
 			}
 
 			public Func<IType, bool> IsScalarType;
-			public Func<IMethodReference, MethodCallInstruction, IDictionary<IBasicType, PTGNode>, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall;
+			public ProcessMethodCallDelegate ProcessMethodCall;
 
 			public PointsToGraph Evaluate(CFGNode node, PointsToGraph input)
 			{
@@ -71,38 +73,60 @@ namespace Backend.Analyses
 
 			public override void Visit(LoadInstruction instruction)
 			{
-				if (instruction.Operand is Constant)
+				var operand = instruction.Operand;
+
+				if (operand is Reference)
 				{
-					var constant = instruction.Operand as Constant;
+					// TODO: Hack! We are ignoring the reference and treating it
+					// as a regular load (instead of an indirect load).
+					var reference = operand as Reference;
+
+					if (reference.Value is IVariable)
+					{
+						operand = reference.Value as IVariable;
+					}
+					else if (reference.Value is StaticFieldAccess)
+					{
+						operand = reference.Value as StaticFieldAccess;
+					}
+					else if (reference.Value is InstanceFieldAccess)
+					{
+						operand = reference.Value as InstanceFieldAccess;
+					}
+				}
+
+				if (operand is Constant)
+				{
+					var constant = operand as Constant;
 
 					if (constant.Value == null)
 					{
 						ProcessNull(instruction.Result);
 					}
 				}
-				else if (instruction.Operand is IVariable)
+				else if (operand is IVariable)
 				{
-					var variable = instruction.Operand as IVariable;
+					var variable = operand as IVariable;
 					ProcessCopy(instruction.Result, variable);
 				}
-				else if (instruction.Operand is StaticFieldAccess)
+				else if (operand is StaticFieldAccess)
 				{
-					var access = instruction.Operand as StaticFieldAccess;
+					var access = operand as StaticFieldAccess;
 					ProcessLoad(instruction.Offset, instruction.Result, access);
 				}
-				else if (instruction.Operand is InstanceFieldAccess)
+				else if (operand is InstanceFieldAccess)
 				{
-					var access = instruction.Operand as InstanceFieldAccess;
+					var access = operand as InstanceFieldAccess;
 					ProcessLoad(instruction.Offset, instruction.Result, access);
 				}
-				else if (instruction.Operand is ArrayElementAccess)
+				else if (operand is ArrayElementAccess)
 				{
-					var access = instruction.Operand as ArrayElementAccess;
+					var access = operand as ArrayElementAccess;
 					ProcessLoad(instruction.Offset, instruction.Result, access);
 				}
-				else if (instruction.Operand is IFunctionReference)
+				else if (operand is IFunctionReference)
 				{
-					var function = instruction.Operand as IFunctionReference;
+					var function = operand as IFunctionReference;
 					functions[instruction.Result] = function;
 				}
 			}
@@ -510,7 +534,7 @@ namespace Backend.Analyses
 			set { transferFunction.IsScalarType = value; }
 		}
 
-		public Func<IMethodReference, MethodCallInstruction, IDictionary<IBasicType, PTGNode>, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessMethodCall
+		public ProcessMethodCallDelegate ProcessMethodCall
 		{
 			get { return transferFunction.ProcessMethodCall; }
 			set { transferFunction.ProcessMethodCall = value; }

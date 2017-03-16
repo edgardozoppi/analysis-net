@@ -22,6 +22,8 @@ namespace Backend.Analyses
 	// Interprocedural May Points-To Analysis
 	public class InterPointsToAnalysis
 	{
+		public delegate PointsToGraph ProcessUnknownMethodCallDelegate(IMethodReference callee, IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input, PointsToAnalysis.ProcessMethodCallDelegate processMethodCall);
+
 		public const string INFO_CG = "CG";
 		public const string INFO_CFG = "CFG";
 		public const string INFO_PTA = "PTA";
@@ -36,13 +38,13 @@ namespace Backend.Analyses
 			this.programInfo = programInfo;
 			this.OnReachableMethodFound = DefaultReachableMethodFound;
 			this.OnUnknownMethodFound = DefaultUnknownMethodFound;
-			this.ProcessUnknownMethod = DefaultProcessUnknownMethod;
+			this.ProcessUnknownMethodCall = DefaultProcessUnknownMethodCall;
 		}
 
 		public Func<IType, bool> IsScalarType;
 		public Func<MethodDefinition, ControlFlowGraph> OnReachableMethodFound;
 		public Func<IMethodReference, bool> OnUnknownMethodFound;
-		public Func<IMethodReference, IMethodReference, MethodCallInstruction, UniqueIDGenerator, PointsToGraph, PointsToGraph> ProcessUnknownMethod;
+		public ProcessUnknownMethodCallDelegate ProcessUnknownMethodCall;
 
 		public CallGraph Analyze(MethodDefinition method)
 		{
@@ -59,8 +61,12 @@ namespace Backend.Analyses
 			var cfg = OnReachableMethodFound(method);
 			// TODO: Don't create unknown nodes when doing the inter PT analysis
 			var pta = new PointsToAnalysis(cfg, method);
-			pta.IsScalarType = IsScalarType;
 			pta.ProcessMethodCall = ProcessMethodCall;
+
+			if (IsScalarType != null)
+			{
+				pta.IsScalarType = IsScalarType;
+			}
 
 			methodInfo.Add(INFO_PTA, pta);
 
@@ -79,7 +85,7 @@ namespace Backend.Analyses
 			return callGraph;
 		}
 
-		protected PointsToGraph ProcessMethodCall(IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
+		protected virtual PointsToGraph ProcessMethodCall(IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
 		{
 			PointsToGraph output = null;
 
@@ -108,7 +114,7 @@ namespace Backend.Analyses
 				{
 					var instance = call.Arguments.First();
 
-					// Remove $instance variables from input and ptg.
+					// Remove special $instance variable (added in ResolveDelegateMethodCall method) from input and ptg.
 					input.Remove(instance);
 					ptg.Remove(instance);
 				}
@@ -129,7 +135,7 @@ namespace Backend.Analyses
 			return output;
 		}
 
-		protected PointsToGraph ProcessDirectMethodCall(IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
+		private PointsToGraph ProcessDirectMethodCall(IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
 		{
 			PointsToGraph output = null;
 			var possibleCallees = ResolvePossibleCallees(methodCall, input);
@@ -171,8 +177,12 @@ namespace Backend.Analyses
 						var cfg = OnReachableMethodFound(method);
 						// TODO: Don't create unknown nodes when doing the inter PT analysis
 						var pta = new PointsToAnalysis(cfg, method, globalNodes, nodeIdGenerator);
-						pta.IsScalarType = IsScalarType;
 						pta.ProcessMethodCall = ProcessMethodCall;
+
+						if (IsScalarType != null)
+						{
+							pta.IsScalarType = IsScalarType;
+						}
 
 						methodInfo.Add(INFO_PTA, pta);
 
@@ -253,7 +263,7 @@ namespace Backend.Analyses
 
 						if (isUnknownMethod)
 						{
-							ptg = ProcessUnknownMethod(callee, caller, methodCall, nodeIdGenerator, ptg);
+							ptg = ProcessUnknownMethodCall(callee, caller, methodCall, globalNodes, nodeIdGenerator, ptg, ProcessMethodCall);
 						}
 						else
 						{
@@ -475,7 +485,7 @@ namespace Backend.Analyses
 			return false;
 		}
 
-		protected virtual PointsToGraph DefaultProcessUnknownMethod(IMethodReference callee, IMethodReference caller, MethodCallInstruction methodCall, UniqueIDGenerator nodeIdGenerator, PointsToGraph input)
+		protected virtual PointsToGraph DefaultProcessUnknownMethodCall(IMethodReference callee, IMethodReference caller, MethodCallInstruction methodCall, IDictionary<IBasicType, PTGNode> globalNodes, UniqueIDGenerator nodeIdGenerator, PointsToGraph input, PointsToAnalysis.ProcessMethodCallDelegate processMethodCall)
 		{
 			return input;
 		}

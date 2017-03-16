@@ -77,6 +77,9 @@ namespace Model.Types
         public static readonly BasicType IEnumerator = New("mscorlib", "System.Collections", "IEnumerator", TypeKind.ReferenceType);
 		public static readonly BasicType GenericICollection = New("mscorlib", "System.Collections.Generic", "ICollection", TypeKind.ReferenceType, 1);
 
+		public static readonly BasicType Task = New("mscorlib", "System.Threading.Tasks", "Task", TypeKind.ReferenceType);
+		public static readonly BasicType GenericTask = New("mscorlib", "System.Threading.Tasks", "Task", TypeKind.ReferenceType, 1);
+
 		public static void Resolve(Host host)
 		{
 			foreach (var type in platformTypes)

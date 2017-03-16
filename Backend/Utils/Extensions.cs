@@ -498,6 +498,11 @@ namespace Backend.Utils
 			return expr;
 		}
 
+		public static PTGNodeField ToPTGNodeField(this IFieldReference field)
+		{
+			return new PTGNodeField(field.Name, field.Type);
+		}
+
 		public static PTGNodeField ToPTGNodeField(this IFieldAccess access)
 		{
 			return new PTGNodeField(access.FieldName, access.Type);
