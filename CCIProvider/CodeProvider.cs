@@ -46,7 +46,8 @@ namespace CCIProvider
 		{
 			if (!methoddef.IsStatic)
 			{
-				var type = typeExtractor.ExtractType(methoddef.ContainingType);
+				var isByReference = methoddef.ContainingType.IsValueType;
+				var type = typeExtractor.ExtractType(methoddef.ContainingType, isByReference);
 				var v = new LocalVariable("this", true) { Type = type };
 
 				ourParameters.Add(v);

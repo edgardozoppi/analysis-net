@@ -186,5 +186,34 @@ namespace Test
 		{
 			return x + 1;
 		}
+
+		// Structs
+		public struct MyStruct
+		{
+			public Node Valor;
+
+			public MyStruct(Node valor)
+			{
+				this.Valor = valor;
+				var w = this;
+				w.Valor = valor;
+			}
+		}
+
+		public MyStruct ExampleStructCaller(Node n)
+		{
+			var a = new MyStruct(n);
+			var b = a;
+			b.Valor = n;
+			n = a.Valor;
+			ExampleStructCallee(b);
+			return b;
+		}
+
+		public void ExampleStructCallee(MyStruct h)
+		{
+			var k = h;
+			k.Valor = null;
+		}
 	}
 }

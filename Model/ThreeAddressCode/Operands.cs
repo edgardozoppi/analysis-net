@@ -611,56 +611,48 @@ namespace Model.ThreeAddressCode.Values
 
 	public class InstanceFieldAccess : IFieldAccess, IAssignableValue, IReferenceable
 	{
-		private IFieldReference field;
-		private IVariable instance;
-
-		public string Name { get; private set; }
+		public IVariable Instance { get; set; }
+		public IFieldReference Field { get; set; }
 
 		public InstanceFieldAccess(IVariable instance, IFieldReference field)
 		{
-			this.instance = instance;
-			this.field = field;
-			UpdateName();
+			this.Instance = instance;
+			this.Field = field;
 		}
 
-		public IVariable Instance
+		public string Name
 		{
-			get { return instance; }
-			set
+			get
 			{
-				instance = value;
-				UpdateName();
-			}
-		}
+				var op = ".";
 
-		public IFieldReference Field
-		{
-			get { return field; }
-			set
-			{
-				field = value;
-				UpdateName();
+				if (this.Instance.Type is PointerType)
+				{
+					op = "->";
+				}
+
+				return string.Format("{0}{1}{2}", this.Instance, op, this.FieldName);
 			}
 		}
 
 		public string FieldName
 		{
-			get { return field.Name; }
+			get { return this.Field.Name; }
 		}
 
 		public IType Type
 		{
-			get { return field.Type; }
+			get { return this.Field.Type; }
 		}
 
 		public ISet<IVariable> Variables
 		{
-			get { return new HashSet<IVariable>() { instance }; }
+			get { return new HashSet<IVariable>() { this.Instance }; }
 		}
 
 		public void Replace(IVariable oldvar, IVariable newvar)
 		{
-			if (instance.Equals(oldvar)) this.Instance = newvar;
+			if (this.Instance.Equals(oldvar)) this.Instance = newvar;
 		}
 
 		IExpression IExpression.Replace(IExpression oldexpr, IExpression newexpr)
@@ -670,8 +662,8 @@ namespace Model.ThreeAddressCode.Values
 
 			if (oldexpr is IVariable && newexpr is IVariable)
 			{
-				var instance = (this.instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
-				result = new InstanceFieldAccess(instance, field);
+				var instance = (this.Instance as IExpression).Replace(oldexpr, newexpr) as IVariable;
+				result = new InstanceFieldAccess(instance, this.Field);
 			}
 
 			return result;
@@ -699,11 +691,6 @@ namespace Model.ThreeAddressCode.Values
 		public override string ToString()
 		{
 			return this.Name;
-		}
-
-		private void UpdateName()
-		{
-			this.Name = string.Format("{0}.{1}", instance, this.FieldName);
 		}
 	}
 
