@@ -55,18 +55,33 @@ namespace Model.Types
 
 		public static bool IsScalar(this IType type)
 		{
-			var result = type.Equals(PlatformTypes.Boolean)
-					  || type.Equals(PlatformTypes.Char)
-					  || type.Equals(PlatformTypes.Float32)
-					  || type.Equals(PlatformTypes.Float64)
-					  || type.Equals(PlatformTypes.Int8)
-					  || type.Equals(PlatformTypes.Int16)
-					  || type.Equals(PlatformTypes.Int32)
-					  || type.Equals(PlatformTypes.Int64)
-					  || type.Equals(PlatformTypes.UInt8)
-					  || type.Equals(PlatformTypes.UInt16)
-					  || type.Equals(PlatformTypes.UInt32)
-					  || type.Equals(PlatformTypes.UInt64);
+			var result = type.TypeKind == TypeKind.ValueType;
+
+			if (result && type is IBasicType)
+			{
+				var basicType = type as IBasicType;
+				var scalarTypes = new IBasicType[]
+				{
+					PlatformTypes.Void,
+					PlatformTypes.Boolean,
+					PlatformTypes.Char,
+					PlatformTypes.Float32,
+					PlatformTypes.Float64,
+					PlatformTypes.Int8,
+					PlatformTypes.Int16,
+					PlatformTypes.Int32,
+					PlatformTypes.Int64,
+					PlatformTypes.UInt8,
+					PlatformTypes.UInt16,
+					PlatformTypes.UInt32,
+					PlatformTypes.UInt64,
+					PlatformTypes.IntPtr,
+					PlatformTypes.UIntPtr
+				};
+
+				result = scalarTypes.Contains(basicType, BasicTypeDefinitionComparer.Default);
+			}
+
 			return result;
 		}
 
