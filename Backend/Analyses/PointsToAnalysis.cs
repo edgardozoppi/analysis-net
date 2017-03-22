@@ -103,6 +103,10 @@ namespace Backend.Analyses
 					{
 						ProcessNull(instruction.Result);
 					}
+					else if (constant.Value is string)
+					{
+						ProcessString(instruction.Offset, instruction.Result);
+					}
 				}
 				else if (operand is IVariable)
 				{
@@ -229,6 +233,20 @@ namespace Backend.Analyses
 
 				ptg.RemoveEdges(dst);
 				ptg.PointsTo(dst, ptg.Null);
+			}
+
+			private void ProcessString(uint offset, IVariable dst)
+			{
+				if (IsScalarType(dst.Type)) return;
+
+				// TODO: Maybe we can avoid creating a new node for each string literal and use
+				// only one unique global node to represent all string literals (like Null node)
+
+				// Create a new dummy node to represent the string
+				var node = GetOrCreateNode(offset, dst.Type, PTGNodeKind.Object);
+
+				ptg.RemoveEdges(dst);
+				ptg.PointsTo(dst, node);
 			}
 
 			private void ProcessReturn(IVariable src)

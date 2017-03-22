@@ -215,5 +215,12 @@ namespace Test
 			var k = h;
 			k.Valor = null;
 		}
+
+		// Strings
+		public static void ExampleString()
+		{
+			var s = "hola".Trim();
+			string.Format("chau");
+		}
 	}
 }
