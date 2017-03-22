@@ -52,7 +52,7 @@ namespace Model.Types
 
 			return type;
 		}
-
+		
 		public static bool IsScalar(this IType type)
 		{
 			var result = type.TypeKind == TypeKind.ValueType;
@@ -67,6 +67,7 @@ namespace Model.Types
 					PlatformTypes.Char,
 					PlatformTypes.Float32,
 					PlatformTypes.Float64,
+					PlatformTypes.Decimal,
 					PlatformTypes.Int8,
 					PlatformTypes.Int16,
 					PlatformTypes.Int32,
@@ -80,12 +81,32 @@ namespace Model.Types
 				};
 
 				result = scalarTypes.Contains(basicType, BasicTypeDefinitionComparer.Default);
+				result = result || basicType.IsEnum();
 			}
 
 			return result;
 		}
 
-		public static bool IsContainer(IType type)
+		public static bool IsStruct(this IType type)
+		{
+			var result = type.TypeKind == TypeKind.ValueType && !type.IsScalar();
+			return result;
+		}
+
+		public static bool IsEnum(this IType type)
+		{
+			var result = type.TypeKind == TypeKind.ValueType;
+
+			if (result && type is IBasicType)
+			{
+				var basicType = type as IBasicType;
+				result = basicType.ResolvedType is EnumDefinition;
+			}
+
+			return result;
+		}
+
+		public static bool IsContainer(this IType type)
 		{
 			var result = false;
 
