@@ -283,6 +283,14 @@ namespace Backend.Serialization
 					xmlWriter.WriteStartElement("Node");
 					xmlWriter.WriteAttributeString("Id", nodeId);
 					xmlWriter.WriteAttributeString("Label", label);
+
+					if (method.ResolvedMethod == null)
+					{
+						// Unknown method
+						xmlWriter.WriteAttributeString("Background", "#FFB445");
+						xmlWriter.WriteAttributeString("StrokeDashArray", "6,6");
+					}
+
 					xmlWriter.WriteEndElement();
 				}
 
