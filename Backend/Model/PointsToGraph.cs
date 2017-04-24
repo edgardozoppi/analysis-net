@@ -551,6 +551,10 @@ namespace Backend.Model
 					variables.Add(node, entry.Key);
 				}
 			}
+
+			// Set result variable
+			var result = roots.Keys.SingleOrDefault(v => v.Name == ResultVariableName);
+			this.ResultVariable = result;
 		}
 
 		private static MapSet<PTGNodeField, PTGNode> GetEdges(IDictionary<PTGNode, MapSet<PTGNodeField, PTGNode>> mapping, PTGNode node)
