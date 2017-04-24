@@ -192,10 +192,6 @@ namespace Backend.Analyses
 					}
 				}
 
-				// TODO: If the callee is not processed we should
-				// return an unknown node representing the result
-				// of the method call (if the return type is a
-				// reference type).
 
 				if (processCallee)
 				{
@@ -404,7 +400,7 @@ namespace Backend.Analyses
 
 		private static IEnumerable<IMethodReference> ResolvePossibleCallees(MethodCallInstruction methodCall, PointsToGraph ptg)
 		{
-			var result = new HashSet<IMethodReference>();
+			var result = new HashSet<IMethodReference>(MethodReferenceDefinitionComparer.Default);
 			var staticCallee = methodCall.Method;
 
 			if (!staticCallee.IsStatic &&

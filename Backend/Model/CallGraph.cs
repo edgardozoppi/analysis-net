@@ -30,7 +30,7 @@ namespace Backend.Model
 		{
 			this.Label = label;
 			this.StaticCallee = staticCallee;
-			this.PossibleCallees = new HashSet<IMethodReference>();
+			this.PossibleCallees = new HashSet<IMethodReference>(MethodReferenceDefinitionComparer.Default);
 		}
 	}
 
@@ -199,11 +199,11 @@ namespace Backend.Model
 			// reverse postorder traversal from root methods
 			var stack = new Stack<IMethodReference>();
 			var result = new List<IMethodReference>();
-			var status = new Dictionary<IMethodReference, TopologicalSortNodeStatus>();
+			var status = new Dictionary<IMethodReference, TopologicalSortNodeStatus>(MethodReferenceDefinitionComparer.Default);
 
-			foreach (var methodInfo in methods.Keys)
+			foreach (var method in methods.Keys)
 			{
-				status[methodInfo] = TopologicalSortNodeStatus.NeverVisited;
+				status[method] = TopologicalSortNodeStatus.NeverVisited;
 			}
 
 			foreach (var method in roots)

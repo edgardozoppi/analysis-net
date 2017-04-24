@@ -141,7 +141,7 @@ namespace Backend.Analyses
 
 		private IEnumerable<IMethodReference> ResolvePossibleCallees(IMethodReference method, bool isVirtualCall)
 		{
-			var result = new HashSet<IMethodReference>();
+			var result = new HashSet<IMethodReference>(MethodReferenceDefinitionComparer.Default);
 
 			result.Add(method);
 
