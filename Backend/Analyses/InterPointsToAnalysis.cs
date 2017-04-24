@@ -282,6 +282,12 @@ namespace Backend.Analyses
 							// We cannot use info.Output here because it could be a recursive call
 							// and info.Output is assigned after analyzing the callee.
 							ptg = info.IntraPointsToInfo[ControlFlowGraph.ExitNodeId].Output;
+
+							if (info.Output != null)
+							{
+								ptg.Union(info.Output);
+							}
+
 							info.Output = ptg;
 						}
 					}
