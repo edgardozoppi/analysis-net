@@ -338,17 +338,6 @@ namespace CCIProvider
 				var kind = GetTypeKind(typeref);
 				var newType = new BasicType(name, kind);
 
-				newType.ContainingAssembly = new AssemblyReference(containingAssembly);
-				newType.ContainingNamespace = containingNamespace;
-				newType.GenericParameterCount = typeref.GenericParameterCount;
-
-				if (typeref is Cci.INestedTypeReference)
-				{
-					var nestedTyperef = typeref as Cci.INestedTypeReference;
-					newType.ContainingType = (IBasicType)ExtractType(nestedTyperef.ContainingType);
-					newType.GenericParameterCount += newType.ContainingType.GenericParameterCount;
-				}
-
 				if (type == null)
 				{
 					attributesCache.Add(typeref, newType);
@@ -358,6 +347,17 @@ namespace CCIProvider
 				else
 				{
 					newType.Attributes.UnionWith(type.Attributes);
+				}
+
+				newType.ContainingAssembly = new AssemblyReference(containingAssembly);
+				newType.ContainingNamespace = containingNamespace;
+				newType.GenericParameterCount = typeref.GenericParameterCount;
+
+				if (typeref is Cci.INestedTypeReference)
+				{
+					var nestedTyperef = typeref as Cci.INestedTypeReference;
+					newType.ContainingType = (IBasicType)ExtractType(nestedTyperef.ContainingType);
+					newType.GenericParameterCount += newType.ContainingType.GenericParameterCount;
 				}
 
 				type = newType;
@@ -462,8 +462,9 @@ namespace CCIProvider
 			ExtractAttributes(field.Attributes, fieldref.Attributes);
 
 			field.ContainingType = (IBasicType)ExtractType(fieldref.ContainingType);
+			field.IsStatic = fieldref.IsStatic || fieldref.ResolvedField.IsStatic;
 			//field.IsStatic = fieldref.IsStatic;
-			field.IsStatic = fieldref.ResolvedField.IsStatic;
+			//field.IsStatic = fieldref.ResolvedField.IsStatic;
 
 			return field;
 		}
