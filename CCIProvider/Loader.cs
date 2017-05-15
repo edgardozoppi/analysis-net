@@ -63,7 +63,14 @@ namespace CCIProvider
 			{
 				using (var pdbStream = File.OpenRead(pdbFileName))
 				{
-					pdbReader = new Cci.PdbReader(pdbStream, cciHost);
+					try
+					{
+						pdbReader = new Cci.PdbReader(pdbStream, cciHost);
+					}
+					catch (Exception ex)
+					{
+						// TODO: Do something with the exception.
+					}
 				}
 			}
 
