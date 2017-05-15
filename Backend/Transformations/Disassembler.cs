@@ -1030,11 +1030,18 @@ namespace Backend.Transformations
 							instruction = new Tac.TryInstruction(operation.Offset);
 							break;
 
+						case ExceptionHandlerBlockKind.Filter:
+							// Push the exception into the stack
+							var filterException = stack.Push();
+							var filterBlock = block as FilterExceptionHandler;
+							instruction = new Tac.FilterInstruction(operation.Offset, filterException, filterBlock.ExceptionType);
+							break;
+
 						case ExceptionHandlerBlockKind.Catch:
 							// Push the exception into the stack
-							var exception = stack.Push();
+							var catchException = stack.Push();
 							var catchBlock = block as CatchExceptionHandler;
-							instruction = new Tac.CatchInstruction(operation.Offset, exception, catchBlock.ExceptionType);
+							instruction = new Tac.CatchInstruction(operation.Offset, catchException, catchBlock.ExceptionType);
 							break;
 
 						case ExceptionHandlerBlockKind.Fault:
@@ -1046,7 +1053,7 @@ namespace Backend.Transformations
 							break;
 
 						default:
-							throw new Exception("Unknown ExceptionHandlerKind.");
+							throw new Exception("Unknown ExceptionHandlerBlockKind.");
 					}
 
 					body.Instructions.Add(instruction);

@@ -185,6 +185,60 @@ namespace Model.ThreeAddressCode.Expressions
 		}
 	}
 
+	public class FilterExpression : IExpression
+	{
+		public IType ExceptionType { get; set; }
+
+		public FilterExpression(IType exceptionType)
+		{
+			this.ExceptionType = exceptionType;
+		}
+
+		public IType Type
+		{
+			get { return this.ExceptionType; }
+		}
+
+		public ISet<IVariable> Variables
+		{
+			get { return new HashSet<IVariable>(); }
+		}
+
+		public void Replace(IVariable oldvar, IVariable newvar)
+		{
+		}
+
+		public IExpression Replace(IExpression oldexpr, IExpression newexpr)
+		{
+			if (this.Equals(oldexpr)) return newexpr;
+			return this;
+		}
+
+		IExpression IExpressible.ToExpression()
+		{
+			return this;
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (object.ReferenceEquals(this, obj)) return true;
+			var other = obj as FilterExpression;
+
+			return other != null &&
+				this.ExceptionType.Equals(other.ExceptionType);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.ExceptionType.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			return string.Format("filter {0}", this.ExceptionType);
+		}
+	}
+
 	public class CatchExpression : IExpression
 	{
 		public IType ExceptionType { get; set; }

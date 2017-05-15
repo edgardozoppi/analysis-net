@@ -11,6 +11,7 @@ namespace Model.ThreeAddressCode
 	public enum ExceptionHandlerBlockKind
 	{
 		Try,
+		Filter,
 		Catch,
 		Fault,
 		Finally
@@ -44,6 +45,27 @@ namespace Model.ThreeAddressCode
 		public override string ToString()
 		{
 			return string.Format("try {0} to {1} {2}", this.Start, this.End, this.Handler);
+		}
+	}
+
+	public class FilterExceptionHandler : IExceptionHandler
+	{
+		public ExceptionHandlerBlockKind Kind { get; private set; }
+		public string Start { get; set; }
+		public string End { get; set; }
+		public IType ExceptionType { get; set; }
+
+		public FilterExceptionHandler(uint start, uint end, IType exceptionType)
+		{
+			this.Kind = ExceptionHandlerBlockKind.Filter;
+			this.Start = string.Format("L_{0:X4}", start);
+			this.End = string.Format("L_{0:X4}", end);
+			this.ExceptionType = exceptionType;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("filter {0} handler {1} to {2}", this.ExceptionType, this.Start, this.End);
 		}
 	}
 

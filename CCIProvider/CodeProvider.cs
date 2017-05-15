@@ -85,9 +85,15 @@ namespace CCIProvider
 
 				switch (cciExceptionInfo.HandlerKind)
 				{
+					case Cci.HandlerKind.Filter:
+						var filterExceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
+						var filterHandler = new FilterExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, filterExceptionType);
+						tryHandler.Handler = filterHandler;
+						break;
+
 					case Cci.HandlerKind.Catch:
-						var exceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
-						var catchHandler = new CatchExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, exceptionType);
+						var catchExceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
+						var catchHandler = new CatchExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, catchExceptionType);
 						tryHandler.Handler = catchHandler;
 						break;
 

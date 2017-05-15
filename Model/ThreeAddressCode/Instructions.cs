@@ -445,6 +445,33 @@ namespace Model.ThreeAddressCode.Instructions
 		}
 	}
 
+	public class FilterInstruction : DefinitionInstruction
+	{
+		public IType ExceptionType { get; set; }
+
+		public FilterInstruction(uint label, IVariable result, IType exceptionType)
+			: base(label, result)
+		{
+			this.ExceptionType = exceptionType;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
+		public override IExpression ToExpression()
+		{
+			return new FilterExpression(this.ExceptionType);
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}:  filter {1} {2};", this.Label, this.ExceptionType, this.Result);
+		}
+	}
+
 	public class CatchInstruction : DefinitionInstruction
 	{
 		public IType ExceptionType { get; set; }
