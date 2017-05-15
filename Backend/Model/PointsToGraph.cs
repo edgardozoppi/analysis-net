@@ -101,7 +101,13 @@ namespace Backend.Model
 
 		public bool IsStatic
 		{
-			get { return this.Target is StaticMethodReference; }
+			get
+			{
+				// This doesn't work because even instance methods are StaticMethodReference.
+				// return this.Target is StaticMethodReference;
+
+				return this.Target.Method.IsStatic;
+			}
 		}
 	}
 

@@ -162,7 +162,7 @@ namespace Test
 
 		public void ExampleDelegateCaller()
 		{
-			MyDelegate del = this.Function;
+			MyDelegate del = Function;
 
 			if (del == null)
 			{
@@ -177,7 +177,7 @@ namespace Test
 			return lambda(3);
 		}
 
-		public int Function(int x)
+		public static int Function(int x)
 		{
 			return x + 1;
 		}

@@ -376,7 +376,7 @@ namespace Backend.Analyses
 				var arguments = new List<IVariable>();
 				var targets = ptg.GetTargets(node, field);
 
-				if (targets.Count > 0)
+				if (!node.IsStatic && targets.Count > 0)
 				{
 					// This is a delegate to an instance method.
 					var instance = new DerivedVariable(original, (uint)node.Id);
@@ -387,14 +387,17 @@ namespace Backend.Analyses
 					}
 
 					operation = MethodCallOperation.Virtual;
+					// Include the implicit receiver argument.
 					arguments.Add(instance);
+					// Skip the delegate receiver.
 					arguments.AddRange(methodCall.Arguments.Skip(1));
 				}
 				else
 				{
 					// This is a delegate to a static method.
 					operation = MethodCallOperation.Static;
-					arguments.AddRange(methodCall.Arguments);
+					// Skip the delegate receiver.
+					arguments.AddRange(methodCall.Arguments.Skip(1));
 				}
 
 				var call = new MethodCallInstruction(methodCall.Offset, methodCall.Result, operation, node.Target.Method, arguments);
