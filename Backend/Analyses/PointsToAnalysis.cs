@@ -638,17 +638,14 @@ namespace Backend.Analyses
 
 		private PointsToGraph CreateInitialGraph(PointsToGraph ptg)
 		{
-			// Add all variables except parameters
+			// Add all variables
 			var variables = cfg.GetVariables();
 
 			foreach (var variable in variables)
 			{
 				if (IsScalarType(variable.Type)) continue;
 
-				if (!variable.IsParameter)
-				{
-					ptg.Add(variable);
-				}
+				ptg.Add(variable);
 			}
 
 			if (!IsScalarType(method.ReturnType))
