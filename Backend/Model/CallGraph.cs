@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
+using Model;
 using Model.Types;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,25 @@ namespace Backend.Model
 			this.Caller = caller;
 			this.Label = label;
 		}
+
+		public override int GetHashCode()
+		{
+			return MethodReferenceDefinitionComparer.Default.GetHashCode(this.Caller) ^
+				this.Label.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as CallSite;
+			return other != null &&
+				MethodReferenceDefinitionComparer.Default.Equals(this.Caller, other.Caller) &&
+				this.Label.Equals(other.Label);
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0} at {1}", this.Caller.ToSignatureString(), this.Label);
+		}
 	}
 
 	public class InvocationInfo
@@ -31,6 +51,11 @@ namespace Backend.Model
 			this.Label = label;
 			this.StaticCallee = staticCallee;
 			this.PossibleCallees = new HashSet<IMethodReference>(MethodReferenceDefinitionComparer.Default);
+		}
+
+		public override string ToString()
+		{
+			return string.Format("Invocation of {0} at {1} ({2} callees)", this.StaticCallee.ToSignatureString(), this.Label, this.PossibleCallees.Count);
 		}
 	}
 
