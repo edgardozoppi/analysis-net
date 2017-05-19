@@ -374,9 +374,10 @@ namespace Backend.Analyses
 			{
 				MethodCallOperation operation;
 				var arguments = new List<IVariable>();
-				var targets = ptg.GetTargets(node, field);
+				var targets = ptg.GetTargets(node, field)
+								 .Where(n => n.Kind != PTGNodeKind.Null);
 
-				if (!node.IsStatic && targets.Count > 0)
+				if (targets.Any())
 				{
 					// This is a delegate to an instance method.
 					var instance = new DerivedVariable(original, (uint)node.Id);
