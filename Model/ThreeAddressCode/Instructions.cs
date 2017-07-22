@@ -277,11 +277,11 @@ namespace Model.ThreeAddressCode.Instructions
 		{
 			get
 			{
-				// An optimization that would improve precision
-				// is to detect copies like x = x where
-				// variable x is assigned to itself.
+				// For copies like x = x where variable x
+                // is assigned to itself, we still want to
+                // consider x a modified variable.
 				var result = new HashSet<IVariable>();
-				if (this.HasResult && !this.Result.Equals(this.Operand)) result.Add(this.Result);
+				if (this.HasResult) result.Add(this.Result);
 				return result;
 			}
 		}
