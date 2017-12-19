@@ -15,9 +15,9 @@ namespace Backend.Analyses
 {
 	public class TypeInferenceAnalysis
 	{
-		#region class TypeInferencer
+		#region class TypeInferer
 
-		private class TypeInferencer : InstructionVisitor
+		private class TypeInferer : InstructionVisitor
 		{
 			public override void Visit(LocalAllocationInstruction instruction)
 			{
@@ -222,7 +222,7 @@ namespace Backend.Analyses
 
 		public void Analyze()
 		{
-			var inferer = new TypeInferencer();
+			var inferer = new TypeInferer();
 			var sorted_nodes = cfg.ForwardOrder;
 
 			for (var i = 0; i < sorted_nodes.Length; ++i)
