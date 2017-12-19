@@ -301,8 +301,9 @@ namespace Console
 			loader.LoadAssembly(input);
 			//loader.LoadCoreAssembly();
 
+			var methodReference = new MethodReference("Example6", PlatformTypes.Void)
 			//var methodReference = new MethodReference("Example6", PlatformTypes.Void)
-			var methodReference = new MethodReference("ExampleDelegateCaller", PlatformTypes.Void)
+			//var methodReference = new MethodReference("ExampleDelegateCaller", PlatformTypes.Void)
 			{
 				ContainingType = new BasicType("ExamplesPointsTo", TypeKind.ReferenceType)
 				{
@@ -335,6 +336,9 @@ namespace Console
 			var esca = new EscapeAnalysis(programInfo, cg);
 			var escapeResult = esca.Analyze();
 
+			var fea = new FieldEffectsAnalysis(programInfo, cg);
+			var effectsResult = fea.Analyze();
+
 			foreach (var method in cg.Methods)
 			{
 				MethodAnalysisInfo methodInfo;
@@ -356,6 +360,9 @@ namespace Console
 
 				EscapeInfo escapeInfo;
 				ok = escapeResult.TryGetValue(method, out escapeInfo);
+
+				FieldEffectsInfo effectsInfo;
+				ok = effectsResult.TryGetValue(method, out effectsInfo);
 			}
 		}
 

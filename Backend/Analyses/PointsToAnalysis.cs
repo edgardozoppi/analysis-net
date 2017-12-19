@@ -137,19 +137,21 @@ namespace Backend.Analyses
 
 			public override void Visit(StoreInstruction instruction)
 			{
-				if (instruction.Result is StaticFieldAccess)
+				var result = instruction.Result;
+
+				if (result is StaticFieldAccess)
 				{
-					var access = instruction.Result as StaticFieldAccess;
+					var access = result as StaticFieldAccess;
 					ProcessStore(access, instruction.Operand);
 				}
-				else if (instruction.Result is InstanceFieldAccess)
+				else if (result is InstanceFieldAccess)
 				{
-					var access = instruction.Result as InstanceFieldAccess;
+					var access = result as InstanceFieldAccess;
 					ProcessStore(access, instruction.Operand);
 				}
-				else if (instruction.Result is ArrayElementAccess)
+				else if (result is ArrayElementAccess)
 				{
-					var access = instruction.Result as ArrayElementAccess;
+					var access = result as ArrayElementAccess;
 					ProcessStore(access, instruction.Operand);
 				}
 			}
@@ -589,9 +591,9 @@ namespace Backend.Analyses
 
         protected override PointsToGraph Flow(CFGNode node, PointsToGraph input)
         {
-            input = input.Clone();
+			input = input.Clone();
 			var output = transferFunction.Evaluate(node, input);
-            return output;
+			return output;
         }
 
 		protected bool DefaultIsScalarType(IType type)
