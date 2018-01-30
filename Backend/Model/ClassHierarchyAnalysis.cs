@@ -108,6 +108,10 @@ namespace Backend.Model
 			{
 				AnalyzeInterface(type);
 			}
+			else if (type.IsEnum || type.IsDelegate)
+			{
+				// Nothing
+			}
 			else
 			{
 				throw new Exception("Unknown type kind");
