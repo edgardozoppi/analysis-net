@@ -100,21 +100,40 @@ namespace Backend.Analyses
 				// Null is a polymorphic value so we handle it specially. We don't set the
 				// corresponding variable's type yet. We postpone it to usage of the variable
 				// or set it to System.Object if it is never used.
-				if (operandAsConstant != null &&
-					operandAsConstant.Value == null)
+				if (operandAsConstant != null)
 				{
-					instruction.Result.Type = PlatformTypes.Object;
+					if (operandAsConstant.Value == null)
+					{
+						instruction.Result.Type = PlatformTypes.Object;
+					}
+					else if (instruction.Result.Type != null &&
+							 instruction.Result.Type.Equals(PlatformTypes.Boolean))
+					{
+						// If the result of the load has type Boolean,
+						// then we are actually loading a Boolean constant.
+						if (operandAsConstant.Value.Equals(0))
+						{
+							operandAsConstant.Value = false;
+							operandAsConstant.Type = PlatformTypes.Boolean;
+						}
+						else if (operandAsConstant.Value.Equals(1))
+						{
+							operandAsConstant.Value = true;
+							operandAsConstant.Type = PlatformTypes.Boolean;
+						}
+					}
 				}
 				// If we have variable to variable assignment where the result was assigned
 				// a type but the operand was not, then we set the operand type accordingly.
-				else if (instruction.Result.Type != null &&
-						operandAsVariable != null &&
+				else if (operandAsVariable != null && 
+						 instruction.Result.Type != null &&
 						(operandAsVariable.Type == null ||
 						 operandAsVariable.Type.Equals(PlatformTypes.Object)))
 				{
 					operandAsVariable.Type = instruction.Result.Type;
 				}
-				else
+				
+				if (instruction.Result.Type == null)
 				{
 					instruction.Result.Type = instruction.Operand.Type;
 				}
@@ -203,8 +222,25 @@ namespace Backend.Analyses
 						break;
 
 					case BinaryOperation.Eq:
+					case BinaryOperation.Neq:
+						// If one of the operands has type Boolean,
+						// then the other operand must also have type Boolean.
+						if (left != null && left.Equals(PlatformTypes.Boolean))
+						{
+							instruction.RightOperand.Type = PlatformTypes.Boolean;
+						}
+						else if (right != null && right.Equals(PlatformTypes.Boolean))
+						{
+							instruction.LeftOperand.Type = PlatformTypes.Boolean;
+						}
+
+						instruction.Result.Type = PlatformTypes.Boolean;
+						break;
+
 					case BinaryOperation.Gt:
+					case BinaryOperation.Ge:
 					case BinaryOperation.Lt:
+					case BinaryOperation.Le:
 						instruction.Result.Type = PlatformTypes.Boolean;
 						break;
 				}
@@ -225,26 +261,23 @@ namespace Backend.Analyses
 			var inferer = new TypeInferer();
 			var sorted_nodes = cfg.ForwardOrder;
 
-			for (var i = 0; i < sorted_nodes.Length; ++i)
-			{
-				var node = sorted_nodes[i];
-				inferer.Visit(node);
-			}
+			// Propagate types over the CFG until a fixedpoint is reached
+			// (i.e. when types do not change anymore)
+			bool changed;
 
-			// Propagate types over the CFG until a fixedpoint is reached (i.e. when types do not change)
-			//IDictionary<IVariable, ITypeReference> fixedPoint;
-			//
-			//do
-			//{
-			//	fixedPoint = GetTypeInferenceResult();
-			//
-			//	for (var i = 0; i < sorted_nodes.Length; ++i)
-			//	{
-			//		var node = sorted_nodes[i];
-			//		inferer.Visit(node);
-			//	}
-			//}
-			//while (!FixedPointReached(fixedPoint));
+			do
+			{
+				var result = GetTypeInferenceResult();
+
+				for (var i = 0; i < sorted_nodes.Length; ++i)
+				{
+					var node = sorted_nodes[i];
+					inferer.Visit(node);
+				}
+
+				changed = !SameTypes(result);
+			}
+			while (changed);
 		}
 
 		private IDictionary<IVariable, IType> GetTypeInferenceResult()
@@ -260,8 +293,9 @@ namespace Backend.Analyses
 			return result;
 		}
 
-		private bool FixedPointReached(IDictionary<IVariable, IType> oldTypes)
+		private bool SameTypes(IDictionary<IVariable, IType> oldTypes)
 		{
+			var result = true;
 			var variables = cfg.GetVariables();
 
 			foreach (var variable in variables)
@@ -269,19 +303,15 @@ namespace Backend.Analyses
 				var oldType = oldTypes[variable];
 				var newType = variable.Type;
 
-				// this also covers null == null
-				if (oldType == newType)
-					continue;
-
-				if (oldType == null || newType == null)
-					return false;
-
-				// double-check
-				if (oldType.Equals(newType))
-					return false;
+				if (oldType == null || newType == null ||
+					!oldType.Equals(newType))
+				{
+					result = false;
+					break;
+				}
 			}
 
-			return true;
+			return result;
 		}
 	}
 }
