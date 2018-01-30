@@ -15,6 +15,8 @@ namespace Backend.Analyses
 		private IMetadataHost host;
 		private ClassHierarchyAnalysis classHierarchy;
 
+		public Func<IMethodDefinition, bool> OnNewMethodFound;
+
 		public ClassHierarchyCallGraphAnalysis(IMetadataHost host, ClassHierarchyAnalysis cha)
 		{
 			this.host = host;
@@ -56,6 +58,14 @@ namespace Backend.Analyses
 			while (worklist.Count > 0)
 			{
 				var method = worklist.Dequeue();
+				var exists = MethodBodyProvider.Instance.ContainsBody(method);
+
+				if (!exists && OnNewMethodFound != null)
+				{
+					exists = OnNewMethodFound(method);
+					if (!exists) continue;
+				}
+
 				var body = MethodBodyProvider.Instance.GetBody(method);
 				var methodCalls = body.Instructions.OfType<MethodCallInstruction>();
 
@@ -113,7 +123,10 @@ namespace Backend.Analyses
 				var receiverTypeDef = receiverType.ResolvedType;
 				if (receiverTypeDef == null) break;
 
-				var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.SignaturesAreEqual(m, method));
+				var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => 
+					m.Name.Value == method.Name.Value &&
+					MemberHelper.SignaturesAreEqual(m, method)
+				);
 
 				if (matchingMethod != null)
 				{
@@ -141,7 +154,8 @@ namespace Backend.Analyses
 				var subtypes = classHierarchy.GetAllSubtypes(methodref.ContainingType);
 				var compatibleMethods = from t in subtypes
 										from m in t.Members.OfType<IMethodDefinition>()
-										where MemberHelper.SignaturesAreEqual(m, methodref)
+										where m.Name.Value == methodref.Name.Value &&
+											  MemberHelper.SignaturesAreEqual(m, methodref)
 										select m;
 
 				result.UnionWith(compatibleMethods);
