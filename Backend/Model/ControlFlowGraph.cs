@@ -66,6 +66,7 @@ namespace Backend.Model
 	public class CFGNode : IInstructionContainer
 	{
 		private ISet<CFGNode> dominators;
+		private ISet<CFGNode> postDominators;
 
 		public int Id { get; private set; }
 		public int ForwardIndex { get; set; }
@@ -76,6 +77,8 @@ namespace Backend.Model
 		public IList<IInstruction> Instructions { get; private set; }
 		public CFGNode ImmediateDominator { get; set; }
 		public ISet<CFGNode> ImmediateDominated { get; private set; }
+		public CFGNode ImmediatePostDominator { get; set; }
+		public ISet<CFGNode> ImmediatePostDominated { get; private set; }
 		public ISet<CFGNode> DominanceFrontier { get; private set; }
 
 		public CFGNode(int id, CFGNodeKind kind = CFGNodeKind.BasicBlock)
@@ -88,6 +91,7 @@ namespace Backend.Model
 			this.Successors = new HashSet<CFGNode>();
 			this.Instructions = new List<IInstruction>();
 			this.ImmediateDominated = new HashSet<CFGNode>();
+			this.ImmediatePostDominated = new HashSet<CFGNode>();
 			this.DominanceFrontier = new HashSet<CFGNode>();
 		}
 
@@ -101,6 +105,19 @@ namespace Backend.Model
 				}
 
 				return this.dominators;
+			}
+		}
+
+		public ISet<CFGNode> PostDominators
+		{
+			get
+			{
+				if (this.postDominators == null)
+				{
+					this.postDominators = ComputePostDominators(this);
+				}
+
+				return this.postDominators;
 			}
 		}
 
@@ -126,6 +143,20 @@ namespace Backend.Model
 			{
 				result.Add(node);
 				node = node.ImmediateDominator;
+			}
+			while (node != null);
+
+			return result;
+		}
+
+		private static ISet<CFGNode> ComputePostDominators(CFGNode node)
+		{
+			var result = new HashSet<CFGNode>();
+
+			do
+			{
+				result.Add(node);
+				node = node.ImmediatePostDominator;
 			}
 			while (node != null);
 
