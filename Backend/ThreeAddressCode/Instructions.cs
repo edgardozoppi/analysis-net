@@ -1,4 +1,4 @@
-﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -211,7 +211,7 @@ namespace Backend.ThreeAddressCode.Instructions
 				case BinaryOperation.Le: operation = "<="; break;
 			}
 
-			return string.Format("{0}:  {1} = {2} {3} {4}", this.Label, this.Result, this.LeftOperand, operation, this.RightOperand);
+			return string.Format("{0}:  {1} = {2} {3} {4};", this.Label, this.Result, this.LeftOperand, operation, this.RightOperand);
 		}
 	}
 
