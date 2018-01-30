@@ -254,11 +254,15 @@ namespace Backend.Serialization
 
 				foreach (var method in cg.Methods)
 				{
+					//if (method.ResolvedMethod == null) continue;
+
 					reachableMethods.Add(method, reachableMethods.Count);
 				}
 
 				foreach (var method in cg.Roots)
 				{
+					//if (method.ResolvedMethod == null) continue;
+
 					var methodId = reachableMethods[method];
 					var nodeId = Convert.ToString(methodId);
 					//var label = string.Format("{0}.{1}", method.ContainingType.Name, method.Name);
@@ -275,6 +279,8 @@ namespace Backend.Serialization
 
 				foreach (var method in otherMethods)
 				{
+					//if (method.ResolvedMethod == null) continue;
+
 					var methodId = reachableMethods[method];
 					var nodeId = Convert.ToString(methodId);
 					//var label = string.Format("{0}.{1}", method.ContainingType.Name, method.Name);
@@ -307,6 +313,8 @@ namespace Backend.Serialization
 
 					foreach (var invocations in invocationsPerCallee)
 					{
+						//if (invocations.Key.ResolvedMethod == null) continue;
+
 						var calleeId = reachableMethods[invocations.Key];
 						var targetId = Convert.ToString(calleeId);
 						var label = string.Join("\n", invocations.Select(inv => inv.Label));
