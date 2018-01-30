@@ -200,6 +200,7 @@ namespace Backend.Analyses
 			var exceptionHandlersStart = GetExceptionHandlersStart();
 			var exceptionHandlersEnd = GetExceptionHandlersEnd();
 			var orderedLeaders = from entry in leaders
+								 where entry.Value.Instructions.Any()
 								 orderby entry.Value.StartOffset()
 								 select entry;
 
