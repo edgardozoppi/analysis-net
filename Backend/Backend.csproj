@@ -43,6 +43,7 @@
     <Compile Include="Analyses\ClassHierarchyAnalysis.cs" />
     <Compile Include="Analyses\ControlFlowAnalysis.cs" />
     <Compile Include="Analyses\BackwardCopyPropagationAnalysis.cs" />
+    <Compile Include="Analyses\PostDominanceFrontierAnalysis.cs" />
     <Compile Include="Analyses\PostDominanceAnalysis.cs" />
     <Compile Include="Analyses\FieldEffectsAnalysis.cs" />
     <Compile Include="Analyses\EscapeAnalysis.cs" />
