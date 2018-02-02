@@ -112,6 +112,240 @@ namespace Backend.Serialization
 
 		#endregion
 
+		#region Dominance Tree
+
+		public static string SerializeDominanceTree(ControlFlowGraph cfg)
+		{
+			using (var stringWriter = new StringWriter())
+			using (var xmlWriter = new XmlTextWriter(stringWriter))
+			{
+				xmlWriter.Formatting = Formatting.Indented;
+				xmlWriter.WriteStartElement("DirectedGraph");
+				xmlWriter.WriteAttributeString("xmlns", "http://schemas.microsoft.com/vs/2009/dgml");
+				xmlWriter.WriteStartElement("Nodes");
+
+				foreach (var node in cfg.Nodes)
+				{
+					var nodeId = Convert.ToString(node.Id);
+					var label = DGMLSerializer.Serialize(node);
+
+					xmlWriter.WriteStartElement("Node");
+					xmlWriter.WriteAttributeString("Id", nodeId);
+					xmlWriter.WriteAttributeString("Label", label);
+
+					if (node.Kind == CFGNodeKind.Entry ||
+						node.Kind == CFGNodeKind.Exit)
+					{
+						xmlWriter.WriteAttributeString("Background", "Yellow");
+					}
+
+					xmlWriter.WriteEndElement();
+				}
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteStartElement("Links");
+
+				foreach (var node in cfg.Nodes)
+				{
+					var sourceId = Convert.ToString(node.Id);
+
+					foreach (var child in node.ImmediateDominated)
+					{
+						var targetId = Convert.ToString(child.Id);
+
+						xmlWriter.WriteStartElement("Link");
+						xmlWriter.WriteAttributeString("Source", sourceId);
+						xmlWriter.WriteAttributeString("Target", targetId);
+						xmlWriter.WriteEndElement();
+					}
+				}
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteStartElement("Styles");
+				xmlWriter.WriteStartElement("Style");
+				xmlWriter.WriteAttributeString("TargetType", "Node");
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "FontFamily");
+				xmlWriter.WriteAttributeString("Value", "Consolas");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "NodeRadius");
+				xmlWriter.WriteAttributeString("Value", "5");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "MinWidth");
+				xmlWriter.WriteAttributeString("Value", "0");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteEndElement();
+				xmlWriter.Flush();
+				return stringWriter.ToString();
+			}
+		}
+
+		#endregion
+
+		#region PostDominance Tree
+
+		public static string SerializePostDominanceTree(ControlFlowGraph cfg)
+		{
+			using (var stringWriter = new StringWriter())
+			using (var xmlWriter = new XmlTextWriter(stringWriter))
+			{
+				xmlWriter.Formatting = Formatting.Indented;
+				xmlWriter.WriteStartElement("DirectedGraph");
+				xmlWriter.WriteAttributeString("xmlns", "http://schemas.microsoft.com/vs/2009/dgml");
+				xmlWriter.WriteStartElement("Nodes");
+
+				foreach (var node in cfg.Nodes)
+				{
+					var nodeId = Convert.ToString(node.Id);
+					var label = DGMLSerializer.Serialize(node);
+
+					xmlWriter.WriteStartElement("Node");
+					xmlWriter.WriteAttributeString("Id", nodeId);
+					xmlWriter.WriteAttributeString("Label", label);
+
+					if (node.Kind == CFGNodeKind.Entry ||
+						node.Kind == CFGNodeKind.Exit)
+					{
+						xmlWriter.WriteAttributeString("Background", "Yellow");
+					}
+
+					xmlWriter.WriteEndElement();
+				}
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteStartElement("Links");
+
+				foreach (var node in cfg.Nodes)
+				{
+					var sourceId = Convert.ToString(node.Id);
+
+					foreach (var child in node.ImmediatePostDominated)
+					{
+						var targetId = Convert.ToString(child.Id);
+
+						xmlWriter.WriteStartElement("Link");
+						xmlWriter.WriteAttributeString("Source", sourceId);
+						xmlWriter.WriteAttributeString("Target", targetId);
+						xmlWriter.WriteEndElement();
+					}
+				}
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteStartElement("Styles");
+				xmlWriter.WriteStartElement("Style");
+				xmlWriter.WriteAttributeString("TargetType", "Node");
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "FontFamily");
+				xmlWriter.WriteAttributeString("Value", "Consolas");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "NodeRadius");
+				xmlWriter.WriteAttributeString("Value", "5");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "MinWidth");
+				xmlWriter.WriteAttributeString("Value", "0");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteEndElement();
+				xmlWriter.Flush();
+				return stringWriter.ToString();
+			}
+		}
+
+		#endregion
+
+		#region Control-Dependence Graph
+
+		public static string SerializeControlDependenceGraph(ControlFlowGraph cfg)
+		{
+			using (var stringWriter = new StringWriter())
+			using (var xmlWriter = new XmlTextWriter(stringWriter))
+			{
+				xmlWriter.Formatting = Formatting.Indented;
+				xmlWriter.WriteStartElement("DirectedGraph");
+				xmlWriter.WriteAttributeString("xmlns", "http://schemas.microsoft.com/vs/2009/dgml");
+				xmlWriter.WriteStartElement("Nodes");
+
+				foreach (var node in cfg.Nodes)
+				{
+					var nodeId = Convert.ToString(node.Id);
+					var label = DGMLSerializer.Serialize(node);
+
+					xmlWriter.WriteStartElement("Node");
+					xmlWriter.WriteAttributeString("Id", nodeId);
+					xmlWriter.WriteAttributeString("Label", label);
+
+					if (node.Kind == CFGNodeKind.Entry ||
+						node.Kind == CFGNodeKind.Exit)
+					{
+						xmlWriter.WriteAttributeString("Background", "Yellow");
+					}
+
+					xmlWriter.WriteEndElement();
+				}
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteStartElement("Links");
+
+				foreach (var node in cfg.Nodes)
+				{
+					var sourceId = Convert.ToString(node.Id);
+
+					foreach (var child in node.ImmediateControlDependents)
+					{
+						var targetId = Convert.ToString(child.Id);
+
+						xmlWriter.WriteStartElement("Link");
+						xmlWriter.WriteAttributeString("Source", sourceId);
+						xmlWriter.WriteAttributeString("Target", targetId);
+						xmlWriter.WriteEndElement();
+					}
+				}
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteStartElement("Styles");
+				xmlWriter.WriteStartElement("Style");
+				xmlWriter.WriteAttributeString("TargetType", "Node");
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "FontFamily");
+				xmlWriter.WriteAttributeString("Value", "Consolas");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "NodeRadius");
+				xmlWriter.WriteAttributeString("Value", "5");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteStartElement("Setter");
+				xmlWriter.WriteAttributeString("Property", "MinWidth");
+				xmlWriter.WriteAttributeString("Value", "0");
+				xmlWriter.WriteEndElement();
+
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteEndElement();
+				xmlWriter.WriteEndElement();
+				xmlWriter.Flush();
+				return stringWriter.ToString();
+			}
+		}
+
+		#endregion
+
 		#region Points-To Graph
 
 		public static string Serialize(PointsToGraph ptg)
