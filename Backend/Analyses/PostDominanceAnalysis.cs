@@ -17,6 +17,9 @@ namespace Backend.Analyses
 			this.cfg = cfg;
 		}
 
+		// Implementation of the algorithm presented in the paper:
+		// "A simple, fast dominance algorithm."
+		// Cooper, Keith D., Timothy J. Harvey, and Ken Kennedy.
 		public ControlFlowGraph Analyze()
 		{
 			bool changed;
@@ -73,6 +76,11 @@ namespace Backend.Analyses
 
 		public ControlFlowGraph GeneratePostDominanceTree()
 		{
+			foreach (var node in cfg.Nodes)
+			{
+				node.ImmediatePostDominated.Clear();
+			}
+
 			foreach (var node in cfg.Nodes)
 			{
 				if (node.ImmediatePostDominator == null) continue;

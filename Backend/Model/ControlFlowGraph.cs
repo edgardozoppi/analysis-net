@@ -81,6 +81,8 @@ namespace Backend.Model
 		public CFGNode ImmediatePostDominator { get; set; }
 		public ISet<CFGNode> ImmediatePostDominated { get; private set; }
 		public ISet<CFGNode> PostDominanceFrontier { get; private set; }
+		public ISet<CFGNode> ImmediateControlDependencies { get; set; }
+		public ISet<CFGNode> ImmediateControlDependents { get; private set; }
 
 		public CFGNode(int id, CFGNodeKind kind = CFGNodeKind.BasicBlock)
 		{
@@ -95,6 +97,8 @@ namespace Backend.Model
 			this.DominanceFrontier = new HashSet<CFGNode>();
 			this.ImmediatePostDominated = new HashSet<CFGNode>();
 			this.PostDominanceFrontier = new HashSet<CFGNode>();
+			this.ImmediateControlDependencies = new HashSet<CFGNode>();
+			this.ImmediateControlDependents = new HashSet<CFGNode>();
 		}
 
 		public ISet<CFGNode> Dominators
