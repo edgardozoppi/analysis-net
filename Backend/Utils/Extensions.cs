@@ -401,12 +401,40 @@ namespace Backend.Utils
 			return value as IExpression;
 		}
 
+		public static IDictionary<IVariable, DefinitionInstruction> GetDefinitions(this ControlFlowGraph cfg)
+		{
+			// The CFG is expected to be in SSA form.
+			var definitions = from node in cfg.Nodes
+							  from ins in node.Instructions
+							  let def = ins as DefinitionInstruction
+							  where def != null && def.HasResult
+							  select def;
+
+			var result = definitions.ToDictionary(def => def.Result);
+			return result;
+		}
+
+		public static IDictionary<IInstruction, CFGNode> GetContainingNodes(this ControlFlowGraph cfg)
+		{
+			var result = new Dictionary<IInstruction, CFGNode>();
+
+			foreach (var node in cfg.Nodes)
+			{
+				foreach (var instruction in node.Instructions)
+				{
+					result.Add(instruction, node);
+				}
+			}
+
+			return result;
+		}
+
 		//public static IExpression GetValueOriginal(this IDictionary<IVariable, IExpression> equalities, IVariable variable)
 		//{
 		//    var result = equalities.ContainsKey(variable) ? equalities[variable] : variable;
 		//    return result;
 		//}
-		
+
 		public static IExpression GetValue(this IDictionary<IVariable, IExpression> equalities, IVariable variable)
 		{
 			IExpression result = variable;
@@ -607,7 +635,7 @@ namespace Backend.Utils
 			return result;
 		}
 
-		#region May Alias
+		#region Points-to graph may alias
 
 		public static bool MayAlias(this PointsToGraph ptg, IVariable variable1, IVariable variable2)
 		{
@@ -845,7 +873,7 @@ namespace Backend.Utils
 				{
 					// TODO: Fix! We should clone the instruction
 					// so the original is not modified
-					// and calleeBody remain intacted
+					// and calleeBody remains unchanged
 
 					if (instruction is BranchInstruction)
 					{
