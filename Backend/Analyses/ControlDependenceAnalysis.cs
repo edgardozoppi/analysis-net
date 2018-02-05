@@ -30,6 +30,25 @@ namespace Backend.Analyses
 
 			foreach (var dependent in cfg.Nodes)
 			{
+				var connectWithEntry = false;
+
+				if (dependent.PostDominanceFrontier.Count == 0 &&
+					dependent.Kind != CFGNodeKind.Entry)
+				{
+					// Non Entry node with no dependencies
+					connectWithEntry = true;
+				}
+				else if (dependent.PostDominanceFrontier.Count == 1)
+				{
+					var dependency = dependent.PostDominanceFrontier.Single();
+
+					if (dependent == dependency)
+					{
+						// Self loop
+						connectWithEntry = true;
+					}
+				}
+
 				if (dependent.PostDominanceFrontier.Count > 0)
 				{
 					foreach (var dependency in dependent.PostDominanceFrontier)
@@ -38,7 +57,8 @@ namespace Backend.Analyses
 						dependent.ImmediateControlDependencies.Add(dependency);
 					}
 				}
-				else if (dependent.Kind != CFGNodeKind.Entry)
+
+				if (connectWithEntry)
 				{
 					cfg.Entry.ImmediateControlDependents.Add(dependent);
 					dependent.ImmediateControlDependencies.Add(cfg.Entry);
