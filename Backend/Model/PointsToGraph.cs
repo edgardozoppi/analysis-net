@@ -478,7 +478,7 @@ namespace Backend.Model
         }
 
 		// binding: parameter -> argument
-		public MapSet<IVariable, int> NewFrame(IDictionary<IVariable, IVariable> binding)
+		public MapSet<IVariable, PTGNode> NewFrame(IDictionary<IVariable, IVariable> binding)
 		{
 			// TODO: We should keep global variables (variables with names starting with # and points-to global nodes)
 
@@ -516,16 +516,24 @@ namespace Backend.Model
 				}
 			}
 
-			// This is needed so it works with clonned PT graphs (different nodes but with the same id)
-			var result = callerFrame.ToDictionary(entry => entry.Key, entry => entry.Value.Select(n => n.Id)).ToMapSet();
+			/* This is not needed anymore since clonned PT graphs always share the same nodes.
+			
+				// This is needed so it works with clonned PT graphs (different nodes but with the same id)
+				var result = callerFrame.ToDictionary(entry => entry.Key, entry => entry.Value.Select(n => n.Id)).ToMapSet();
+			*/
+
+			var result = callerFrame;
 			return result;
 		}
 
 		// binding: parameter -> argument
-		public void RestoreFrame(MapSet<IVariable, int> frame, IDictionary<IVariable, IVariable> binding)
+		public void RestoreFrame(MapSet<IVariable, PTGNode> frame, IDictionary<IVariable, IVariable> binding)
 		{
-			// This is needed so it works with clonned PT graphs (different nodes but with the same id)
-			var frame2 = frame.ToDictionary(entry => entry.Key, entry => entry.Value.Select(id => nodes[id])).ToMapSet();
+			/* This is not needed anymore since clonned PT graphs always share the same nodes.
+			
+				// This is needed so it works with clonned PT graphs (different nodes but with the same id)
+				var frame2 = frame.ToDictionary(entry => entry.Key, entry => entry.Value.Select(id => nodes[id])).ToMapSet();
+			*/
 
 			// Remove node -> variable edges
 			//variables.Clear();
@@ -536,7 +544,7 @@ namespace Backend.Model
 
 			var calleeFrame = roots;
 			// Restore variable -> node edges
-			roots = frame2;
+			roots = frame;
 
 			foreach (var entry in binding)
 			{
