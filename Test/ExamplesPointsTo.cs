@@ -217,13 +217,13 @@ namespace Test
 		}
 
 		// Strings
-		public static void ExampleString()
+		public void ExampleString()
 		{
 			var s = "hola".Trim();
 			string.Format("chau");
 		}
 
-		public static int ExampleSlice(int n)
+		public int ExampleSlice(int n)
 		{
 			var sum = 0;
 			var product = 1;
@@ -243,6 +243,31 @@ namespace Test
 			{
 				return product;
 			}
+		}
+
+		// Example where only some objects are reachable by the callee
+		// and it has some temporal objects not reachable by the caller
+		// after the method call.
+		public void Example14()
+		{
+			var first = new Node(1) // Object not reachable by the callee
+			{
+				Next = new Node(2) // Object not reachable by the callee
+				{
+					Next = new Node(3)
+				}
+			};
+
+			var newFirst = Example15(first.Next.Next);
+			newFirst.Next = first;
+		}
+
+		public Node Example15(Node node)
+		{
+			var tempNode = new Node(4); // Temporal object
+			node.Next = new Node(5);
+
+			return new Node(6);
 		}
 	}
 }
