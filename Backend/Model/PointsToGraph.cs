@@ -571,6 +571,202 @@ namespace Backend.Model
 			this.ResultVariable = result;
 		}
 
+		// binding: parameter -> argument
+		// Extracts a subgraph that only contains nodes reachable from
+		// parameters and global variables (and all the edges between them).
+		public PointsToGraph NewFrame2(IDictionary<IVariable, IVariable> binding)
+		{
+			var ptg = new PointsToGraph(this.Null);
+			var worklist = new HashSet<PTGNode>();
+
+			// Add global nodes and global variables
+			foreach (var edge in roots)
+			{
+				// TODO: Replace v.Name.StartsWith("#") by a better way to recognize global variables!
+				if (edge.Key.Name.StartsWith("#"))
+				{
+					var globalVariable = edge.Key;
+					// Should be only one global node per global variable!
+					var globalNode = edge.Value.Single();
+
+					// Add global node
+					ptg.Add(globalNode);
+
+					// Add global variable ---> global node edge
+					ptg.roots.Add(globalVariable, globalNode);
+
+					// Add global node ---> global variable edge
+					ptg.variables.Add(globalNode, globalVariable);
+
+					// Include global nodes in the reachable worklist
+					worklist.Add(globalNode);
+				}
+			}
+
+			// Add all edges between parameters and nodes
+
+			foreach (var entry in binding)
+			{
+				HashSet<PTGNode> targets;
+				var parameter = entry.Key;
+				var argument = entry.Value;
+				
+				if (roots.TryGetValue(argument, out targets))
+				{
+					foreach (var target in targets)
+					{
+						// Add target node
+						ptg.Add(target);
+
+						// Add node ---> parameter edge
+						ptg.variables.Add(target, parameter);
+					}
+
+					// Add parameter ---> node edges
+					ptg.roots.AddRange(parameter, targets);
+
+					// Include parameter targets in the reachable worklist
+					worklist.UnionWith(targets);
+				}
+			}
+
+			// Add all reachable nodes and edges between them
+
+			while (worklist.Count > 0)
+			{
+				var node = worklist.First();
+				worklist.Remove(node);
+
+				var targetEdges = targets[node];
+				var ptgTargetEdges = ptg.targets[node];
+
+				foreach (var edge in targetEdges)
+				{
+					// Include new target nodes in the reachable
+					// worklist before adding them to ptg.
+					var newNodes = edge.Value.Except(ptg.nodes.Values);
+					worklist.UnionWith(newNodes);
+
+					// Add node -field-> target edges
+					ptgTargetEdges.AddRange(edge.Key, edge.Value);
+
+					foreach (var target in edge.Value)
+					{
+						// Add target node
+						ptg.Add(target);
+
+						var ptgSourceEdges = ptg.sources[target];
+
+						// Add source -field-> node edges
+						ptgSourceEdges.Add(edge.Key, node);
+					}
+				}
+			}
+
+			return ptg;
+		}
+
+		// binding: parameter -> argument
+		// Generates a clone of this graph that has all the effects made by the given callee graph applied. 
+		public PointsToGraph RestoreFrame2(PointsToGraph ptgCallee, IDictionary<IVariable, IVariable> binding)
+		{
+			var ptg = this.Clone(); // Not sure if clonning is needed
+			var worklist = new HashSet<PTGNode>();
+			var visited = new HashSet<PTGNode>();
+
+			// Add global nodes and global variables
+			foreach (var edge in ptgCallee.roots)
+			{
+				// TODO: Replace v.Name.StartsWith("#") by a better way to recognize global variables!
+				if (edge.Key.Name.StartsWith("#"))
+				{
+					var globalVariable = edge.Key;
+					// Should be only one global node per global variable!
+					var globalNode = edge.Value.Single();
+
+					// Add global node
+					ptg.Add(globalNode);
+
+					// Add global variable ---> global node edge
+					ptg.roots.Add(globalVariable, globalNode);
+
+					// Add global node ---> global variable edge
+					ptg.variables.Add(globalNode, globalVariable);
+
+					// Include global nodes in the reachable worklist
+					worklist.Add(globalNode);
+				}
+			}
+
+			// Add returning nodes
+			if (ptgCallee.ResultVariable != null)
+			{
+				var parameter = ptgCallee.ResultVariable;
+				var argument = binding[parameter];
+				var parameterTargets = ptgCallee.roots[parameter];
+
+				// Strong update
+				ptg.RemoveEdges(argument);
+
+				foreach (var target in parameterTargets)
+				{
+					// Add target node
+					ptg.Add(target);
+
+					// Add node ---> argument edge
+					ptg.variables.Add(target, argument);
+				}
+
+				// Add argument ---> node edges
+				ptg.roots.AddRange(argument, parameterTargets);
+			}
+
+			// Include argument targets in the reachable worklist
+			foreach (var argument in binding.Values)
+			{
+				HashSet<PTGNode> targets;
+
+				if (ptg.roots.TryGetValue(argument, out targets))
+				{
+					worklist.UnionWith(targets);
+				}
+			}
+
+			// Add all reachable nodes and edges between them
+
+			while (worklist.Count > 0)
+			{
+				var node = worklist.First();
+				worklist.Remove(node);
+				visited.Add(node);
+
+				var ptgCalleeTargetEdges = ptgCallee.targets[node];
+				var ptgTargetEdges = ptg.targets[node];
+
+				foreach (var edge in ptgCalleeTargetEdges)
+				{
+					// Add node -field-> target edges
+					ptgTargetEdges.AddRange(edge.Key, edge.Value);
+
+					foreach (var target in edge.Value)
+					{
+						// Add target node
+						ptg.Add(target);
+
+						var ptgSourceEdges = ptg.sources[target];
+
+						// Add source -field-> node edges
+						ptgSourceEdges.Add(edge.Key, node);
+					}
+
+					var newNodes = edge.Value.Except(visited);
+					worklist.UnionWith(newNodes);
+				}
+			}
+
+			return ptg;
+		}
+
 		private static MapSet<PTGNodeField, PTGNode> GetEdges(IDictionary<PTGNode, MapSet<PTGNodeField, PTGNode>> mapping, PTGNode node)
 		{
 			MapSet<PTGNodeField, PTGNode> result;

@@ -223,9 +223,12 @@ namespace Backend.Analyses
 						parameters = method.Body.Parameters;
 					}
 
-					var ptg = input.Clone();
+					//var ptg = input.Clone();
+					//var binding = GetCallerCalleeBinding(methodCall.Arguments, parameters);
+					//var previousFrame = ptg.NewFrame(binding);
+
 					var binding = GetCallerCalleeBinding(methodCall.Arguments, parameters);
-					var previousFrame = ptg.NewFrame(binding);
+					var ptg = input.NewFrame2(binding);
 
 					//// Garbage collect unreachable nodes.
 					//// They are nodes that the callee cannot access but the caller can.
@@ -291,10 +294,16 @@ namespace Backend.Analyses
 							info.Output = ptg;
 						}
 					}
-					
-					ptg = ptg.Clone();
-					binding = GetCalleeCallerBinding(methodCall.Result, ptg.ResultVariable);
-					ptg.RestoreFrame(previousFrame, binding);
+
+					//ptg = ptg.Clone();
+					//binding = GetCalleeCallerBinding(methodCall.Result, ptg.ResultVariable);
+					//ptg.RestoreFrame(previousFrame, binding);
+
+					if (methodCall.HasResult && ptg.ResultVariable != null)
+					{
+						binding.Add(ptg.ResultVariable, methodCall.Result);
+					}
+					ptg = input.RestoreFrame2(ptg, binding);
 
 					//// Garbage collect unreachable nodes.
 					//// They are nodes created by the callee that do not escape to the caller.
