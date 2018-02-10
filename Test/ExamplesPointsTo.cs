@@ -245,6 +245,8 @@ namespace Test
 			}
 		}
 
+		private static Node Field;
+
 		// Example where only some objects are reachable by the callee
 		// and it has some temporal objects not reachable by the caller
 		// after the method call.
@@ -255,7 +257,15 @@ namespace Test
 				Next = new Node(2) // Object not reachable by the callee
 				{
 					Next = new Node(3)
+					{
+						Next = new Node(4)
+					}
 				}
+			};
+
+			Field = new Node(0)
+			{
+				Next = new Node(-1)
 			};
 
 			var newFirst = Example15(first.Next.Next);
@@ -264,10 +274,12 @@ namespace Test
 
 		public Node Example15(Node node)
 		{
-			var tempNode = new Node(4); // Temporal object
-			node.Next = new Node(5);
+			var tempNode = new Node(5); // Temporal object
+			node.Next = new Node(6);
 
-			return new Node(6);
+			Field.Next.Next = node;
+
+			return new Node(7);
 		}
 	}
 }
