@@ -197,8 +197,12 @@ namespace Backend.Analyses
 			capturedNodes.ExceptWith(escapingNodes);
 
 			// External nodes include reachable global\static nodes.
+			// This is the same as:
+			// externalNodes.UnionWith(reachableNodes);
+			// externalNodes.ExceptWith(escapeInfo.InternalNodes);
 			externalNodes.UnionWith(reachableNodes);
 			externalNodes.ExceptWith(capturedNodes);
+			externalNodes.ExceptWith(escapingNodes);
 		}
 	}
 }
