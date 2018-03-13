@@ -51,18 +51,18 @@ namespace Backend.Analyses
 					instruction.Result.Type = instruction.Method.Type;
 				}
 
-				// Skip implicit "this" parameter
+				// Skip implicit "this" parameter.
 				var offset = instruction.Method.IsStatic ? 0 : 1;
 
 				for (var i = offset; i < instruction.Arguments.Count; ++i)
 				{
 					var argument = instruction.Arguments[i];
+					var parameter = instruction.Method.Parameters.ElementAt(i - offset);
 
 					// Set the null variable a type.
-					if (argument.Type == null)
+					if (argument.Type == null ||
+						parameter.Type.TypeCode == PrimitiveTypeCode.Boolean)
 					{
-						var parameter = instruction.Method.Parameters.ElementAt(i - offset);
-
 						argument.Type = parameter.Type;
 					}
 				}
@@ -75,18 +75,18 @@ namespace Backend.Analyses
 					instruction.Result.Type = instruction.Function.Type;
 				}
 
-				// Skip implicit "this" parameter
+				// Skip implicit "this" parameter.
 				var offset = instruction.Function.IsStatic ? 0 : 1;
 
 				for (var i = offset; i < instruction.Arguments.Count; ++i)
 				{
 					var argument = instruction.Arguments[i];
+					var parameter = instruction.Function.Parameters.ElementAt(i - offset);
 
 					// Set the null variable a type.
-					if (argument.Type == null)
+					if (argument.Type == null ||
+						parameter.Type.TypeCode == PrimitiveTypeCode.Boolean)
 					{
-						var parameter = instruction.Function.Parameters.ElementAt(i - offset);
-
 						argument.Type = parameter.Type;
 					}
 				}
@@ -128,7 +128,8 @@ namespace Backend.Analyses
 				else if (operandAsVariable != null &&
 						 instruction.Result.Type != null &&
 						(operandAsVariable.Type == null ||
-						 operandAsVariable.Type == Types.Instance.PlatformType.SystemObject))
+						 operandAsVariable.Type == Types.Instance.PlatformType.SystemObject ||
+						 instruction.Result.Type.TypeCode == PrimitiveTypeCode.Boolean))
 				{
 					operandAsVariable.Type = instruction.Result.Type;
 				}
@@ -147,7 +148,9 @@ namespace Backend.Analyses
 			public override void Visit(StoreInstruction instruction)
 			{
 				// Set the null variable a type.
-				if (instruction.Operand.Type == null)
+				if (instruction.Result.Type != null &&
+				   (instruction.Operand.Type == null ||
+					instruction.Operand.Type.TypeCode == PrimitiveTypeCode.Boolean))
 				{
 					instruction.Operand.Type = instruction.Result.Type;
 				}
@@ -168,7 +171,7 @@ namespace Backend.Analyses
 					case ConvertOperation.Cast:
 					case ConvertOperation.Box:
 					case ConvertOperation.Unbox:
-						// ConversionType is the data type of the result
+						// ConversionType is the data type of the result.
 						type = instruction.ConversionType;
 						break;
 

@@ -253,6 +253,39 @@ namespace Test
             return p;
         }
 
+		public int ExampleSlice(int n)
+		{
+			var sum = 0;
+			var product = 1;
+			var w = 7;
+
+			for (var i = 1; i < n; ++i)
+			{
+				sum = sum + i + w;
+				product = product * i;
+			}
+
+			if (n > 0)
+			{
+				return sum;
+			}
+			else
+			{
+				return product;
+			}
+		}
+
+		public void ExampleBoolean1()
+		{
+			System.Diagnostics.Contracts.Contract.Assert(false);
+		}
+
+		public void ExampleBoolean2()
+		{
+			var v = false;
+			System.Diagnostics.Contracts.Contract.Assert(v);
+		}
+
 		//public void Print(params object[] args)
 		//{
 		//	Console.WriteLine(args);
