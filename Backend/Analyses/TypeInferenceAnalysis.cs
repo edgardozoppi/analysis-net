@@ -51,18 +51,18 @@ namespace Backend.Analyses
 					instruction.Result.Type = instruction.Method.ReturnType;
 				}
 
-				// Skip implicit "this" parameter
+				// Skip implicit "this" parameter.
 				var offset = instruction.Method.IsStatic ? 0 : 1;
 
 				for (var i = offset; i < instruction.Arguments.Count; ++i)
 				{
 					var argument = instruction.Arguments[i];
+					var parameter = instruction.Method.Parameters[i - offset];
 
 					// Set the null variable a type.
-					if (argument.Type == null)
+					if (argument.Type == null ||
+						parameter.Type.Equals(PlatformTypes.Boolean))
 					{
-						var parameter = instruction.Method.Parameters[i - offset];
-
 						argument.Type = parameter.Type;
 					}
 				}
@@ -75,18 +75,18 @@ namespace Backend.Analyses
 					instruction.Result.Type = instruction.Function.ReturnType;
 				}
 
-				// Skip implicit "this" parameter
+				// Skip implicit "this" parameter.
 				var offset = instruction.Function.IsStatic ? 0 : 1;
 
 				for (var i = offset; i < instruction.Arguments.Count; ++i)
 				{
 					var argument = instruction.Arguments[i];
+					var parameter = instruction.Function.Parameters[i - offset];
 
 					// Set the null variable a type.
-					if (argument.Type == null)
+					if (argument.Type == null ||
+						parameter.Type.Equals(PlatformTypes.Boolean))
 					{
-						var parameter = instruction.Function.Parameters[i - offset];
-
 						argument.Type = parameter.Type;
 					}
 				}
@@ -128,7 +128,8 @@ namespace Backend.Analyses
 				else if (operandAsVariable != null && 
 						 instruction.Result.Type != null &&
 						(operandAsVariable.Type == null ||
-						 operandAsVariable.Type.Equals(PlatformTypes.Object)))
+						 operandAsVariable.Type.Equals(PlatformTypes.Object) ||
+						 instruction.Result.Type.Equals(PlatformTypes.Boolean)))
 				{
 					operandAsVariable.Type = instruction.Result.Type;
 				}
@@ -147,7 +148,9 @@ namespace Backend.Analyses
 			public override void Visit(StoreInstruction instruction)
 			{
 				// Set the null variable a type.
-				if (instruction.Operand.Type == null)
+				if (instruction.Result.Type != null &&
+				   (instruction.Operand.Type == null ||
+					instruction.Operand.Type.Equals(PlatformTypes.Object)))
 				{
 					instruction.Operand.Type = instruction.Result.Type;
 				}
@@ -168,12 +171,12 @@ namespace Backend.Analyses
 					case ConvertOperation.Cast:
 					case ConvertOperation.Box:
 					case ConvertOperation.Unbox:
-						// ConversionType is the data type of the result
+						// ConversionType is the data type of the result.
 						type = instruction.ConversionType;
 						break;
 
 					case ConvertOperation.UnboxPtr:
-						// Pointer to ConversionType is the data type of the result
+						// Pointer to ConversionType is the data type of the result.
 						type = new PointerType(instruction.ConversionType);
 						break;
 				}
