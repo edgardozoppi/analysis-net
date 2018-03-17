@@ -67,6 +67,10 @@ namespace Model.Types
 		public static readonly BasicType UInt8 = Byte;
 		public static readonly BasicType Float32 = Single;
 		public static readonly BasicType Float64 = Double;
+		public static readonly BasicType Short = Int16;
+		public static readonly BasicType UShort = UInt16;
+		public static readonly BasicType Long = Int64;
+		public static readonly BasicType ULong = UInt64;
 
 		public static readonly BasicType MulticastDelegate = New("mscorlib", "System", "MulticastDelegate", TypeKind.ReferenceType);
 		public static readonly BasicType Delegate = New("mscorlib", "System", "Delegate", TypeKind.ReferenceType);

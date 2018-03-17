@@ -26,7 +26,7 @@ namespace Console
 		{
 			this.host = host;
 		}
-		
+
 		public void VisitMethods()
 		{
 			var allDefinedMethods = from a in host.Assemblies
@@ -47,7 +47,7 @@ namespace Console
 
 			var methodBodyBytecode = method.Body;
 			var disassembler = new Disassembler(method);
-			var methodBody = disassembler.Execute();			
+			var methodBody = disassembler.Execute();
 			method.Body = methodBody;
 
 			var cfAnalysis = new ControlFlowAnalysis(method.Body);
@@ -211,7 +211,7 @@ namespace Console
 					ContainingAssembly = assembly,
 					ContainingNamespace = "Test",
 					GenericParameterCount = 1
-				}				
+				}
 			};
 
 			//typeNestedClass.ContainingType.GenericArguments.Add(typeA);
@@ -366,11 +366,26 @@ namespace Console
 			}
 		}
 
+		private static void RunJavaTests()
+		{
+			//const string root = @"..\..\..";
+			//const string input = root + @"\AAP.jar";
+			const string input = @"C:\Users\Edgar\Downloads\JavaMail\mail.jar";
+
+			var host = new Host();
+
+			PlatformTypes.Resolve(host);
+
+			var loader = new AsmProvider.Loader(host);
+			var assembly = loader.LoadAssembly(input);
+		}
+
 		static void Main(string[] args)
 		{
 			//RunSomeTests();
 			//RunGenericsTests();
-			RunInterPointsToTests();
+			//RunInterPointsToTests();
+			RunJavaTests();
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();

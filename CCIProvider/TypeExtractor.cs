@@ -60,10 +60,10 @@ namespace CCIProvider
 			var type = new ClassDefinition(name);
 			var basedef = typedef.BaseClasses.SingleOrDefault();
 
-			//if (basedef == null)
-			//{
-			//	basedef = typedef.PlatformType.SystemObject;
-			//}
+			if (basedef == null)
+			{
+				basedef = typedef.PlatformType.SystemObject;
+			}
 
 			type.Base = ExtractType(basedef) as IBasicType;
 			type.IsDelegate = typedef.IsDelegate;
