@@ -54,7 +54,7 @@ namespace MetadataProvider
 				get { return null; }
 			}
 
-			public ITypeDefinition ResolvedType
+			public TypeDefinition ResolvedType
 			{
 				get { return null; }
 			}
@@ -82,7 +82,7 @@ namespace MetadataProvider
 
 		#endregion
 
-		private IDictionary<SRM.TypeDefinitionHandle, ClassDefinition> definedTypes;
+		private IDictionary<SRM.TypeDefinitionHandle, TypeDefinition> definedTypes;
 		private IDictionary<SRM.MethodDefinitionHandle, MethodDefinition> definedMethods;
 		private IDictionary<SRM.FieldDefinitionHandle, FieldDefinition> definedFields;
 
@@ -93,7 +93,7 @@ namespace MetadataProvider
 		private SignatureTypeProvider signatureTypeProvider;
 		private Assembly assembly;
 		private Namespace currentNamespace;
-		private ClassDefinition currentType;
+		private TypeDefinition currentType;
 		private MethodDefinition currentMethod;
 
 		public AssemblyExtractor(Host host, SRPE.PEReader reader)
@@ -101,7 +101,7 @@ namespace MetadataProvider
 			this.Host = host;
 			this.reader = reader;
 			this.metadata = SRM.PEReaderExtensions.GetMetadataReader(reader);
-			this.definedTypes = new Dictionary<SRM.TypeDefinitionHandle, ClassDefinition>();
+			this.definedTypes = new Dictionary<SRM.TypeDefinitionHandle, TypeDefinition>();
 			this.definedMethods = new Dictionary<SRM.MethodDefinitionHandle, MethodDefinition>();
 			this.definedFields = new Dictionary<SRM.FieldDefinitionHandle, FieldDefinition>();
 			this.defGenericContext = new GenericContext();
@@ -111,9 +111,9 @@ namespace MetadataProvider
 
 		public Host Host { get; private set; }
 
-		public ClassDefinition GetDefinedType(SRM.TypeDefinitionHandle handle)
+		public TypeDefinition GetDefinedType(SRM.TypeDefinitionHandle handle)
 		{
-			ClassDefinition result;
+			TypeDefinition result;
 			var ok = definedTypes.TryGetValue(handle, out result);
 
 			if (!ok)
@@ -122,7 +122,7 @@ namespace MetadataProvider
 				var name = metadata.GetString(typedef.Name);
 				name = GetGenericName(name);
 
-				result = new ClassDefinition(name);
+				result = new TypeDefinition(name);
 				definedTypes.Add(handle, result);
 			}
 
@@ -236,6 +236,8 @@ namespace MetadataProvider
 				currentType.Types.Add(type);
 			}
 
+			type.Kind = GetTypeDefinitionKind(typedef.Attributes);
+			type.TypeKind = type.Kind.ToTypeKind();
 			type.ContainingType = currentType;
 			type.ContainingAssembly = assembly;
 			type.ContainingNamespace = currentNamespace;
@@ -270,7 +272,23 @@ namespace MetadataProvider
 				ExtractType(handle);
 			}
 
-			currentType = currentType.ContainingType as ClassDefinition;
+			currentType = currentType.ContainingType;
+		}
+
+		private static TypeDefinitionKind GetTypeDefinitionKind(SR.TypeAttributes attributes)
+		{
+			var result = TypeDefinitionKind.Unknown;
+
+			if (attributes.HasFlag(SR.TypeAttributes.Class))
+			{
+				result = TypeDefinitionKind.Class;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.Interface))
+			{
+				result = TypeDefinitionKind.Interface;
+			}
+
+			return result;
 		}
 
 		private void ExtractBaseType(SRM.EntityHandle handle)

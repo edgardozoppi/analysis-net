@@ -29,22 +29,22 @@ namespace CCIProvider
 			attributesCache = new Dictionary<Cci.ITypeReference, BasicType>();
 		}
 
-		public EnumDefinition ExtractEnum(Cci.INamedTypeDefinition typedef)
+		public TypeDefinition ExtractEnum(Cci.INamedTypeDefinition typedef)
 		{
 			var name = typedef.Name.Value;
-			var type = new EnumDefinition(name);
+			var type = new TypeDefinition(name, TypeKind.ValueType, TypeDefinitionKind.Enum);
 
 			type.UnderlayingType = ExtractType(typedef.UnderlyingType) as IBasicType;
 			ExtractAttributes(type.Attributes, typedef.Attributes);
-			ExtractConstants(type, type.Constants, typedef.Fields);
+			ExtractConstants(type, type.Fields, typedef.Fields);
 
 			return type;
 		}
 
-		public InterfaceDefinition ExtractInterface(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
+		public TypeDefinition ExtractInterface(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			var name = typedef.Name.Value;
-			var type = new InterfaceDefinition(name);
+			var type = new TypeDefinition(name, TypeKind.ReferenceType, TypeDefinitionKind.Interface);
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractGenericTypeParameters(type, typedef);
@@ -54,10 +54,10 @@ namespace CCIProvider
 			return type;
 		}
 
-		public ClassDefinition ExtractClass(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
+		public TypeDefinition ExtractClass(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			var name = typedef.Name.Value;
-			var type = new ClassDefinition(name);
+			var type = new TypeDefinition(name, TypeKind.ReferenceType, TypeDefinitionKind.Class);
 			var basedef = typedef.BaseClasses.SingleOrDefault();
 
 			//if (basedef == null)
@@ -66,7 +66,11 @@ namespace CCIProvider
 			//}
 
 			type.Base = ExtractType(basedef) as IBasicType;
-			type.IsDelegate = typedef.IsDelegate;
+
+			if (typedef.IsDelegate)
+			{
+				type.Kind = TypeDefinitionKind.Delegate;
+			}
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractGenericTypeParameters(type, typedef);
@@ -77,10 +81,10 @@ namespace CCIProvider
 			return type;
 		}
 
-		public StructDefinition ExtractStruct(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
+		public TypeDefinition ExtractStruct(Cci.INamedTypeDefinition typedef, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			var name = typedef.Name.Value;
-			var type = new StructDefinition(name);
+			var type = new TypeDefinition(name, TypeKind.ValueType, TypeDefinitionKind.Struct);
 
 			ExtractAttributes(type.Attributes, typedef.Attributes);
 			ExtractGenericTypeParameters(type, typedef);
@@ -298,7 +302,7 @@ namespace CCIProvider
 			}
 
 			var genericType = ExtractType(genericTyperef);
-            var type = ExtractType(typeref.GenericType, false);
+			var type = ExtractType(typeref.GenericType, false);
 			type.GenericType = genericType;
 			ExtractGenericType(type, typeref);
 
@@ -407,7 +411,7 @@ namespace CCIProvider
 		//}
 
 		#endregion
-		
+
 		public FunctionPointerType ExtractType(Cci.IFunctionPointerTypeReference typeref)
 		{
 			var returnType = ExtractType(typeref.Type);
@@ -471,15 +475,15 @@ namespace CCIProvider
 			method.ContainingType = (IBasicType)ExtractType(methodref.ContainingType);
 			method.IsStatic = methodref.IsStatic;
 
-            if (methodref is Cci.IGenericMethodInstanceReference)
-            {
-                var genericInstanceMethodref = methodref as Cci.IGenericMethodInstanceReference;
+			if (methodref is Cci.IGenericMethodInstanceReference)
+			{
+				var genericInstanceMethodref = methodref as Cci.IGenericMethodInstanceReference;
 
-                foreach (var typeParameterref in genericInstanceMethodref.GenericArguments)
-                {
-                    var typeArgumentref = ExtractType(typeParameterref);
-                    method.GenericArguments.Add(typeArgumentref);
-                }
+				foreach (var typeParameterref in genericInstanceMethodref.GenericArguments)
+				{
+					var typeArgumentref = ExtractType(typeParameterref);
+					method.GenericArguments.Add(typeArgumentref);
+				}
 
 				var genericMethodref = genericInstanceMethodref.GenericMethod;
 
@@ -531,15 +535,18 @@ namespace CCIProvider
 			}
 		}
 
-		private void ExtractConstants(ITypeDefinition containingType, IList<ConstantDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
+		private void ExtractConstants(TypeDefinition containingType, IList<FieldDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
 		{
 			source = source.Skip(1);
 
 			foreach (var constdef in source)
 			{
 				var name = constdef.Name.Value;
-				var value = ExtractConstant(constdef.CompileTimeValue);
-				var constant = new ConstantDefinition(name, value);
+				// Not sure if the type of the constant should be the enum type or the enum underlaying type.
+				var constant = new FieldDefinition(name, containingType)
+				{
+					Value = ExtractConstant(constdef.CompileTimeValue)
+				};
 
 				constant.ContainingType = containingType;
 				dest.Add(constant);
@@ -604,7 +611,7 @@ namespace CCIProvider
 			var namespaceref = namespaceTyperef.ContainingUnitNamespace;
 
 			while (namespaceref is Cci.INestedUnitNamespaceReference)
-			{				
+			{
 				var nestedNamespaceref = namespaceref as Cci.INestedUnitNamespaceReference;
 				namespaceParts.Insert(0, nestedNamespaceref.Name.Value);
 				namespaceref = nestedNamespaceref.ContainingUnitNamespace;
@@ -627,7 +634,7 @@ namespace CCIProvider
 			return result;
 		}
 
-		private void ExtractMethods(ITypeDefinition containingType, IList<MethodDefinition> dest, IEnumerable<Cci.IMethodDefinition> source, Cci.ISourceLocationProvider sourceLocationProvider)
+		private void ExtractMethods(TypeDefinition containingType, IList<MethodDefinition> dest, IEnumerable<Cci.IMethodDefinition> source, Cci.ISourceLocationProvider sourceLocationProvider)
 		{
 			foreach (var methoddef in source)
 			{
@@ -840,7 +847,7 @@ namespace CCIProvider
 			return result;
 		}
 
-		private void ExtractFields(ITypeDefinition containingType, IList<FieldDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
+		private void ExtractFields(TypeDefinition containingType, IList<FieldDefinition> dest, IEnumerable<Cci.IFieldDefinition> source)
 		{
 			foreach (var fielddef in source)
 			{

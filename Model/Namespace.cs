@@ -14,13 +14,13 @@ namespace Model
 		public Namespace ContainingNamespace { get; set; }
 		public string Name { get; private set; }
 		public IList<Namespace> Namespaces { get; private set; }
-		public IList<ITypeDefinition> Types { get; private set; }
+		public IList<TypeDefinition> Types { get; private set; }
 
 		public Namespace(string name)
 		{
 			this.Name = name;
 			this.Namespaces = new List<Namespace>();
-			this.Types = new List<ITypeDefinition>();
+			this.Types = new List<TypeDefinition>();
 		}
 
 		public string FullName

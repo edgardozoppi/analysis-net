@@ -36,8 +36,8 @@ namespace Model.Types
 		public bool Equals(IBasicType x, IBasicType y)
 		{
 			bool result;
-			var xdef = x as ITypeDefinition;
-			var ydef = y as ITypeDefinition;
+			var xdef = x as TypeDefinition;
+			var ydef = y as TypeDefinition;
 
 			if (xdef != null && ydef == null)
 			{

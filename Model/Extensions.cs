@@ -71,7 +71,7 @@ namespace Model
 			}
 		}
 
-		internal static bool BothNullOrMatchReference(this ITypeDefinition def, IBasicType @ref)
+		internal static bool BothNullOrMatchReference(this TypeDefinition def, IBasicType @ref)
 		{
 			return (def == null && @ref == null) ||
 				   (def != null && @ref != null && def.MatchReference(@ref));
@@ -342,10 +342,9 @@ namespace Model
 					basicType = basicType.GenericType;
 				}
 
-				if (basicType.ResolvedType is ClassDefinition)
+				if (basicType.ResolvedType != null)
 				{
-					var resolvedType = basicType.ResolvedType as ClassDefinition;
-					result = resolvedType.IsDelegate;
+					result = basicType.ResolvedType.Kind == TypeDefinitionKind.Delegate;
 				}
 				else
 				{
@@ -488,6 +487,36 @@ namespace Model
 				{
 					instruction.Label = null;
 				}
+			}
+		}
+
+		public static string ToDisplayName(this TypeDefinitionKind kind)
+		{
+			switch (kind)
+			{
+				case TypeDefinitionKind.Unknown: return "type";
+				case TypeDefinitionKind.Class: return "class";
+				case TypeDefinitionKind.Interface: return "interface";
+				case TypeDefinitionKind.Struct: return "struct";
+				case TypeDefinitionKind.Enum: return "enum";
+				case TypeDefinitionKind.Delegate: return "delegate";
+
+				default: throw kind.ToUnknownValueException();
+			}
+		}
+
+		public static TypeKind ToTypeKind(this TypeDefinitionKind kind)
+		{
+			switch (kind)
+			{
+				case TypeDefinitionKind.Unknown: return TypeKind.Unknown;
+				case TypeDefinitionKind.Class:
+				case TypeDefinitionKind.Interface:
+				case TypeDefinitionKind.Delegate: return TypeKind.ReferenceType;
+				case TypeDefinitionKind.Struct:
+				case TypeDefinitionKind.Enum: return TypeKind.ValueType;
+
+				default: throw kind.ToUnknownValueException();
 			}
 		}
 	}
