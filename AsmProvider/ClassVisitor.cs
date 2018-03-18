@@ -8,7 +8,7 @@ namespace AsmProvider
 	internal class ClassVisitor : AsmCore.ClassVisitor
 	{
 		private AssemblyContext context;
-		private ClassDefinition clazz;
+		private ITypeDefinition clazz;
 
 		public ClassVisitor(AssemblyContext context)
 			: base(AsmCore.Opcodes.ASM6)
@@ -32,72 +32,99 @@ namespace AsmProvider
 		public override void Visit(int version, int access, string name, string signature, string superName, string[] interfaces)
 		{
 			var qualifiedName = Helper.ParseTypeDefinitionName(name);
-			var @namespace = Helper.GetOrCreateNamespace(context.Assembly, qualifiedName.Namespace);
+			var namezpace = Helper.GetOrCreateNamespace(context.Assembly, qualifiedName.Namespace);
+			var isInterface = Helper.HasFlag(access, AsmCore.Opcodes.ACC_INTERFACE);
 
-			var superQualifiedName = Helper.ParseTypeReferenceName(superName);
-
-			clazz = new ClassDefinition(qualifiedName.Name)
+			if (isInterface)
 			{
-				ContainingAssembly = context.Assembly,
-				ContainingNamespace = @namespace,
-				Base = Helper.CreateTypeReference(context.Host, context.Assembly, superQualifiedName)
-			};
+				clazz = new InterfaceDefinition(qualifiedName.Name)
+				{
+					ContainingAssembly = context.Assembly,
+					ContainingNamespace = namezpace
+				};
+			}
+			else
+			{
+				var superQualifiedName = Helper.ParseTypeReferenceName(superName);
 
+				clazz = new ClassDefinition(qualifiedName.Name)
+				{
+					ContainingAssembly = context.Assembly,
+					ContainingNamespace = namezpace,
+					Base = Helper.CreateTypeReference(context.Host, context.Assembly, superQualifiedName)
+				};
+			}
+
+			context.DefinedTypes.Add(name, clazz);
+
+			AddInterfaces(interfaces);
+			AddToParent(qualifiedName, namezpace);
+			AddNestedTypes(name);
+		}
+
+		private void AddInterfaces(string[] interfaces)
+		{
+			var implementerType = (IInterfaceImplementer)clazz;
+
+			// Add implemented interfaces.
 			foreach (var interfaceName in interfaces)
 			{
 				var interfaceQualifiedName = Helper.ParseTypeReferenceName(interfaceName);
 				var type = Helper.CreateTypeReference(context.Host, context.Assembly, interfaceQualifiedName);
 
-				clazz.Interfaces.Add(type);
+				implementerType.Interfaces.Add(type);
 			}
+		}
 
-			context.DefinedTypes.Add(name, clazz);
-
+		private void AddToParent(TypeDefinitionName qualifiedName, Namespace namezpace)
+		{
+			// Add this type to the corresponding parent.
+			if (qualifiedName.IsNested)
 			{
-				// Add this class to the corresponding parent.
-				if (qualifiedName.IsNested)
-				{
-					// This class is nested.
-					ITypeDefinition parentType;
-					var ok = context.DefinedTypes.TryGetValue(qualifiedName.ParentFullName, out parentType);
-
-					if (ok)
-					{
-						// The parent of this class was already created.
-						var parentClass = (ClassDefinition)parentType;
-
-						clazz.ContainingType = parentClass;
-						parentClass.Types.Add(clazz);
-					}
-					else
-					{
-						// The parent of this class was not yet created,
-						// so it will be added later.
-						context.AddNestedType(qualifiedName.ParentFullName, clazz);
-					}
-				}
-				else
-				{
-					// This class is not nested, so it is a direct child of the namespace.
-					@namespace.Types.Add(clazz);
-				}
-			}
-
-			{
-				// Add previously created child types.
-				ISet<ITypeDefinition> childTypes;
-				var ok = context.NestedTypes.TryGetValue(name, out childTypes);
+				// This type is nested.
+				ITypeDefinition type;
+				var ok = context.DefinedTypes.TryGetValue(qualifiedName.ParentFullName, out type);
 
 				if (ok)
 				{
-					foreach (var childType in childTypes)
-					{
-						childType.ContainingType = clazz;
-						clazz.Types.Add(childType);
-					}
+					// The parent of this type was already created.
+					var parentType = (ITypeDefinitionContainer)type;
 
-					context.NestedTypes.Remove(name);
+					clazz.ContainingType = type;
+					parentType.Types.Add(clazz);
 				}
+				else
+				{
+					// The parent of this type was not yet created,
+					// so it will be added later.
+					context.AddNestedType(qualifiedName.ParentFullName, clazz);
+				}
+			}
+			else
+			{
+				// This type is not nested, so it is a direct child of the namespace.
+				namezpace.Types.Add(clazz);
+			}
+		}
+
+		private void AddNestedTypes(string parentFullName)
+		{
+			var parentType = clazz as ITypeDefinitionContainer;
+			if (parentType == null) return;
+
+			// Add previously created nested types.
+			ISet<ITypeDefinition> nestedTypes;
+			var ok = context.NestedTypes.TryGetValue(parentFullName, out nestedTypes);
+
+			if (ok)
+			{
+				foreach (var nestedType in nestedTypes)
+				{
+					nestedType.ContainingType = clazz;
+					parentType.Types.Add(nestedType);
+				}
+
+				context.NestedTypes.Remove(parentFullName);
 			}
 		}
 
@@ -111,7 +138,8 @@ namespace AsmProvider
 				IsStatic = Helper.HasFlag(access, AsmCore.Opcodes.ACC_STATIC)
 			};
 
-			clazz.Fields.Add(field);
+			var containerType = (IFieldDefinitionContainer)clazz;
+			containerType.Fields.Add(field);
 
 			return null;
 		}
@@ -137,7 +165,8 @@ namespace AsmProvider
 				method.Parameters.Add(parameter);
 			}
 
-			clazz.Methods.Add(method);
+			var containerType = (IMethodDefinitionContainer)clazz;
+			containerType.Methods.Add(method);
 
 			return new MethodVisitor(method);
 		}

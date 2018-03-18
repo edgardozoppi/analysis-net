@@ -14,6 +14,21 @@ namespace Model.Types
 		IList<ITypeDefinition> Types { get; }
 	}
 
+	public interface IFieldDefinitionContainer
+	{
+		IList<FieldDefinition> Fields { get; }
+	}
+
+	public interface IMethodDefinitionContainer
+	{
+		IList<MethodDefinition> Methods { get; }
+	}
+
+	public interface IInterfaceImplementer
+	{
+		IList<IBasicType> Interfaces { get; }
+	}
+
 	public interface ITypeMemberReference
 	{
 		IBasicType ContainingType { get; }
@@ -73,7 +88,7 @@ namespace Model.Types
 		}
 	}
 
-	public class StructDefinition : IValueTypeDefinition, IGenericDefinition, ITypeDefinitionContainer
+	public class StructDefinition : IValueTypeDefinition, IGenericDefinition, ITypeDefinitionContainer, IFieldDefinitionContainer, IMethodDefinitionContainer, IInterfaceImplementer
 	{
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
@@ -948,7 +963,7 @@ namespace Model.Types
 		}
 	}
 
-	public class InterfaceDefinition : IReferenceTypeDefinition, IGenericDefinition
+	public class InterfaceDefinition : IReferenceTypeDefinition, IGenericDefinition, IMethodDefinitionContainer, IInterfaceImplementer
 	{
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
@@ -1104,7 +1119,7 @@ namespace Model.Types
 		}
 	}
 
-	public class ClassDefinition : IReferenceTypeDefinition, IGenericDefinition, ITypeDefinitionContainer
+	public class ClassDefinition : IReferenceTypeDefinition, IGenericDefinition, ITypeDefinitionContainer, IFieldDefinitionContainer, IMethodDefinitionContainer, IInterfaceImplementer
 	{
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
