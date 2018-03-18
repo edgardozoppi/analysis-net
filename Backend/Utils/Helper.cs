@@ -17,7 +17,7 @@ namespace Backend.Utils
 
 			while (receiverType != null && !method.ContainingType.Equals(receiverType))
 			{
-				var receiverTypeDef = receiverType.ResolvedType as ClassDefinition;
+				var receiverTypeDef = receiverType.ResolvedType;
 				if (receiverTypeDef == null) break;
 
 				var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.MatchSignature(method));

@@ -16,12 +16,12 @@ namespace Backend.Model
 		private class ClassHierarchyInfo
 		{
 			public IBasicType Type { get; private set; }
-			public ISet<ITypeDefinition> Subtypes { get; private set; }
+			public ISet<TypeDefinition> Subtypes { get; private set; }
 
 			public ClassHierarchyInfo(IBasicType type)
 			{
 				this.Type = type;
-				this.Subtypes = new HashSet<ITypeDefinition>();
+				this.Subtypes = new HashSet<TypeDefinition>();
 			}
 		}
 
@@ -40,10 +40,10 @@ namespace Backend.Model
 			get { return types.Keys; }
 		}
 
-		public IEnumerable<ITypeDefinition> GetSubtypes(IBasicType type)
+		public IEnumerable<TypeDefinition> GetSubtypes(IBasicType type)
 		{
 			ClassHierarchyInfo info;
-			var result = Enumerable.Empty<ITypeDefinition>();
+			var result = Enumerable.Empty<TypeDefinition>();
 
 			if (types.TryGetValue(type, out info))
 			{
@@ -53,10 +53,10 @@ namespace Backend.Model
 			return result;
 		}
 
-		public IEnumerable<ITypeDefinition> GetAllSubtypes(IBasicType type)
+		public IEnumerable<TypeDefinition> GetAllSubtypes(IBasicType type)
 		{
-			var result = new HashSet<ITypeDefinition>();
-			var worklist = new HashSet<ITypeDefinition>();
+			var result = new HashSet<TypeDefinition>();
+			var worklist = new HashSet<TypeDefinition>();
 
 			var subtypes = GetSubtypes(type);
 			worklist.UnionWith(subtypes);
@@ -85,9 +85,6 @@ namespace Backend.Model
 
 			var definedTypes = from a in host.Assemblies
 							   from t in a.RootNamespace.GetAllTypes()
-							   where t is StructDefinition ||
-									 t is ClassDefinition ||
-									 t is InterfaceDefinition
 							   select t;
 
 			foreach (var type in definedTypes)
@@ -101,11 +98,7 @@ namespace Backend.Model
 			if (analyzed) return;
 			analyzed = true;
 
-			var definedTypes = from t in assembly.RootNamespace.GetAllTypes()
-							   where t is StructDefinition ||
-									 t is ClassDefinition ||
-									 t is InterfaceDefinition
-							   select t;
+			var definedTypes = assembly.RootNamespace.GetAllTypes();
 
 			foreach (var type in definedTypes)
 			{
@@ -113,26 +106,7 @@ namespace Backend.Model
 			}
 		}
 
-		private void Analyze(ITypeDefinition type)
-		{
-			if (type is ClassDefinition)
-			{
-				var typedef = type as ClassDefinition;
-				Analyze(typedef);
-			}
-			else if (type is StructDefinition)
-			{
-				var typedef = type as StructDefinition;
-				Analyze(typedef);
-			}
-			else if (type is InterfaceDefinition)
-			{
-				var typedef = type as InterfaceDefinition;
-				Analyze(typedef);
-			}
-		}
-
-		private void Analyze(ClassDefinition type)
+		private void Analyze(TypeDefinition type)
 		{
 			GetOrAddInfo(type);
 
@@ -141,28 +115,6 @@ namespace Backend.Model
 				var baseInfo = GetOrAddInfo(type.Base);
 				baseInfo.Subtypes.Add(type);
 			}
-
-			foreach (var interfaceref in type.Interfaces)
-			{
-				var interfaceInfo = GetOrAddInfo(interfaceref);
-				interfaceInfo.Subtypes.Add(type);
-			}
-		}
-
-		private void Analyze(StructDefinition type)
-		{
-			GetOrAddInfo(type);
-
-			foreach (var interfaceref in type.Interfaces)
-			{
-				var interfaceInfo = GetOrAddInfo(interfaceref);
-				interfaceInfo.Subtypes.Add(type);
-			}
-		}
-
-		private void Analyze(InterfaceDefinition type)
-		{
-			GetOrAddInfo(type);
 
 			foreach (var interfaceref in type.Interfaces)
 			{

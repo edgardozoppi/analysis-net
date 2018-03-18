@@ -18,7 +18,7 @@ namespace CCIProvider
 
 		private Assembly currentAssembly;
 		private Namespace currentNamespace;
-		private ITypeDefinition currentType;
+		private TypeDefinition currentType;
 		private TypeExtractor typeExtractor;
 
 		public Assembly Result
@@ -74,7 +74,7 @@ namespace CCIProvider
 
 		public override void TraverseChildren(Cci.INamedTypeDefinition typedef)
 		{
-			ITypeDefinition result = null;
+			TypeDefinition result = null;
 
 			if (typedef.IsClass)
 			{

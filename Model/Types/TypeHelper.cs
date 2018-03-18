@@ -15,7 +15,7 @@ namespace Model.Types
 
 	public static class TypeHelper
 	{
-		public static IEnumerable<ITypeDefinition> GetAllTypes(this Namespace self)
+		public static IEnumerable<TypeDefinition> GetAllTypes(this Namespace self)
 		{
 			var typeContainer = self as ITypeDefinitionContainer;
 			var types = typeContainer.GetAllTypes();
@@ -24,7 +24,7 @@ namespace Model.Types
 			return result;
 		}
 
-		public static IEnumerable<ITypeDefinition> GetAllTypes(this ITypeDefinitionContainer self)
+		public static IEnumerable<TypeDefinition> GetAllTypes(this ITypeDefinitionContainer self)
 		{
 			var types = self.Types;
 			var nestedTypes = self.Types.OfType<ITypeDefinitionContainer>()
@@ -52,7 +52,7 @@ namespace Model.Types
 
 			return type;
 		}
-		
+
 		public static bool IsScalar(this IType type)
 		{
 			var result = type.TypeKind == TypeKind.ValueType;
@@ -100,7 +100,7 @@ namespace Model.Types
 			if (result && type is IBasicType)
 			{
 				var basicType = type as IBasicType;
-				result = basicType.ResolvedType is EnumDefinition;
+				result = basicType.ResolvedType != null && basicType.ResolvedType.Kind == TypeDefinitionKind.Enum;
 			}
 
 			return result;
@@ -211,10 +211,10 @@ namespace Model.Types
 			//	if (mdcbc != null) return mdcbc;
 			//}
 			//else
-			
+
 			if (typedef1 != null && Type1ImplementsType2(typedef1, type2)) return type2;
 			if (typedef2 != null && Type1ImplementsType2(typedef2, type1)) return type1;
-			
+
 			return PlatformTypes.Object;
 		}
 
@@ -226,7 +226,7 @@ namespace Model.Types
 			return false;
 		}
 
-		public static bool TypesAreEquivalent(ITypeDefinition type1, ITypeDefinition type2)
+		public static bool TypesAreEquivalent(TypeDefinition type1, TypeDefinition type2)
 		{
 			if (type1 == null || type2 == null) return false;
 			if (type1 == type2) return true;
@@ -234,7 +234,7 @@ namespace Model.Types
 			return false;
 		}
 
-		public static bool TypesAreEquivalent(ITypeDefinition type1, IType type2)
+		public static bool TypesAreEquivalent(TypeDefinition type1, IType type2)
 		{
 			if (type1 == null || type2 == null) return false;
 			if (type2 is IBasicType && type1.MatchReference(type2 as IBasicType)) return true;
@@ -282,11 +282,9 @@ namespace Model.Types
 				return PlatformTypes.IntPtr;
 			}
 
-			var enumdef = basicType.ResolvedType as EnumDefinition;
-
-			if (enumdef != null)
+			if (basicType.ResolvedType != null && basicType.ResolvedType.Kind == TypeDefinitionKind.Enum)
 			{
-				return StackType(enumdef.UnderlayingType);
+				return StackType(basicType.ResolvedType.UnderlayingType);
 			}
 
 			return type;
@@ -335,27 +333,10 @@ namespace Model.Types
 		/// Returns true if the given type definition, or one of its base types, implements the given interface or an interface
 		/// that derives from the given interface.
 		/// </summary>
-		public static bool Type1ImplementsType2(ITypeDefinition type1, IType type2)
+		public static bool Type1ImplementsType2(TypeDefinition type1, IType type2)
 		{
-			IEnumerable<IBasicType> interfaces = null;
-			IBasicType baseType = null;
-
-			if (type1 is ClassDefinition)
-			{
-				var classdef = type1 as ClassDefinition;
-				interfaces = classdef.Interfaces;
-				baseType = classdef.Base;
-			}
-			else if (type1 is StructDefinition)
-			{
-				var structdef = type1 as StructDefinition;
-				interfaces = structdef.Interfaces;
-			}
-			else if (type1 is InterfaceDefinition)
-			{
-				var interfacedef = type1 as InterfaceDefinition;
-				interfaces = interfacedef.Interfaces;
-			}
+			var interfaces = type1.Interfaces;
+			var baseType = type1.Base;
 
 			if (interfaces != null)
 			{
@@ -426,7 +407,7 @@ namespace Model.Types
 		/// <summary>
 		/// Returns true if a CLR supplied implicit reference conversion is available to convert a value of the given source type to a corresponding value of the given target type.
 		/// </summary>
-		private static bool TypesAreAssignmentCompatible(ITypeDefinition sourceType, IType targetType)
+		private static bool TypesAreAssignmentCompatible(TypeDefinition sourceType, IType targetType)
 		{
 			if (TypesAreEquivalent(sourceType, targetType)) return true;
 			if (Type1DerivesFromType2(sourceType, targetType)) return true;
@@ -441,7 +422,7 @@ namespace Model.Types
 		/// Returns true if type1 is the same as type2 or if it is derives from type2.
 		/// Type1 derives from type2 if the latter is a direct or indirect base class.
 		/// </summary>
-		public static bool Type1DerivesFromOrIsTheSameAsType2(ITypeDefinition type1, IType type2)
+		public static bool Type1DerivesFromOrIsTheSameAsType2(TypeDefinition type1, IType type2)
 		{
 			if (TypesAreEquivalent(type1, type2)) return true;
 			return Type1DerivesFromType2(type1, type2);
@@ -450,19 +431,12 @@ namespace Model.Types
 		/// <summary>
 		/// Type1 derives from type2 if the latter is a direct or indirect base class.
 		/// </summary>
-		public static bool Type1DerivesFromType2(ITypeDefinition type1, IType type2)
+		public static bool Type1DerivesFromType2(TypeDefinition type1, IType type2)
 		{
-			if (type1 is ClassDefinition)
+			if (type1 != null && type1.Base != null)
 			{
-				var class1 = type1 as ClassDefinition;
-
-                if (class1.Base != null)
-                {
-					if (TypesAreEquivalent(class1.Base, type2)) return true;	
-	
-					if (class1.Base.ResolvedType is ClassDefinition &&
-						Type1DerivesFromType2(class1.Base.ResolvedType as ClassDefinition, type2)) return true;
-                }
+				if (TypesAreEquivalent(type1.Base, type2)) return true;
+				if (Type1DerivesFromType2(type1.Base.ResolvedType, type2)) return true;
 			}
 
 			return false;
@@ -471,7 +445,7 @@ namespace Model.Types
 		/// <summary>
 		/// Returns true if Type1 is CovariantWith Type2 as per CLR.
 		/// </summary>
-		public static bool Type1IsCovariantWithType2(ITypeDefinition type1, IType type2)
+		public static bool Type1IsCovariantWithType2(IType type1, IType type2)
 		{
 			var arrayType1 = type1 as ArrayType;
 			var arrayType2 = type2 as ArrayType;
@@ -516,10 +490,9 @@ namespace Model.Types
 			{
 				result.Add(basicType);
 
-				var typedef = basicType.ResolvedType as ClassDefinition;
-				if (typedef == null) break;
+				if (basicType.ResolvedType == null) break;
 
-				basicType = typedef.Base;
+				basicType = basicType.ResolvedType.Base;
 			}
 
 			return result;

@@ -673,7 +673,7 @@ namespace Backend.Serialization
 
 		#region Type Graph
 
-		public static string Serialize(Host host, ITypeDefinition type)
+		public static string Serialize(Host host, TypeDefinition type)
 		{
 			return DGMLSerializer.Serialize(host, type.ToEnumerable());
 		}
@@ -684,15 +684,15 @@ namespace Backend.Serialization
 			return DGMLSerializer.Serialize(host, types);
 		}
 
-		private static string Serialize(Host host, IEnumerable<ITypeDefinition> types)
+		private static string Serialize(Host host, IEnumerable<TypeDefinition> types)
 		{
 			using (var stringWriter = new StringWriter())
 			using (var xmlWriter = new XmlTextWriter(stringWriter))
 			{
 				var allReferencedTypes = new Dictionary<IBasicType, int>();
-				var allDefinedTypes = new Dictionary<ITypeDefinition, int>();
-				var visitedTypes = new HashSet<ITypeDefinition>();
-				var newTypes = new HashSet<ITypeDefinition>();
+				var allDefinedTypes = new Dictionary<TypeDefinition, int>();
+				var visitedTypes = new HashSet<TypeDefinition>();
+				var newTypes = new HashSet<TypeDefinition>();
 
 				xmlWriter.Formatting = Formatting.Indented;
 				xmlWriter.WriteStartElement("DirectedGraph");

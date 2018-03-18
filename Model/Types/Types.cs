@@ -153,13 +153,13 @@ namespace Model.Types
 		//new int GenericParameterCount { get; }
 		IList<IType> GenericArguments { get; }
         IBasicType GenericType { get; }
-		ITypeDefinition ResolvedType { get; }
+		TypeDefinition ResolvedType { get; }
 	}
 
 	public class BasicType : IBasicType
 	{
-		private Func<ITypeDefinition> ResolveType;
-		private ITypeDefinition resolvedType;
+		private Func<TypeDefinition> ResolveType;
+		private TypeDefinition resolvedType;
 
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeKind TypeKind { get; set; }
@@ -214,7 +214,7 @@ namespace Model.Types
 			}
 		}
 
-		public ITypeDefinition ResolvedType
+		public TypeDefinition ResolvedType
 		{
 			get
 			{
@@ -227,7 +227,7 @@ namespace Model.Types
 			}
 		}
 
-		//public ITypeDefinition Resolve(Host host)
+		//public TypeDefinition Resolve(Host host)
 		//{
 		//	this.ResolvedType = host.ResolveReference(this);
 		//	return this.ResolvedType;

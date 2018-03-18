@@ -28,11 +28,11 @@ namespace Model
 			return result;
 		}
 
-		public ITypeDefinition ResolveReference(IBasicType type)
+		public TypeDefinition ResolveReference(IBasicType type)
 		{
-			if (type is ITypeDefinition)
+			if (type is TypeDefinition)
 			{
-				return type as ITypeDefinition;
+				return type as TypeDefinition;
 			}
 
 			// Find containing assembly
