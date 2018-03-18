@@ -1,4 +1,5 @@
 ﻿using Model;
+using Model.ThreeAddressCode.Values;
 using Model.Types;
 using System.Collections.Generic;
 using AsmCore = Asm.Core;
@@ -8,7 +9,7 @@ namespace AsmProvider
 	internal class ClassVisitor : AsmCore.ClassVisitor
 	{
 		private AssemblyContext context;
-		private ITypeDefinition clazz;
+		private TypeDefinition clazz;
 
 		public ClassVisitor(AssemblyContext context)
 			: base(AsmCore.Opcodes.ASM6)
@@ -34,26 +35,16 @@ namespace AsmProvider
 			var qualifiedName = Helper.ParseTypeDefinitionName(name);
 			var namezpace = Helper.GetOrCreateNamespace(context.Assembly, qualifiedName.Namespace);
 			var isInterface = Helper.HasFlag(access, AsmCore.Opcodes.ACC_INTERFACE);
+			var kind = isInterface ? TypeDefinitionKind.Interface : TypeDefinitionKind.Class;
 
-			if (isInterface)
-			{
-				clazz = new InterfaceDefinition(qualifiedName.Name)
-				{
-					ContainingAssembly = context.Assembly,
-					ContainingNamespace = namezpace
-				};
-			}
-			else
-			{
-				var superQualifiedName = Helper.ParseTypeReferenceName(superName);
+			var superQualifiedName = Helper.ParseTypeReferenceName(superName);
 
-				clazz = new ClassDefinition(qualifiedName.Name)
-				{
-					ContainingAssembly = context.Assembly,
-					ContainingNamespace = namezpace,
-					Base = Helper.CreateTypeReference(context.Host, context.Assembly, superQualifiedName)
-				};
-			}
+			clazz = new TypeDefinition(qualifiedName.Name, TypeKind.ReferenceType, kind)
+			{
+				ContainingAssembly = context.Assembly,
+				ContainingNamespace = namezpace,
+				Base = Helper.CreateTypeReference(context.Host, context.Assembly, superQualifiedName)
+			};
 
 			context.DefinedTypes.Add(name, clazz);
 
@@ -64,15 +55,13 @@ namespace AsmProvider
 
 		private void AddInterfaces(string[] interfaces)
 		{
-			var implementerType = (IInterfaceImplementer)clazz;
-
 			// Add implemented interfaces.
 			foreach (var interfaceName in interfaces)
 			{
 				var interfaceQualifiedName = Helper.ParseTypeReferenceName(interfaceName);
 				var type = Helper.CreateTypeReference(context.Host, context.Assembly, interfaceQualifiedName);
 
-				implementerType.Interfaces.Add(type);
+				clazz.Interfaces.Add(type);
 			}
 		}
 
@@ -82,7 +71,7 @@ namespace AsmProvider
 			if (qualifiedName.IsNested)
 			{
 				// This type is nested.
-				ITypeDefinition type;
+				TypeDefinition type;
 				var ok = context.DefinedTypes.TryGetValue(qualifiedName.ParentFullName, out type);
 
 				if (ok)
@@ -113,7 +102,7 @@ namespace AsmProvider
 			if (parentType == null) return;
 
 			// Add previously created nested types.
-			ISet<ITypeDefinition> nestedTypes;
+			ISet<TypeDefinition> nestedTypes;
 			var ok = context.NestedTypes.TryGetValue(parentFullName, out nestedTypes);
 
 			if (ok)
@@ -138,8 +127,15 @@ namespace AsmProvider
 				IsStatic = Helper.HasFlag(access, AsmCore.Opcodes.ACC_STATIC)
 			};
 
-			var containerType = (IFieldDefinitionContainer)clazz;
-			containerType.Fields.Add(field);
+			if (value != null)
+			{
+				field.Value = new Constant(value)
+				{
+					Type = type
+				};
+			}
+
+			clazz.Fields.Add(field);
 
 			return null;
 		}
@@ -165,8 +161,7 @@ namespace AsmProvider
 				method.Parameters.Add(parameter);
 			}
 
-			var containerType = (IMethodDefinitionContainer)clazz;
-			containerType.Methods.Add(method);
+			clazz.Methods.Add(method);
 
 			return new MethodVisitor(method);
 		}

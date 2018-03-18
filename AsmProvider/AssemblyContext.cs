@@ -14,24 +14,24 @@ namespace AsmProvider
 		{
 			this.Host = host;
 			this.Assembly = assembly;
-			this.DefinedTypes = new Dictionary<string, ITypeDefinition>();
-			this.NestedTypes = new Dictionary<string, ISet<ITypeDefinition>>();
+			this.DefinedTypes = new Dictionary<string, TypeDefinition>();
+			this.NestedTypes = new Dictionary<string, ISet<TypeDefinition>>();
 		}
 
 		public Host Host { get; private set; }
 		public Assembly Assembly { get; private set; }
 
-		public IDictionary<string, ITypeDefinition> DefinedTypes { get; private set; }
-		public IDictionary<string, ISet<ITypeDefinition>> NestedTypes { get; private set; }
+		public IDictionary<string, TypeDefinition> DefinedTypes { get; private set; }
+		public IDictionary<string, ISet<TypeDefinition>> NestedTypes { get; private set; }
 
-		public void AddNestedType(string parentDescriptor, ITypeDefinition child)
+		public void AddNestedType(string parentDescriptor, TypeDefinition child)
 		{
-			ISet<ITypeDefinition> childs;
+			ISet<TypeDefinition> childs;
 			var ok = this.NestedTypes.TryGetValue(parentDescriptor, out childs);
 
 			if (!ok)
 			{
-				childs = new HashSet<ITypeDefinition>();
+				childs = new HashSet<TypeDefinition>();
 				this.NestedTypes.Add(parentDescriptor, childs);
 			}
 
