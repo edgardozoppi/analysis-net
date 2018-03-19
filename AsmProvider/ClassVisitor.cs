@@ -1,4 +1,5 @@
 ﻿using Model;
+using Model.Bytecode;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
 using System.Collections.Generic;
@@ -163,7 +164,7 @@ namespace AsmProvider
 
 			clazz.Methods.Add(method);
 
-			return new MethodVisitor(method);
+			return new MethodVisitor(context, method);
 		}
 	}
 
@@ -185,12 +186,30 @@ namespace AsmProvider
 
 	internal class MethodVisitor : AsmCore.MethodVisitor
 	{
+		private AssemblyContext context;
 		private MethodDefinition method;
+		private uint offset;
 
-		public MethodVisitor(MethodDefinition method)
-			 : base(AsmCore.Opcodes.ASM6)
+		public MethodVisitor(AssemblyContext context, MethodDefinition method)
+			: base(AsmCore.Opcodes.ASM6)
 		{
+			this.context = context;
 			this.method = method;
+		}
+
+		public override void VisitCode()
+		{
+			method.Body = new MethodBody(MethodBodyKind.Bytecode);
+			offset = 0;
+		}
+
+		public override void VisitMaxs(int maxStack, int maxLocals)
+		{
+			method.Body.MaxStack = (ushort)maxStack;
+		}
+
+		public override void VisitParameter(string name, int access)
+		{
 		}
 
 		public override void VisitLocalVariable(string name, string descriptor, string signature, AsmCore.Label start, AsmCore.Label end, int index)
@@ -208,10 +227,133 @@ namespace AsmProvider
 				var parameter = method.Parameters[index];
 				parameter.Name = name;
 			}
+
+			var isParameter = index < method.Parameters.Count;
+			var variable = new LocalVariable(name, isParameter)
+			{
+				Type = Helper.ParseTypeDescriptor(context.Host, context.Assembly, descriptor)
+			};
+
+			if (isParameter)
+			{
+				method.Body.Parameters.Add(variable);
+			}
 			else
 			{
-				//var type = Helper.ParseTypeDescriptor(descriptor);
+				method.Body.LocalVariables.Add(variable);
 			}
+		}
+
+		public override void VisitInsn(int opcode)
+		{
+			IInstruction instruction = null;
+
+			switch (opcode)
+			{
+				case AsmCore.Opcodes.NOP:
+				case AsmCore.Opcodes.IALOAD:
+				case AsmCore.Opcodes.LALOAD:
+				case AsmCore.Opcodes.FALOAD:
+				case AsmCore.Opcodes.DALOAD:
+				case AsmCore.Opcodes.AALOAD:
+				case AsmCore.Opcodes.BALOAD:
+				case AsmCore.Opcodes.CALOAD:
+				case AsmCore.Opcodes.SALOAD:
+				case AsmCore.Opcodes.IASTORE:
+				case AsmCore.Opcodes.LASTORE:
+				case AsmCore.Opcodes.FASTORE:
+				case AsmCore.Opcodes.DASTORE:
+				case AsmCore.Opcodes.AASTORE:
+				case AsmCore.Opcodes.BASTORE:
+				case AsmCore.Opcodes.CASTORE:
+				case AsmCore.Opcodes.SASTORE:
+				case AsmCore.Opcodes.POP:
+				case AsmCore.Opcodes.POP2:
+				case AsmCore.Opcodes.DUP:
+				case AsmCore.Opcodes.DUP_X1:
+				case AsmCore.Opcodes.DUP_X2:
+				case AsmCore.Opcodes.DUP2:
+				case AsmCore.Opcodes.DUP2_X1:
+				case AsmCore.Opcodes.DUP2_X2:
+				//case AsmCore.Opcodes.SWAP:		
+				case AsmCore.Opcodes.IADD:
+				case AsmCore.Opcodes.LADD:
+				case AsmCore.Opcodes.FADD:
+				case AsmCore.Opcodes.DADD:
+				case AsmCore.Opcodes.ISUB:
+				case AsmCore.Opcodes.LSUB:
+				case AsmCore.Opcodes.FSUB:
+				case AsmCore.Opcodes.DSUB:
+				case AsmCore.Opcodes.IMUL:
+				case AsmCore.Opcodes.LMUL:
+				case AsmCore.Opcodes.FMUL:
+				case AsmCore.Opcodes.DMUL:
+				case AsmCore.Opcodes.IDIV:
+				case AsmCore.Opcodes.LDIV:
+				case AsmCore.Opcodes.FDIV:
+				case AsmCore.Opcodes.DDIV:
+				case AsmCore.Opcodes.IREM:
+				case AsmCore.Opcodes.LREM:
+				case AsmCore.Opcodes.FREM:
+				case AsmCore.Opcodes.DREM:
+				case AsmCore.Opcodes.INEG:
+				case AsmCore.Opcodes.LNEG:
+				case AsmCore.Opcodes.FNEG:
+				case AsmCore.Opcodes.DNEG:
+				case AsmCore.Opcodes.ISHL:
+				case AsmCore.Opcodes.LSHL:
+				case AsmCore.Opcodes.ISHR:
+				case AsmCore.Opcodes.LSHR:
+				case AsmCore.Opcodes.IUSHR:
+				case AsmCore.Opcodes.LUSHR:
+				case AsmCore.Opcodes.IAND:
+				case AsmCore.Opcodes.LAND:
+				case AsmCore.Opcodes.IOR:
+				case AsmCore.Opcodes.LOR:
+				case AsmCore.Opcodes.IXOR:
+				case AsmCore.Opcodes.LXOR:
+				//case AsmCore.Opcodes.LCMP:
+				//case AsmCore.Opcodes.FCMPL:
+				//case AsmCore.Opcodes.FCMPG:
+				//case AsmCore.Opcodes.DCMPL:
+				//case AsmCore.Opcodes.DCMPG:		
+				case AsmCore.Opcodes.IRETURN:
+				case AsmCore.Opcodes.LRETURN:
+				case AsmCore.Opcodes.FRETURN:
+				case AsmCore.Opcodes.DRETURN:
+				case AsmCore.Opcodes.ARETURN:
+				case AsmCore.Opcodes.RETURN:
+				case AsmCore.Opcodes.ARRAYLENGTH:
+				case AsmCore.Opcodes.ATHROW:
+				//case AsmCore.Opcodes.MONITORENTER:
+				//case AsmCore.Opcodes.MONITOREXIT:	
+					instruction = ProcessBasic(opcode);
+					break;
+
+				default:
+					//Console.WriteLine("Unknown bytecode: {0}", opcode);
+					//throw new UnknownBytecodeException(operation);
+					//continue;
+
+					// Quick fix to preserve the offset in case it is a target location of some jump
+					// Otherwise it will break the control-flow analysis later.
+					instruction = new BasicInstruction(offset++, BasicOperation.Nop);
+					break;
+			}
+
+			method.Body.Instructions.Add(instruction);
+		}
+
+		private IInstruction ProcessBasic(int op)
+		{
+			var operation = OperationHelper.ToBasicOperation(op);
+			//var overflow = OperationHelper.PerformsOverflowCheck(op);
+			//var unsigned = OperationHelper.OperandsAreUnsigned(op);
+
+			var instruction = new BasicInstruction(offset++, operation);
+			//instruction.OverflowCheck = overflow;
+			//instruction.UnsignedOperands = unsigned;
+			return instruction;
 		}
 	}
 }
