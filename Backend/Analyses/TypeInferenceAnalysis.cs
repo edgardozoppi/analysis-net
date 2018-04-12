@@ -248,6 +248,43 @@ namespace Backend.Analyses
 						break;
 				}
 			}
+
+			public override void Visit(ConditionalBranchInstruction instruction)
+			{
+				if (instruction.LeftOperand.Type != null &&
+					instruction.RightOperand.Type == null)
+				{
+					instruction.RightOperand.Type = instruction.LeftOperand.Type;
+				}
+				else if (instruction.LeftOperand.Type == null &&
+						 instruction.RightOperand.Type != null)
+				{
+					instruction.LeftOperand.Type = instruction.RightOperand.Type;
+				}
+
+				if (instruction.Operation == BranchOperation.Eq &&
+					instruction.RightOperand is Constant &&
+					instruction.LeftOperand.Type != null &&
+					!instruction.LeftOperand.Type.Equals(PlatformTypes.Boolean))
+				{
+					var constant = instruction.RightOperand as Constant;
+
+					if (constant.Value is bool)
+					{
+						var value = (bool)constant.Value;
+
+						if (value)
+						{
+							// Change num == true to num != 0
+							instruction.Operation = BranchOperation.Neq;
+						}
+
+						// Change num == false to num == 0
+						constant.Value = 0;
+						constant.Type = instruction.LeftOperand.Type;
+					}
+				}
+			}
 		}
 
 		#endregion
