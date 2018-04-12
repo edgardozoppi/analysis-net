@@ -29,6 +29,8 @@ namespace Console
 			var signature = MemberHelper.GetMethodSignature(methodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.ParameterName); 
 			System.Console.WriteLine(signature);
 
+			if (methodDefinition.IsAbstract || methodDefinition.IsExternal) return;
+
 			var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
 			var methodBody = disassembler.Execute();
 

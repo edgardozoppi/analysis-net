@@ -853,7 +853,7 @@ namespace Backend.Transformations
 			var targets = op.Value as uint[];
 			var operand = stack.Pop();
 
-			var instruction = new SwitchInstruction(op.Offset, operand, targets);
+			var instruction = new SwitchInstruction(op.Offset, operand, targets) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 
 			foreach (var target in targets)
@@ -867,13 +867,13 @@ namespace Backend.Transformations
 			var exception = stack.Pop();
 			stack.Clear();
 
-			var instruction = new ThrowInstruction(op.Offset, exception);
+			var instruction = new ThrowInstruction(op.Offset, exception) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessRethrow(BasicBlockInfo bb, IOperation op)
 		{
-			var instruction = new ThrowInstruction(op.Offset);
+			var instruction = new ThrowInstruction(op.Offset) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -882,7 +882,7 @@ namespace Backend.Transformations
 			var numberOfBytes = stack.Pop();
 			var targetAddress = stack.Push();
 
-			var instruction = new LocalAllocationInstruction(op.Offset, targetAddress, numberOfBytes);
+			var instruction = new LocalAllocationInstruction(op.Offset, targetAddress, numberOfBytes) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -892,14 +892,14 @@ namespace Backend.Transformations
 			var fillValue = stack.Pop();
 			var targetAddress = stack.Pop();
 
-			var instruction = new InitializeMemoryInstruction(op.Offset, targetAddress, fillValue, numberOfBytes);
+			var instruction = new InitializeMemoryInstruction(op.Offset, targetAddress, fillValue, numberOfBytes) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessInitializeObject(BasicBlockInfo bb, IOperation op)
 		{
 			var targetAddress = stack.Pop();
-			var instruction = new InitializeObjectInstruction(op.Offset, targetAddress);
+			var instruction = new InitializeObjectInstruction(op.Offset, targetAddress) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -928,7 +928,7 @@ namespace Backend.Transformations
 			sizes.Reverse();
 
 			var result = stack.Push();
-			var instruction = new CreateArrayInstruction(op.Offset, result, arrayType.ElementType, arrayType.Rank, lowerBounds, sizes);
+			var instruction = new CreateArrayInstruction(op.Offset, result, arrayType.ElementType, arrayType.Rank, lowerBounds, sizes) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -937,7 +937,7 @@ namespace Backend.Transformations
 			var sourceAddress = stack.Pop();
 			var targetAddress = stack.Pop();
 
-			var instruction = new CopyObjectInstruction(op.Offset, targetAddress, sourceAddress);
+			var instruction = new CopyObjectInstruction(op.Offset, targetAddress, sourceAddress) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -947,7 +947,7 @@ namespace Backend.Transformations
 			var sourceAddress = stack.Pop();
 			var targetAddress = stack.Pop();
 
-			var instruction = new CopyMemoryInstruction(op.Offset, targetAddress, sourceAddress, numberOfBytes);
+			var instruction = new CopyMemoryInstruction(op.Offset, targetAddress, sourceAddress, numberOfBytes) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -977,15 +977,15 @@ namespace Backend.Transformations
 			arguments.Add(allocationResult);
 			arguments.Reverse();
 
-			Instruction instruction = new CreateObjectInstruction(op.Offset, allocationResult, callee.ContainingType);
+			Instruction instruction = new CreateObjectInstruction(op.Offset, allocationResult, callee.ContainingType) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 
-			instruction = new MethodCallInstruction(op.Offset, null, MethodCallOperation.Static, callee, arguments);
+			instruction = new MethodCallInstruction(op.Offset, null, MethodCallOperation.Static, callee, arguments) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 
 			var result = stack.Push();
 
-			instruction = new LoadInstruction(op.Offset, result, allocationResult);
+			instruction = new LoadInstruction(op.Offset, result, allocationResult) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 
 			stack.DecrementCapacity();
@@ -1024,7 +1024,7 @@ namespace Backend.Transformations
 				result = stack.Push();
 			}
 
-			var instruction = new MethodCallInstruction(op.Offset, result, operation, callee, arguments);
+			var instruction = new MethodCallInstruction(op.Offset, result, operation, callee, arguments) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1055,7 +1055,7 @@ namespace Backend.Transformations
 				result = stack.Push();
 			}
 
-			var instruction = new IndirectMethodCallInstruction(op.Offset, result, calleePointer, calleeType, arguments);
+			var instruction = new IndirectMethodCallInstruction(op.Offset, result, calleePointer, calleeType, arguments) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1079,7 +1079,7 @@ namespace Backend.Transformations
 				result = stack.Push();
 			}
 
-			var instruction = new MethodCallInstruction(op.Offset, result, operation, callee, arguments);
+			var instruction = new MethodCallInstruction(op.Offset, result, operation, callee, arguments) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1087,7 +1087,7 @@ namespace Backend.Transformations
 		{
 			var type = op.Value as ITypeReference;
 			var result = stack.Push();
-			var instruction = new SizeofInstruction(op.Offset, result, type);
+			var instruction = new SizeofInstruction(op.Offset, result, type) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1097,7 +1097,7 @@ namespace Backend.Transformations
 			var right = new Constant(value);
 			var left = stack.Pop();
 			var target = (uint)op.Value;
-			var instruction = new ConditionalBranchInstruction(op.Offset, left, BranchOperation.Eq, right, target);
+			var instruction = new ConditionalBranchInstruction(op.Offset, left, BranchOperation.Eq, right, target) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 
 			this.AddToPendingBasicBlocks(target, true);
@@ -1111,7 +1111,7 @@ namespace Backend.Transformations
 			var right = stack.Pop();
 			var left = stack.Pop();
 			var target = (uint)op.Value;
-			var instruction = new ConditionalBranchInstruction(op.Offset, left, condition, right, target);
+			var instruction = new ConditionalBranchInstruction(op.Offset, left, condition, right, target) { Location = GetSourceLocation(op.Location) };
 			instruction.UnsignedOperands = unsigned;
 			bb.Instructions.Add(instruction);
 
@@ -1124,7 +1124,7 @@ namespace Backend.Transformations
 
 			// Quick fix to preserve the offset in case it is a target location of some jump
 			// Otherwise it will break the control-flow analysis later.
-			var instruction = new NopInstruction(op.Offset);
+			var instruction = new NopInstruction(op.Offset) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 
 			//// TODO: Maybe we don't need to add this branch instruction
@@ -1139,7 +1139,7 @@ namespace Backend.Transformations
 			//		if (handler.Kind == ExceptionHandlerBlockKind.Finally ||
 			//			handler.Kind == ExceptionHandlerBlockKind.Fault)
 			//		{
-			//			var branch = new UnconditionalBranchInstruction(op.Offset, op.Offset + 1);
+			//			var branch = new UnconditionalBranchInstruction(op.Offset, op.Offset + 1) { Location = GetSourceLocation(op.Location) };
 			//			bb.Instructions.Add(branch);
 			//		}
 			//	}
@@ -1152,7 +1152,7 @@ namespace Backend.Transformations
 
 			// Quick fix to preserve the offset in case it is a target location of some jump
 			// Otherwise it will break the control-flow analysis later.
-			var instruction = new NopInstruction(op.Offset);
+			var instruction = new NopInstruction(op.Offset) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 
 			//// TODO: Maybe we don't need to add this branch instruction
@@ -1167,7 +1167,7 @@ namespace Backend.Transformations
 			//		if (handler.Kind == ExceptionHandlerBlockKind.Finally ||
 			//			handler.Kind == ExceptionHandlerBlockKind.Fault)
 			//		{
-			//			var branch = new UnconditionalBranchInstruction(op.Offset, op.Offset + 1);
+			//			var branch = new UnconditionalBranchInstruction(op.Offset, op.Offset + 1) { Location = GetSourceLocation(op.Location) };
 			//			bb.Instructions.Add(branch);
 			//		}
 			//	}
@@ -1195,14 +1195,14 @@ namespace Backend.Transformations
 			//			if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Catch)
 			//			{
 			//				var catchHandler = tryHandler.Handler as CatchExceptionHandler;
-			//				var branch = new ExceptionalBranchInstruction(op.Offset, 0, catchHandler.ExceptionType);
+			//				var branch = new ExceptionalBranchInstruction(op.Offset, 0, catchHandler.ExceptionType) { Location = GetSourceLocation(op.Location) };
 			//				branch.Target = catchHandler.Start;
 			//				catchs.Add(branch);
 			//			}
 			//			else if (tryHandler.Handler.Kind == ExceptionHandlerBlockKind.Fault)
 			//			{
 			//				var faultHandler = tryHandler.Handler as FaultExceptionHandler;
-			//				var branch = new ExceptionalBranchInstruction(op.Offset, 0, host.PlatformType.SystemException);
+			//				var branch = new ExceptionalBranchInstruction(op.Offset, 0, host.PlatformType.SystemException) { Location = GetSourceLocation(op.Location) };
 			//				branch.Target = faultHandler.Start;
 			//				finallys.Add(branch);
 			//			}
@@ -1210,7 +1210,7 @@ namespace Backend.Transformations
 			//			{
 			//				isTryFinallyEnd = true;
 			//				var finallyHandler = tryHandler.Handler as FinallyExceptionHandler;
-			//				var branch = new UnconditionalBranchInstruction(op.Offset, 0);
+			//				var branch = new UnconditionalBranchInstruction(op.Offset, 0) { Location = GetSourceLocation(op.Location) };
 			//				branch.Target = finallyHandler.Start;
 			//				finallys.Add(branch);
 			//			}
@@ -1224,7 +1224,7 @@ namespace Backend.Transformations
 			if (!isTryFinallyEnd)
 			{
 				var target = (uint)op.Value;
-				var instruction = new UnconditionalBranchInstruction(op.Offset, target);
+				var instruction = new UnconditionalBranchInstruction(op.Offset, target) { Location = GetSourceLocation(op.Location) };
 				bb.Instructions.Add(instruction);
 
 				this.AddToPendingBasicBlocks(target, true);
@@ -1234,7 +1234,7 @@ namespace Backend.Transformations
 		private void ProcessUnconditionalBranch(BasicBlockInfo bb, IOperation op)
 		{
 			var target = (uint)op.Value;
-			var instruction = new UnconditionalBranchInstruction(op.Offset, target);
+			var instruction = new UnconditionalBranchInstruction(op.Offset, target) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 
 			this.AddToPendingBasicBlocks(target, true);
@@ -1249,7 +1249,7 @@ namespace Backend.Transformations
 				operand = stack.Pop();
 			}
 
-			var instruction = new ReturnInstruction(op.Offset, operand);
+			var instruction = new ReturnInstruction(op.Offset, operand) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1259,7 +1259,7 @@ namespace Backend.Transformations
 
 			var source = new Constant(op.Value) { Type = type };
 			var dest = stack.Push();
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1274,7 +1274,7 @@ namespace Backend.Transformations
 			}
 
 			var dest = stack.Push();
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1290,7 +1290,7 @@ namespace Backend.Transformations
 
 			var dest = stack.Push();
 			var source = new Reference(operand);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1299,7 +1299,7 @@ namespace Backend.Transformations
 			var local = op.Value as ILocalDefinition;
 			var source = locals[local];
 			var dest = stack.Push();
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1309,7 +1309,7 @@ namespace Backend.Transformations
 			var operand = locals[local];
 			var dest = stack.Push();
 			var source = new Reference(operand);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1318,7 +1318,7 @@ namespace Backend.Transformations
 			var address = stack.Pop();
 			var dest = stack.Push();
 			var source = new Dereference(address);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1328,7 +1328,7 @@ namespace Backend.Transformations
 			var obj = stack.Pop();
 			var dest = stack.Push();
 			var source = new InstanceFieldAccess(obj, field);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1337,7 +1337,7 @@ namespace Backend.Transformations
 			var field = op.Value as IFieldReference;
 			var dest = stack.Push();
 			var source = new StaticFieldAccess(field);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1348,7 +1348,7 @@ namespace Backend.Transformations
 			var dest = stack.Push();
 			var access = new InstanceFieldAccess(obj, field);
 			var source = new Reference(access);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1358,7 +1358,7 @@ namespace Backend.Transformations
 			var dest = stack.Push();
 			var access = new StaticFieldAccess(field);
 			var source = new Reference(access);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1367,7 +1367,7 @@ namespace Backend.Transformations
 			var array = stack.Pop();
 			var dest = stack.Push();
 			var length = new ArrayLengthAccess(array);
-			var instruction = new LoadInstruction(op.Offset, dest, length);
+			var instruction = new LoadInstruction(op.Offset, dest, length) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1389,7 +1389,7 @@ namespace Backend.Transformations
 
 			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, indices);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			//instruction.WithLowerBound = withLowerBound;
 			bb.Instructions.Add(instruction);
 		}
@@ -1400,7 +1400,7 @@ namespace Backend.Transformations
 			var array = stack.Pop();			
 			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, index);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1411,7 +1411,7 @@ namespace Backend.Transformations
 			var dest = stack.Push();
 			var access = new ArrayElementAccess(array, index);
 			var source = new Reference(access);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1420,7 +1420,7 @@ namespace Backend.Transformations
 			var method = op.Value as IMethodReference;
 			var dest = stack.Push();
 			var source = new StaticMethodReference(method);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1430,7 +1430,7 @@ namespace Backend.Transformations
 			var obj = stack.Pop();
 			var dest = stack.Push();
 			var source = new VirtualMethodReference(obj, method);
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1438,7 +1438,7 @@ namespace Backend.Transformations
 		{
 			var token = op.Value as IReference;
 			var result = stack.Push();
-			var instruction = new LoadTokenInstruction(op.Offset, result, token);
+			var instruction = new LoadTokenInstruction(op.Offset, result, token) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1453,7 +1453,7 @@ namespace Backend.Transformations
 			}
 			
 			var source = stack.Pop();
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1462,7 +1462,7 @@ namespace Backend.Transformations
 			var local = op.Value as ILocalDefinition;
 			var dest = locals[local];
 			var source = stack.Pop();
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1471,7 +1471,7 @@ namespace Backend.Transformations
 			var source = stack.Pop();
 			var address = stack.Pop();
 			var dest = new Dereference(address);
-			var instruction = new StoreInstruction(op.Offset, dest, source);
+			var instruction = new StoreInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1481,7 +1481,7 @@ namespace Backend.Transformations
 			var source = stack.Pop();
 			var obj = stack.Pop();
 			var dest = new InstanceFieldAccess(obj, field);
-			var instruction = new StoreInstruction(op.Offset, dest, source);
+			var instruction = new StoreInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1490,7 +1490,7 @@ namespace Backend.Transformations
 			var field = op.Value as IFieldReference;
 			var source = stack.Pop();
 			var dest = new StaticFieldAccess(field);
-			var instruction = new StoreInstruction(op.Offset, dest, source);
+			var instruction = new StoreInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1500,19 +1500,19 @@ namespace Backend.Transformations
 			var index = stack.Pop();
 			var array = stack.Pop();
 			var dest = new ArrayElementAccess(array, index);
-			var instruction = new StoreInstruction(op.Offset, dest, source);
+			var instruction = new StoreInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessEmptyOperation(BasicBlockInfo bb, IOperation op)
 		{
-			var instruction = new NopInstruction(op.Offset);
+			var instruction = new NopInstruction(op.Offset) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
 		private void ProcessBreakpointOperation(BasicBlockInfo bb, IOperation op)
 		{
-			var instruction = new BreakpointInstruction(op.Offset);
+			var instruction = new BreakpointInstruction(op.Offset) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1522,7 +1522,7 @@ namespace Backend.Transformations
 
 			var operand = stack.Pop();
 			var dest = stack.Push();
-			var instruction = new UnaryInstruction(op.Offset, dest, operation, operand);
+			var instruction = new UnaryInstruction(op.Offset, dest, operation, operand) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1535,7 +1535,7 @@ namespace Backend.Transformations
 			var right = stack.Pop();
 			var left = stack.Pop();
 			var dest = stack.Push();
-			var instruction = new BinaryInstruction(op.Offset, dest, left, operation, right);
+			var instruction = new BinaryInstruction(op.Offset, dest, left, operation, right) { Location = GetSourceLocation(op.Location) };
 			instruction.OverflowCheck = overflow;
 			instruction.UnsignedOperands = unsigned;
 			bb.Instructions.Add(instruction);
@@ -1560,7 +1560,7 @@ namespace Backend.Transformations
 
 			var operand = stack.Pop();
 			var result = stack.Push();
-			var instruction = new ConvertInstruction(op.Offset, result, operand, operation, type);
+			var instruction = new ConvertInstruction(op.Offset, result, operand, operation, type) { Location = GetSourceLocation(op.Location) };
 			instruction.OverflowCheck = overflow;
 			instruction.UnsignedOperands = unsigned;
 			bb.Instructions.Add(instruction);
@@ -1570,7 +1570,7 @@ namespace Backend.Transformations
 		{
 			var source = stack.Top();
 			var dest = stack.Push();
-			var instruction = new LoadInstruction(op.Offset, dest, source);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1585,6 +1585,19 @@ namespace Backend.Transformations
 			}
 
 			return name;
+		}
+
+		private IPrimarySourceLocation GetSourceLocation(ILocation location)
+		{
+			IPrimarySourceLocation result = null;
+
+			if (this.sourceLocationProvider != null)
+			{
+				var locations = this.sourceLocationProvider.GetPrimarySourceLocationsFor(location);
+				result = locations.SingleOrDefault();
+			}
+
+			return result;
 		}
 	}
 }

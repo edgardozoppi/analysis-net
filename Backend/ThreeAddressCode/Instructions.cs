@@ -65,6 +65,7 @@ namespace Backend.ThreeAddressCode.Instructions
 
 	public abstract class Instruction : IVariableContainer
 	{
+		public IPrimarySourceLocation Location { get; set; }
 		public uint Offset { get; set; }
 		public string Label { get; set; }
 
