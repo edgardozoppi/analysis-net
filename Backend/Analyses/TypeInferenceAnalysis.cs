@@ -275,12 +275,23 @@ namespace Backend.Analyses
 
 						if (value)
 						{
-							// Change num == true to num != 0
+							// Change num == true to num != true
 							instruction.Operation = BranchOperation.Neq;
 						}
 
-						// Change num == false to num == 0
-						constant.Value = 0;
+						if (instruction.LeftOperand.Type.IsValueType)
+						{
+							// Change num == false to num == 0 or
+							// num != true to num != 0
+							constant.Value = 0;
+						}
+						else
+						{
+							// Change num == false to num == null or
+							// num != true to num != null
+							constant.Value = null;
+						}
+
 						constant.Type = instruction.LeftOperand.Type;
 					}
 				}
