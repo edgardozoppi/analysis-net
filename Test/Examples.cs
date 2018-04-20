@@ -275,15 +275,32 @@ namespace Test
 			}
 		}
 
+		// Boolean vs Int
 		public void ExampleBoolean1()
 		{
 			System.Diagnostics.Contracts.Contract.Assert(false);
 		}
 
+		// Boolean vs Int
 		public void ExampleBoolean2()
 		{
 			var v = false;
 			System.Diagnostics.Contracts.Contract.Assert(v);
+		}
+
+		// Boolean vs Int
+		// Boolean vs object reference
+		public void ExampleConditionalBranches()
+		{
+			var num1 = 5;
+			var num2 = 8;
+			var v1 = (num1 == 0 || num2 == 2);
+			var v2 = (num1 != 0 || num2 == 2);
+
+			object obj1 = null;
+			object obj2 = null;
+			var v3 = (obj1 == null || obj2 == null);
+			var v4 = (obj1 != null || obj2 == null);
 		}
 
 		//public void Print(params object[] args)
