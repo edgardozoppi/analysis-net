@@ -457,7 +457,13 @@ namespace Model
 			{
 				var used = usedLabels.Contains(instruction.Label);
 
-				if (!used)
+				if (used)
+				{
+					// This is to also remove duplicated labels,
+					// leaving only the label in the first instruction.
+					usedLabels.Remove(instruction.Label);
+				}
+				else
 				{
 					instruction.Label = null;
 				}
