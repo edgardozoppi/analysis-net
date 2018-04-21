@@ -630,5 +630,83 @@ namespace Backend.Utils
 				}
 			}
 		}
+
+		#region Control-flow helper methods
+
+		public static bool IsBranch(this Instruction instruction, out IList<string> targets)
+		{
+			var result = false;
+			targets = null;
+
+			if (instruction is UnconditionalBranchInstruction ||
+				instruction is ConditionalBranchInstruction)
+			{
+				var branch = instruction as BranchInstruction;
+
+				targets = new List<string>() { branch.Target };
+				result = true;
+			}
+			else if (instruction is SwitchInstruction)
+			{
+				var branch = instruction as SwitchInstruction;
+
+				targets = branch.Targets;
+				result = true;
+			}
+
+			return result;
+		}
+
+		public static bool IsExitingMethod(this Instruction instruction)
+		{
+			var result = instruction is ReturnInstruction ||
+						 instruction is ThrowInstruction;
+
+			return result;
+		}
+
+		public static bool CanFallThroughNextInstruction(this Instruction instruction)
+		{
+			var result = instruction is UnconditionalBranchInstruction ||
+						 instruction.IsExitingMethod();
+
+			return !result;
+		}
+
+		#endregion
+
+		public static void RemoveUnusedLabels(this MethodBody body)
+		{
+			var usedLabels = new HashSet<string>();
+
+			foreach (var protectedBlock in body.ExceptionInformation)
+			{
+				usedLabels.Add(protectedBlock.Start);
+				usedLabels.Add(protectedBlock.End);
+				usedLabels.Add(protectedBlock.Handler.Start);
+				usedLabels.Add(protectedBlock.Handler.End);
+			}
+
+			foreach (var instruction in body.Instructions)
+			{
+				IList<string> targets;
+				var isBranch = instruction.IsBranch(out targets);
+
+				if (isBranch)
+				{
+					usedLabels.UnionWith(targets);
+				}
+			}
+
+			foreach (var instruction in body.Instructions)
+			{
+				var used = usedLabels.Contains(instruction.Label);
+
+				if (!used)
+				{
+					instruction.Label = null;
+				}
+			}
+		}
 	}
 }

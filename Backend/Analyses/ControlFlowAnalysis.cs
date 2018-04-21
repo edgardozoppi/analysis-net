@@ -116,8 +116,8 @@ namespace Backend.Analyses
 				}
 
 				IList<string> targets;
-				var isBranch = IsBranch(instruction, out targets);
-				var isExitingMethod = IsExitingMethod(instruction);
+				var isBranch = instruction.IsBranch(out targets);
+				var isExitingMethod = instruction.IsExitingMethod();
 
 				if (isBranch)
 				{
@@ -166,11 +166,11 @@ namespace Backend.Analyses
 				}
 
 				current.Instructions.Add(instruction);
-				connectWithPreviousNode = CanFallThroughNextInstruction(instruction);
+				connectWithPreviousNode = instruction.CanFallThroughNextInstruction();
 
 				IList<string> targets;
-				var isBranch = IsBranch(instruction, out targets);
-				var isExitingMethod = IsExitingMethod(instruction);
+				var isBranch = instruction.IsBranch(out targets);
+				var isExitingMethod = instruction.IsExitingMethod();
 
 				if (isBranch)
 				{
@@ -328,46 +328,6 @@ namespace Backend.Analyses
 						 instruction is FinallyInstruction;
 
 			return result;
-		}
-
-		private static bool IsBranch(Instruction instruction, out IList<string> targets)
-		{
-			var result = false;
-			targets = null;
-
-			if (instruction is UnconditionalBranchInstruction ||
-				instruction is ConditionalBranchInstruction)
-			{
-				var branch = instruction as BranchInstruction;
-
-				targets = new List<string>() { branch.Target };
-				result = true;
-			}
-			else if (instruction is SwitchInstruction)
-			{
-				var branch = instruction as SwitchInstruction;
-
-				targets = branch.Targets;
-				result = true;
-			}
-
-			return result;
-		}
-
-		private static bool IsExitingMethod(Instruction instruction)
-		{
-			var result = instruction is ReturnInstruction ||
-						 instruction is ThrowInstruction;
-
-			return result;
-		}
-
-		private static bool CanFallThroughNextInstruction(Instruction instruction)
-		{
-			var result = instruction is UnconditionalBranchInstruction;
-
-			result = result || IsExitingMethod(instruction);
-			return !result;
 		}
 	}
 }
