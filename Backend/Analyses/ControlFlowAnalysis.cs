@@ -68,7 +68,7 @@ namespace Backend.Analyses
 			{
 				var instruction = methodBody.Instructions[i];
 
-				if (handlersRange.ContainsKey(instruction.Label))
+				if (instruction.Label != null && handlersRange.ContainsKey(instruction.Label))
 				{
 					var handlerEnd = handlersRange[instruction.Label];
 
@@ -77,7 +77,7 @@ namespace Backend.Analyses
 						i++;
 						instruction = methodBody.Instructions[i];
 					}
-					while (!instruction.Label.Equals(handlerEnd));
+					while (instruction.Label != handlerEnd);
 				}
 				else
 				{
@@ -100,15 +100,23 @@ namespace Backend.Analyses
 				var isLeader = nextIsLeader || IsLeader(instruction);
 				nextIsLeader = false;
 
-				if (isLeader && !leaders.ContainsKey(instruction.Label))
+				if (isLeader)
 				{
-					var node = new CFGNode(nodeId++);
-					leaders.Add(instruction.Label, node);
+					if (instruction.Label == null)
+					{
+						instruction.Label = string.Format("B_{0:X4}", nodeId);
+					}
+
+					if (!leaders.ContainsKey(instruction.Label))
+					{
+						var node = new CFGNode(nodeId++);
+						leaders.Add(instruction.Label, node);
+					}
 				}
 
 				IList<string> targets;
-				var isBranch = IsBranch(instruction, out targets);
-				var isExitingMethod = IsExitingMethod(instruction);
+				var isBranch = instruction.IsBranch(out targets);
+				var isExitingMethod = instruction.IsExitingMethod();
 
 				if (isBranch)
 				{
@@ -141,7 +149,7 @@ namespace Backend.Analyses
 
 			foreach (var instruction in instructions)
 			{
-				if (leaders.ContainsKey(instruction.Label))
+				if (instruction.Label != null && leaders.ContainsKey(instruction.Label))
 				{
 					previous = current;
 					current = leaders[instruction.Label];
@@ -157,11 +165,11 @@ namespace Backend.Analyses
 				}
 
 				current.Instructions.Add(instruction);
-				connectWithPreviousNode = CanFallThroughNextInstruction(instruction);
+				connectWithPreviousNode = instruction.CanFallThroughNextInstruction();
 
 				IList<string> targets;
-				var isBranch = IsBranch(instruction, out targets);
-				var isExitingMethod = IsExitingMethod(instruction);
+				var isBranch = instruction.IsBranch(out targets);
+				var isExitingMethod = instruction.IsExitingMethod();
 
 				if (isBranch)
 				{
@@ -237,91 +245,6 @@ namespace Backend.Analyses
 			}
 
 			return result;
-		}
-
-		private static bool IsBranch(IInstruction instruction, out IList<string> targets)
-		{
-			var result = false;
-			targets = null;
-
-			// Bytecode
-			if (instruction is Bytecode.BranchInstruction)
-			{
-				var branch = instruction as Bytecode.BranchInstruction;
-
-				targets = new List<string>() { branch.Target };
-				result = true;
-			}
-			else if (instruction is Bytecode.SwitchInstruction)
-			{
-				var branch = instruction as Bytecode.SwitchInstruction;
-
-				targets = branch.Targets;
-				result = true;
-			}
-			// TAC
-			else if (instruction is Tac.UnconditionalBranchInstruction ||
-					 instruction is Tac.ConditionalBranchInstruction)
-			{
-				var branch = instruction as Tac.BranchInstruction;
-
-				targets = new List<string>() { branch.Target };
-				result = true;
-			}
-			else if (instruction is Tac.SwitchInstruction)
-			{
-				var branch = instruction as Tac.SwitchInstruction;
-
-				targets = branch.Targets;
-				result = true;
-			}
-
-			return result;
-		}
-
-		private static bool IsExitingMethod(IInstruction instruction)
-		{
-			var result = false;
-
-			// Bytecode
-			if (instruction is Bytecode.BasicInstruction)
-			{
-				var basic = instruction as Bytecode.BasicInstruction;
-
-				result = basic.Operation == Bytecode.BasicOperation.Return ||
-						 basic.Operation == Bytecode.BasicOperation.Throw ||
-						 basic.Operation == Bytecode.BasicOperation.Rethrow;
-			}
-			// TAC
-			else
-			{
-				result = instruction is Tac.ReturnInstruction ||
-						 instruction is Tac.ThrowInstruction;
-			}
-
-			return result;
-		}
-
-		private static bool CanFallThroughNextInstruction(IInstruction instruction)
-		{
-			var result = false;
-
-			// Bytecode
-			if (instruction is Bytecode.BranchInstruction)
-			{
-				var branch = instruction as Bytecode.BranchInstruction;
-
-				result = branch.Operation == Bytecode.BranchOperation.Branch ||
-						 branch.Operation == Bytecode.BranchOperation.Leave;
-			}
-			// TAC
-			else
-			{
-				result = instruction is Tac.UnconditionalBranchInstruction;
-			}
-
-			result = result || IsExitingMethod(instruction);
-			return !result;
 		}
 	}
 }

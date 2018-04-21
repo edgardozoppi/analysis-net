@@ -138,6 +138,28 @@ namespace Model.Bytecode
 		{
 			visitor.Visit(this);
 		}
+
+		protected string ToString(string format, params object[] arguments)
+		{
+			string label;
+
+			if (string.IsNullOrEmpty(this.Label))
+			{
+				label = new string(' ', 7);
+			}
+			else
+			{
+				label = string.Format("{0}:", this.Label);
+			}
+
+			var text = string.Format(format, arguments);
+			return string.Format("{0}  {1};", label, text);
+		}
+
+		protected string ToString(object argument)
+		{
+			return this.ToString("{0}", argument);
+		}
 	}
 
 	public class BasicInstruction : Instruction
@@ -160,7 +182,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1};", this.Label, this.Operation);
+			return this.ToString(this.Operation);
 		}
 	}
 
@@ -185,7 +207,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  if {1} goto {2};", this.Label, this.Operation, this.Target);
+			return this.ToString("if {0} goto {1}", this.Operation, this.Target);
 		}
 	}
 
@@ -208,7 +230,7 @@ namespace Model.Bytecode
 		public override string ToString()
 		{
 			var targets = string.Join(", ", this.Targets);
-			return string.Format("{0}:  switch {1};", this.Label, targets);
+			return this.ToString("switch {0}", targets);
 		}
 	}
 
@@ -231,7 +253,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  new {1};", this.Label, this.Type);
+			return this.ToString("new {0}", this.Type);
 		}
 	}
 
@@ -253,7 +275,7 @@ namespace Model.Bytecode
 
         public override string ToString()
         {
-            return string.Format("{0}:  get {1};", this.Label, this.Type);
+            return this.ToString("get {0}", this.Type);
         }
     }
 
@@ -275,7 +297,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  new {1} with <{2}>;", this.Label, this.Constructor.ContainingType, this.Constructor);
+			return this.ToString("new {0} with <{1}>", this.Constructor.ContainingType, this.Constructor);
 		}
 	}
 
@@ -299,7 +321,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} Call <{2}>;", this.Label, this.Operation, this.Method);
+			return this.ToString("{0} Call <{1}>", this.Operation, this.Method);
 		}
 	}
 
@@ -321,7 +343,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}: Indirect Call <{1}>;", this.Label, this.Function);
+			return this.ToString("Indirect Call <{0}>", this.Function);
 		}
 	}
 
@@ -343,7 +365,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  sizeof {1};", this.Label, this.MeasuredType);
+			return this.ToString("sizeof {0}", this.MeasuredType);
 		}
 	}
 
@@ -388,7 +410,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  load {1} of {2};", this.Label, this.Operation, this.Operand);
+			return this.ToString("load {0} of {1}", this.Operation, this.Operand);
 		}
 	}
 
@@ -412,7 +434,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  load {1} of field {2};", this.Label, this.Operation, this.Field.Name);
+			return this.ToString("load {0} of field {1}", this.Operation, this.Field.Name);
 		}
 	}
 
@@ -436,7 +458,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  load address of {1} method <{2}>;", this.Label, this.Operation, this.Method);
+			return this.ToString("load address of {0} method <{1}>", this.Operation, this.Method);
 		}
 	}
 
@@ -458,7 +480,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  load token {1};", this.Label, this.Token);
+			return this.ToString("load token {0}", this.Token);
 		}
 	}
 
@@ -490,7 +512,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  store {1};", this.Label, this.Target);
+			return this.ToString("store {0}", this.Target);
 		}
 	}
 
@@ -512,7 +534,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  store field {1};", this.Label, this.Field.Name);
+			return this.ToString("store field {0}", this.Field.Name);
 		}
 	}
 
@@ -538,7 +560,7 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} as {2};", this.Label, this.Operation ,this.ConversionType);
+			return this.ToString("{0} as {1}", this.Operation ,this.ConversionType);
 		}
 	}
 }

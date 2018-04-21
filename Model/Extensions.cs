@@ -9,6 +9,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Bytecode = Model.Bytecode;
+using Tac = Model.ThreeAddressCode.Instructions;
+
 namespace Model
 {
 	public static class Extensions
@@ -63,7 +66,7 @@ namespace Model
 				case BranchOperation.Ge: return BinaryOperation.Ge;
 				case BranchOperation.Lt: return BinaryOperation.Lt;
 				case BranchOperation.Le: return BinaryOperation.Le;
-				
+
 				default: throw operation.ToUnknownValueException();
 			}
 		}
@@ -174,11 +177,11 @@ namespace Model
 				containingNamespace = string.Format("{0}.", type.ContainingNamespace);
 			}
 
-            while (containingType != null)
-            {
-                containingTypes = string.Format("{0}{1}.", containingTypes, containingType.Name);
+			while (containingType != null)
+			{
+				containingTypes = string.Format("{0}{1}.", containingTypes, containingType.Name);
 				containingType = containingType.ContainingType;
-            }
+			}
 
 			if (type.GenericArguments.Count > 0)
 			{
@@ -213,23 +216,23 @@ namespace Model
 		}
 
 		public static bool MatchType(this IType definitionType, IType referenceType, IDictionary<IType, IType> typeParameterBinding)
-        {
-            var result = false;
+		{
+			var result = false;
 
-            if (definitionType is IGenericParameterReference)
-            {
-                IType typeArgument;
+			if (definitionType is IGenericParameterReference)
+			{
+				IType typeArgument;
 
-                if (typeParameterBinding != null &&
-                    typeParameterBinding.TryGetValue(definitionType, out typeArgument))
-                {
-                    definitionType = typeArgument;
-                }
-            }
+				if (typeParameterBinding != null &&
+					typeParameterBinding.TryGetValue(definitionType, out typeArgument))
+				{
+					definitionType = typeArgument;
+				}
+			}
 
-            result = definitionType.Equals(referenceType);
-            return result;
-        }
+			result = definitionType.Equals(referenceType);
+			return result;
+		}
 
 		public static BasicType Instantiate(this IBasicType type, params IType[] genericArguments)
 		{
@@ -336,6 +339,129 @@ namespace Model
 			}
 
 			return result;
+		}
+
+		#region Control-flow helper methods
+
+		public static bool IsBranch(this IInstruction instruction, out IList<string> targets)
+		{
+			var result = false;
+			targets = null;
+
+			// Bytecode
+			if (instruction is Bytecode.BranchInstruction)
+			{
+				var branch = instruction as Bytecode.BranchInstruction;
+
+				targets = new List<string>() { branch.Target };
+				result = true;
+			}
+			else if (instruction is Bytecode.SwitchInstruction)
+			{
+				var branch = instruction as Bytecode.SwitchInstruction;
+
+				targets = branch.Targets;
+				result = true;
+			}
+			// TAC
+			else if (instruction is Tac.UnconditionalBranchInstruction ||
+					 instruction is Tac.ConditionalBranchInstruction)
+			{
+				var branch = instruction as Tac.BranchInstruction;
+
+				targets = new List<string>() { branch.Target };
+				result = true;
+			}
+			else if (instruction is Tac.SwitchInstruction)
+			{
+				var branch = instruction as Tac.SwitchInstruction;
+
+				targets = branch.Targets;
+				result = true;
+			}
+
+			return result;
+		}
+
+		public static bool IsExitingMethod(this IInstruction instruction)
+		{
+			var result = false;
+
+			// Bytecode
+			if (instruction is Bytecode.BasicInstruction)
+			{
+				var basic = instruction as Bytecode.BasicInstruction;
+
+				result = basic.Operation == Bytecode.BasicOperation.Return ||
+						 basic.Operation == Bytecode.BasicOperation.Throw ||
+						 basic.Operation == Bytecode.BasicOperation.Rethrow;
+			}
+			// TAC
+			else
+			{
+				result = instruction is Tac.ReturnInstruction ||
+						 instruction is Tac.ThrowInstruction;
+			}
+
+			return result;
+		}
+
+		public static bool CanFallThroughNextInstruction(this IInstruction instruction)
+		{
+			var result = false;
+
+			// Bytecode
+			if (instruction is Bytecode.BranchInstruction)
+			{
+				var branch = instruction as Bytecode.BranchInstruction;
+
+				result = branch.Operation == Bytecode.BranchOperation.Branch ||
+						 branch.Operation == Bytecode.BranchOperation.Leave;
+			}
+			// TAC
+			else
+			{
+				result = instruction is Tac.UnconditionalBranchInstruction;
+			}
+
+			result = result || IsExitingMethod(instruction);
+			return !result;
+		}
+
+		#endregion
+
+		public static void RemoveUnusedLabels(this MethodBody body)
+		{
+			var usedLabels = new HashSet<string>();
+
+			foreach (var protectedBlock in body.ExceptionInformation)
+			{
+				usedLabels.Add(protectedBlock.Start);
+				usedLabels.Add(protectedBlock.End);
+				usedLabels.Add(protectedBlock.Handler.Start);
+				usedLabels.Add(protectedBlock.Handler.End);
+			}
+
+			foreach (var instruction in body.Instructions)
+			{
+				IList<string> targets;
+				var isBranch = instruction.IsBranch(out targets);
+
+				if (isBranch)
+				{
+					usedLabels.UnionWith(targets);
+				}
+			}
+
+			foreach (var instruction in body.Instructions)
+			{
+				var used = usedLabels.Contains(instruction.Label);
+
+				if (!used)
+				{
+					instruction.Label = null;
+				}
+			}
 		}
 	}
 }

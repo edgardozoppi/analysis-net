@@ -103,6 +103,28 @@ namespace Model.ThreeAddressCode.Instructions
 		{
 			visitor.Visit(this);
 		}
+
+		protected string ToString(string format, params object[] arguments)
+		{
+			string label;
+
+			if (string.IsNullOrEmpty(this.Label))
+			{
+				label = new string(' ', 7);
+			}
+			else
+			{
+				label = string.Format("{0}:", this.Label);
+			}
+
+			var text = string.Format(format, arguments);
+			return string.Format("{0}  {1};", label, text);
+		}
+
+		protected string ToString(object argument)
+		{
+			return this.ToString("{0}", argument);
+		}
 	}
 
 	public abstract class DefinitionInstruction : Instruction, IExpressible
@@ -114,8 +136,8 @@ namespace Model.ThreeAddressCode.Instructions
 			get { return this.Result != null; }
 		}
 
-		protected DefinitionInstruction(uint label, IVariable result)
-			: base(label)
+		protected DefinitionInstruction(uint offset, IVariable result)
+			: base(offset)
 		{
 			this.Result = result;
 		}
@@ -152,8 +174,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public bool OverflowCheck { get; set; }
 		public bool UnsignedOperands { get; set; }
 
-		public BinaryInstruction(uint label, IVariable result, IVariable left, BinaryOperation operation, IVariable right)
-			: base(label, result)
+		public BinaryInstruction(uint offset, IVariable result, IVariable left, BinaryOperation operation, IVariable right)
+			: base(offset, result)
 		{
 			this.Operation = operation;
 			this.LeftOperand = left;
@@ -211,7 +233,7 @@ namespace Model.ThreeAddressCode.Instructions
 				case BinaryOperation.Le: operation = "<="; break;
 			}
 
-			return string.Format("{0}:  {1} = {2} {3} {4};", this.Label, this.Result, this.LeftOperand, operation, this.RightOperand);
+			return this.ToString("{0} = {1} {2} {3}", this.Result, this.LeftOperand, operation, this.RightOperand);
 		}
 	}
 
@@ -220,8 +242,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public UnaryOperation Operation { get; set; }
 		public IVariable Operand { get; set; }
 
-		public UnaryInstruction(uint label, IVariable result, UnaryOperation operation, IVariable operand)
-			: base(label, result)
+		public UnaryInstruction(uint offset, IVariable result, UnaryOperation operation, IVariable operand)
+			: base(offset, result)
 		{
 			this.Operation = operation;
 			this.Operand = operand;
@@ -259,7 +281,7 @@ namespace Model.ThreeAddressCode.Instructions
 				case UnaryOperation.Not: operation = "!"; break;
 			}
 
-			return string.Format("{0}:  {1} = {2}{3};", this.Label, this.Result, operation, this.Operand);
+			return this.ToString("{0} = {1}{2}", this.Result, operation, this.Operand);
 		}
 	}
 
@@ -267,8 +289,8 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IValue Operand { get; set; }
 
-		public LoadInstruction(uint label, IVariable result, IValue operand)
-			: base(label, result)
+		public LoadInstruction(uint offset, IVariable result, IValue operand)
+			: base(offset, result)
 		{
 			this.Operand = operand;
 		}
@@ -311,7 +333,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} = {2};", this.Label, this.Result, this.Operand);
+			return this.ToString("{0} = {1}", this.Result, this.Operand);
 		}
 	}
 
@@ -320,8 +342,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public IAssignableValue Result { get; set; }
 		public IVariable Operand { get; set; }
 
-		public StoreInstruction(uint label, IAssignableValue result, IVariable operand)
-			: base(label)
+		public StoreInstruction(uint offset, IAssignableValue result, IVariable operand)
+			: base(offset)
 		{
 			this.Result = result;
 			this.Operand = operand;
@@ -346,14 +368,14 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} = {2};", this.Label, this.Result, this.Operand);
+			return this.ToString("{0} = {1}", this.Result, this.Operand);
 		}
 	}
 
 	public class NopInstruction : Instruction
 	{
-		public NopInstruction(uint label)
-			: base(label)
+		public NopInstruction(uint offset)
+			: base(offset)
 		{
 		}
 
@@ -365,14 +387,14 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  nop;", this.Label);
+			return this.ToString("nop");
 		}
 	}
 
 	public class BreakpointInstruction : Instruction
 	{
-		public BreakpointInstruction(uint label)
-			: base(label)
+		public BreakpointInstruction(uint offset)
+			: base(offset)
 		{
 		}
 
@@ -384,14 +406,14 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  breakpoint;", this.Label);
+			return this.ToString("breakpoint");
 		}
 	}
 
 	public class TryInstruction : Instruction
 	{
-		public TryInstruction(uint label)
-			: base(label)
+		public TryInstruction(uint offset)
+			: base(offset)
 		{
 		}
 
@@ -403,14 +425,14 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  try;", this.Label);
+			return this.ToString("try");
 		}
 	}
 
 	public class FaultInstruction : Instruction
 	{
-		public FaultInstruction(uint label)
-			: base(label)
+		public FaultInstruction(uint offset)
+			: base(offset)
 		{
 		}
 
@@ -422,14 +444,14 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  fault;", this.Label);
+			return this.ToString("fault");
 		}
 	}
 
 	public class FinallyInstruction : Instruction
 	{
-		public FinallyInstruction(uint label)
-			: base(label)
+		public FinallyInstruction(uint offset)
+			: base(offset)
 		{
 		}
 
@@ -441,7 +463,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  finally;", this.Label);
+			return this.ToString("finally");
 		}
 	}
 
@@ -449,8 +471,8 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IType ExceptionType { get; set; }
 
-		public FilterInstruction(uint label, IVariable result, IType exceptionType)
-			: base(label, result)
+		public FilterInstruction(uint offset, IVariable result, IType exceptionType)
+			: base(offset, result)
 		{
 			this.ExceptionType = exceptionType;
 		}
@@ -468,7 +490,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  filter {1} {2};", this.Label, this.ExceptionType, this.Result);
+			return this.ToString("filter {0} {1}", this.ExceptionType, this.Result);
 		}
 	}
 
@@ -476,8 +498,8 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IType ExceptionType { get; set; }
 
-		public CatchInstruction(uint label, IVariable result, IType exceptionType)
-			: base(label, result)
+		public CatchInstruction(uint offset, IVariable result, IType exceptionType)
+			: base(offset, result)
 		{
 			this.ExceptionType = exceptionType;
 		}
@@ -495,7 +517,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  catch {1} {2};", this.Label, this.ExceptionType, this.Result);
+			return this.ToString("catch {0} {1}", this.ExceptionType, this.Result);
 		}
 	}
 
@@ -507,8 +529,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public bool OverflowCheck { get; set; }
 		public bool UnsignedOperands { get; set; }
 
-		public ConvertInstruction(uint label, IVariable result, IVariable operand, ConvertOperation operation, IType conversionType)
-			: base(label, result)
+		public ConvertInstruction(uint offset, IVariable result, IVariable operand, ConvertOperation operation, IType conversionType)
+			: base(offset, result)
 		{
 			this.Operand = operand;
 			this.Operation = operation;
@@ -542,7 +564,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} = {2} as {3};", this.Label, this.Result, this.Operand, this.ConversionType);
+			return this.ToString("{0} = {1} as {2}", this.Result, this.Operand, this.ConversionType);
 		}
 	}
 
@@ -550,14 +572,14 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IVariable Operand { get; set; }
 
-		public ReturnInstruction(uint label, IVariable operand)
-			: base(label)
+		public ReturnInstruction(uint offset, IVariable operand)
+			: base(offset)
 		{
 			this.Operand = operand;
 		}
 
-		public ReturnInstruction(uint label)
-			: base(label)
+		public ReturnInstruction(uint offset)
+			: base(offset)
 		{
 		}
 
@@ -596,7 +618,7 @@ namespace Model.ThreeAddressCode.Instructions
 				operand = string.Format(" {0}", this.Operand);
 			}
 
-			return string.Format("{0}:  return{1};", this.Label, operand);
+			return this.ToString("return{0}", operand);
 		}
 	}
 
@@ -604,14 +626,14 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IVariable Operand { get; set; }
 
-		public ThrowInstruction(uint label, IVariable operand)
-			: base(label)
+		public ThrowInstruction(uint offset, IVariable operand)
+			: base(offset)
 		{
 			this.Operand = operand;
 		}
 
-		public ThrowInstruction(uint label)
-			: base(label)
+		public ThrowInstruction(uint offset)
+			: base(offset)
 		{
 		}
 
@@ -650,7 +672,7 @@ namespace Model.ThreeAddressCode.Instructions
 				operation = string.Format("throw {0}", this.Operand);
 			}
 
-			return string.Format("{0}:  {1};", this.Label, operation);
+			return this.ToString(operation);
 		}
 	}
 
@@ -658,14 +680,14 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public string Target { get; set; }
 
-		protected BranchInstruction(uint label, uint target)
-			: base(label)
+		protected BranchInstruction(uint offset, uint target)
+			: base(offset)
 		{
 			this.Target = string.Format("L_{0:X4}", target);
 		}
 
-		protected BranchInstruction(uint label, string target)
-			: base(label)
+		protected BranchInstruction(uint offset, string target)
+			: base(offset)
 		{
 			this.Target = target;
 		}
@@ -681,8 +703,8 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IType ExceptionType { get; set; }
 
-		public ExceptionalBranchInstruction(uint label, uint target, IType exceptionType)
-			: base(label, target)
+		public ExceptionalBranchInstruction(uint offset, uint target, IType exceptionType)
+			: base(offset, target)
 		{
 			this.ExceptionType = exceptionType;
 		}
@@ -695,19 +717,19 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  on {1} goto {2};", this.Label, this.ExceptionType, this.Target);
+			return this.ToString("on {0} goto {1}", this.ExceptionType, this.Target);
 		}
 	}
 
 	public class UnconditionalBranchInstruction : BranchInstruction
 	{
-		public UnconditionalBranchInstruction(uint label, uint target)
-			: base(label, target)
+		public UnconditionalBranchInstruction(uint offset, uint target)
+			: base(offset, target)
 		{
 		}
 
-		public UnconditionalBranchInstruction(uint label, string target)
-			: base(label, target)
+		public UnconditionalBranchInstruction(uint offset, string target)
+			: base(offset, target)
 		{
 		}
 
@@ -719,7 +741,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  goto {1};", this.Label, this.Target);
+			return this.ToString("goto {0}", this.Target);
 		}
 	}
 
@@ -730,16 +752,16 @@ namespace Model.ThreeAddressCode.Instructions
 		public IInmediateValue RightOperand { get; set; }
 		public bool UnsignedOperands { get; set; }
 
-		public ConditionalBranchInstruction(uint label, IVariable left, BranchOperation operation, IInmediateValue right, uint target)
-			: base(label, target)
+		public ConditionalBranchInstruction(uint offset, IVariable left, BranchOperation operation, IInmediateValue right, uint target)
+			: base(offset, target)
 		{
 			this.Operation = operation;
 			this.LeftOperand = left;
 			this.RightOperand = right;
 		}
 
-		public ConditionalBranchInstruction(uint label, IVariable left, BranchOperation operation, IInmediateValue right, string target)
-			: base(label, target)
+		public ConditionalBranchInstruction(uint offset, IVariable left, BranchOperation operation, IInmediateValue right, string target)
+			: base(offset, target)
 		{
 			this.Operation = operation;
 			this.LeftOperand = left;
@@ -785,7 +807,7 @@ namespace Model.ThreeAddressCode.Instructions
 				case BranchOperation.Le: operation = "<="; break;
 			}
 
-			return string.Format("{0}:  if {1} {2} {3} goto {4};", this.Label, this.LeftOperand, operation, this.RightOperand, this.Target);
+			return this.ToString("if {0} {1} {2} goto {3}", this.LeftOperand, operation, this.RightOperand, this.Target);
 		}
 	}
 
@@ -794,15 +816,15 @@ namespace Model.ThreeAddressCode.Instructions
 		public IVariable Operand { get; set; }
 		public IList<string> Targets { get; private set; }
 
-		public SwitchInstruction(uint label, IVariable operand, IEnumerable<uint> targets)
-			: base(label)
+		public SwitchInstruction(uint offset, IVariable operand, IEnumerable<uint> targets)
+			: base(offset)
 		{
 			this.Operand = operand;
 			this.Targets = targets.Select(target => string.Format("L_{0:X4}", target)).ToList();
 		}
 
-		public SwitchInstruction(uint label, IVariable operand, IEnumerable<string> targets)
-			: base(label)
+		public SwitchInstruction(uint offset, IVariable operand, IEnumerable<string> targets)
+			: base(offset)
 		{
 			this.Operand = operand;
 			this.Targets = targets.ToList();
@@ -827,7 +849,7 @@ namespace Model.ThreeAddressCode.Instructions
 		public override string ToString()
 		{
 			var targets = string.Join(", ", this.Targets);
-			return string.Format("{0}:  if {1} < {2} goto {3};", this.Label, this.Operand, this.Targets.Count, targets);
+			return this.ToString("if {0} < {1} goto {2}", this.Operand, this.Targets.Count, targets);
 		}
 	}
 
@@ -835,8 +857,8 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IType MeasuredType { get; set; }
 
-		public SizeofInstruction(uint label, IVariable result, IType measuredType)
-			: base(label, result)
+		public SizeofInstruction(uint offset, IVariable result, IType measuredType)
+			: base(offset, result)
 		{
 			this.MeasuredType = measuredType;
 		}
@@ -854,7 +876,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} = sizeof {2};", this.Label, this.Result, this.MeasuredType);
+			return this.ToString("{0} = sizeof {1}", this.Result, this.MeasuredType);
 		}
 	}
 
@@ -862,8 +884,8 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IMetadataReference Token { get; set; }
 
-		public LoadTokenInstruction(uint label, IVariable result, IMetadataReference token)
-			: base(label, result)
+		public LoadTokenInstruction(uint offset, IVariable result, IMetadataReference token)
+			: base(offset, result)
 		{
 			this.Token = token;
 		}
@@ -882,7 +904,7 @@ namespace Model.ThreeAddressCode.Instructions
 		public override string ToString()
 		{
 			//var type = TypeHelper.GetTypeName(this.Token);
-			return string.Format("{0}:  {1} = token {2};", this.Label, this.Result, this.Token);
+			return this.ToString("{0} = token {1}", this.Result, this.Token);
 		}
 	}
 
@@ -892,8 +914,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public IMethodReference Method { get; set; }
 		public IList<IVariable> Arguments { get; private set; }
 
-		public MethodCallInstruction(uint label, IVariable result, MethodCallOperation operation, IMethodReference method, IEnumerable<IVariable> arguments)
-			: base(label, result)
+		public MethodCallInstruction(uint offset, IVariable result, MethodCallOperation operation, IMethodReference method, IEnumerable<IVariable> arguments)
+			: base(offset, result)
 		{
 			this.Arguments = new List<IVariable>(arguments);
 			this.Operation = operation;
@@ -963,7 +985,7 @@ namespace Model.ThreeAddressCode.Instructions
 				result = string.Format("{0} = ", this.Result);
 			}
 
-			return string.Format("{0}:  {1}{2}::{3}({4});", this.Label, result, this.Method.ContainingType.Name, this.Method.Name, arguments);
+			return this.ToString("{0}{1}::{2}({3})", result, this.Method.ContainingType.Name, this.Method.Name, arguments);
 		}
 	}
 
@@ -973,8 +995,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public IVariable Pointer { get; set; }
 		public IList<IVariable> Arguments { get; private set; }
 
-		public IndirectMethodCallInstruction(uint label, IVariable result, IVariable pointer, FunctionPointerType function, IEnumerable<IVariable> arguments)
-			: base(label, result)
+		public IndirectMethodCallInstruction(uint offset, IVariable result, IVariable pointer, FunctionPointerType function, IEnumerable<IVariable> arguments)
+			: base(offset, result)
 		{
 			this.Arguments = new List<IVariable>(arguments);
 			this.Pointer = pointer;
@@ -1045,7 +1067,7 @@ namespace Model.ThreeAddressCode.Instructions
 				result = string.Format("{0} = ", this.Result);
 			}
 
-			return string.Format("{0}:  {1}(*{2})({3});", this.Label, result, this.Pointer, arguments);
+			return this.ToString("{0}(*{1})({2})", result, this.Pointer, arguments);
 		}
 	}
 
@@ -1053,8 +1075,8 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IType AllocationType { get; set; }
 
-		public CreateObjectInstruction(uint label, IVariable result, IType allocationType)
-			: base(label, result)
+		public CreateObjectInstruction(uint offset, IVariable result, IType allocationType)
+			: base(offset, result)
 		{
 			this.AllocationType = allocationType;
 		}
@@ -1072,7 +1094,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  {1} = new {2};", this.Label, this.Result, this.AllocationType);
+			return this.ToString("{0} = new {1}", this.Result, this.AllocationType);
 		}
 	}
 
@@ -1082,8 +1104,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public IVariable SourceAddress { get; set; }
 		public IVariable TargetAddress { get; set; }
 
-		public CopyMemoryInstruction(uint label, IVariable target, IVariable source, IVariable numberOfBytes)
-			: base(label)
+		public CopyMemoryInstruction(uint offset, IVariable target, IVariable source, IVariable numberOfBytes)
+			: base(offset)
 		{
 			this.NumberOfBytes = numberOfBytes;
 			this.SourceAddress = source;
@@ -1110,7 +1132,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  copy {1} bytes from {1} to {2};", this.Label, this.NumberOfBytes, this.SourceAddress, this.TargetAddress);
+			return this.ToString("copy {0} bytes from {1} to {2}", this.NumberOfBytes, this.SourceAddress, this.TargetAddress);
 		}
 	}
 
@@ -1119,8 +1141,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public IVariable NumberOfBytes { get; set; }
 		public IVariable TargetAddress { get; set; }
 
-		public LocalAllocationInstruction(uint label, IVariable target, IVariable numberOfBytes)
-			: base(label)
+		public LocalAllocationInstruction(uint offset, IVariable target, IVariable numberOfBytes)
+			: base(offset)
 		{
 			this.NumberOfBytes = numberOfBytes;
 			this.TargetAddress = target;
@@ -1145,7 +1167,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  allocate {1} bytes at {2};", this.Label, this.NumberOfBytes, this.TargetAddress);
+			return this.ToString("allocate {0} bytes at {1}", this.NumberOfBytes, this.TargetAddress);
 		}
 	}
 
@@ -1155,8 +1177,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public IVariable Value { get; set; }
 		public IVariable TargetAddress { get; set; }
 
-		public InitializeMemoryInstruction(uint label, IVariable target, IVariable value, IVariable numberOfBytes)
-			: base(label)
+		public InitializeMemoryInstruction(uint offset, IVariable target, IVariable value, IVariable numberOfBytes)
+			: base(offset)
 		{
 			this.NumberOfBytes = numberOfBytes;
 			this.TargetAddress = target;
@@ -1183,7 +1205,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  init {1} bytes at {2} with {3};", this.Label, this.NumberOfBytes, this.TargetAddress, this.Value);
+			return this.ToString("init {0} bytes at {1} with {2}", this.NumberOfBytes, this.TargetAddress, this.Value);
 		}
 	}
 
@@ -1191,8 +1213,8 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IVariable TargetAddress { get; set; }
 
-		public InitializeObjectInstruction(uint label, IVariable target)
-			: base(label)
+		public InitializeObjectInstruction(uint offset, IVariable target)
+			: base(offset)
 		{
 			this.TargetAddress = target;
 		}
@@ -1215,7 +1237,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  init object at {1};", this.Label, this.TargetAddress);
+			return this.ToString("init object at {0}", this.TargetAddress);
 		}
 	}
 
@@ -1224,8 +1246,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public IVariable SourceAddress { get; set; }
 		public IVariable TargetAddress { get; set; }
 
-		public CopyObjectInstruction(uint label, IVariable target, IVariable source)
-			: base(label)
+		public CopyObjectInstruction(uint offset, IVariable target, IVariable source)
+			: base(offset)
 		{
 			this.SourceAddress = source;
 			this.TargetAddress = target;
@@ -1250,7 +1272,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return string.Format("{0}:  copy object from {1} to {2};", this.Label, this.SourceAddress, this.TargetAddress);
+			return this.ToString("copy object from {0} to {1}", this.SourceAddress, this.TargetAddress);
 		}
 	}
 
@@ -1261,8 +1283,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public IList<IVariable> LowerBounds { get; private set; }
 		public IList<IVariable> Sizes { get; private set; }
 
-		public CreateArrayInstruction(uint label, IVariable result, IType elementType, uint rank, IEnumerable<IVariable> lowerBounds, IEnumerable<IVariable> sizes)
-			: base(label, result)
+		public CreateArrayInstruction(uint offset, IVariable result, IType elementType, uint rank, IEnumerable<IVariable> lowerBounds, IEnumerable<IVariable> sizes)
+			: base(offset, result)
 		{
 			this.ElementType = elementType;
 			this.Rank = rank;
@@ -1312,7 +1334,7 @@ namespace Model.ThreeAddressCode.Instructions
 		public override string ToString()
 		{
 			var sizes = string.Join(", ", this.Sizes);
-			return string.Format("{0}:  {1} = new {2}[{3}];", this.Label, this.Result, this.ElementType, sizes);
+			return this.ToString("{0} = new {1}[{2}]", this.Result, this.ElementType, sizes);
 		}
 	}
 
@@ -1320,8 +1342,8 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IList<IVariable> Arguments { get; private set; }
 
-		public PhiInstruction(uint label, IVariable result)
-			: base(label, result)
+		public PhiInstruction(uint offset, IVariable result)
+			: base(offset, result)
 		{
 			this.Arguments = new List<IVariable>();
 		}
@@ -1356,7 +1378,7 @@ namespace Model.ThreeAddressCode.Instructions
 		public override string ToString()
 		{
 			var arguments = string.Join(", ", this.Arguments);
-			return string.Format("{0}:  {1} = Φ({2});", this.Label, this.Result, arguments);
+			return this.ToString("{0} = Φ({1})", this.Result, arguments);
 		}
 	}
 }

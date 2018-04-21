@@ -1349,7 +1349,9 @@ namespace Model.Types
 			{
 				foreach (var local in this.LocalVariables)
 				{
-					result.AppendFormat("  {0} {1};", local.Type, local.Name);
+					var type = local.Type == null ? "??" : local.Type.ToString();
+
+					result.AppendFormat("  local {0} {1};", type, local.Name);
 					result.AppendLine();
 				}
 
