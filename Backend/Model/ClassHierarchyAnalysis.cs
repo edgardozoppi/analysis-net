@@ -86,7 +86,8 @@ namespace Backend.Model
 
 			var definedTypes = host.LoadedUnits.OfType<IModule>()
 				.SelectMany(a => a.GetAllTypes())
-				.OfType<INamedTypeDefinition>();
+				.OfType<INamedTypeDefinition>()
+				.ToList();
 
 			foreach (var type in definedTypes)
 			{
