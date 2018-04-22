@@ -173,103 +173,85 @@ namespace Backend.Model
 
 		#region Topological Sort
 
-		//private CFGNode[] ComputeTopologicalSort()
-		//{
-		//	var result = new CFGNode[this.Nodes.Count];
-		//	var visited = new bool[this.Nodes.Count];
-		//	var index = this.Nodes.Count - 1;
-
-		//	foreach (var node in this.Entries)
-		//	{
-		//		ControlFlowGraph.DepthFirstSearch(result, visited, node, ref index);
-		//	}
-
-		//	return result;
-		//}
-
-		//private static void DepthFirstSearch(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
-		//{
-		//	var alreadyVisited = visited[node.Id];
-
-		//	if (!alreadyVisited)
-		//	{
-		//		visited[node.Id] = true;
-
-		//		foreach (var succ in node.Successors)
-		//		{
-		//			ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
-		//		}
-
-		//		node.ForwardIndex = index;
-		//		result[index] = node;
-		//		index--;
-		//	}
-		//}
-
-		private enum TopologicalSortNodeStatus
-		{
-			NeverVisited, // never pushed into stack
-			FirstVisit, // pushed into stack for the first time
-			SecondVisit // pushed into stack for the second time
-		}
-
 		public IEnumerable<IMethodReference> ComputeTopologicalSort()
 		{
 			var result = ComputeTopologicalSort(this.Roots);
 			return result;
 		}
 
+		// Tarjan's topological sort recursive algorithm
 		public IEnumerable<IMethodReference> ComputeTopologicalSort(IEnumerable<IMethodReference> roots)
 		{
-			// reverse postorder traversal from root methods
-			var stack = new Stack<IMethodReference>();
-			var result = new List<IMethodReference>();
-			var status = new Dictionary<IMethodReference, TopologicalSortNodeStatus>(MethodReferenceDefinitionComparer.Default);
+			var result = new List<IMethodReference>(methods.Count);
+			var visited = new HashSet<IMethodReference>(MethodReferenceDefinitionComparer.Default);
 
-			foreach (var method in methods.Keys)
+			foreach (var root in roots)
 			{
-				status[method] = TopologicalSortNodeStatus.NeverVisited;
+				ForwardDFS(result, visited, root);
 			}
-
-			foreach (var method in roots)
-			{
-				stack.Push(method);
-				status[method] = TopologicalSortNodeStatus.FirstVisit;
-			}
-
-			do
-			{
-				var method = stack.Peek();
-				var node_status = status[method];
-
-				if (node_status == TopologicalSortNodeStatus.FirstVisit)
-				{
-					status[method] = TopologicalSortNodeStatus.SecondVisit;
-
-					var methodInfo = methods[method];
-					var callees = methodInfo.Invocations.Values.SelectMany(inv => inv.PossibleCallees);
-
-					foreach (var callee in callees)
-					{
-						var callee_status = status[callee];
-
-						if (callee_status == TopologicalSortNodeStatus.NeverVisited)
-						{
-							stack.Push(callee);
-							status[callee] = TopologicalSortNodeStatus.FirstVisit;
-						}
-					}
-				}
-				else if (node_status == TopologicalSortNodeStatus.SecondVisit)
-				{
-					stack.Pop();
-					result.Insert(0, method);
-				}
-			}
-			while (stack.Count > 0);
 
 			return result;
 		}
+
+		// Depth First Search algorithm
+		private void ForwardDFS(IList<IMethodReference> result, ISet<IMethodReference> visited, IMethodReference method)
+		{
+			var alreadyVisited = visited.Contains(method);
+
+			if (!alreadyVisited)
+			{
+				visited.Add(method);
+
+				var methodInfo = methods[method];
+				var callees = methodInfo.Invocations.Values.SelectMany(inv => inv.PossibleCallees);
+
+				foreach (var callee in callees)
+				{
+					ForwardDFS(result, visited, callee);
+				}
+
+				result.Insert(0, method);
+			}
+		}
+
+		//// Kahn's topological sort iterative algorithm
+		//public IEnumerable<IMethodReference> ComputeTopologicalSort(IEnumerable<IMethodReference> roots)
+		//{
+		//	// worklist always contains methods with no incoming edges
+		//	var worklist = new Queue<IMethodReference>();
+		//	var visited = new HashSet<IMethodReference>(MethodReferenceDefinitionComparer.Default);
+		//	var result = new List<IMethodReference>(methods.Count);
+
+		//	foreach (var root in roots)
+		//	{
+		//		worklist.Enqueue(root);
+		//	}
+
+		//	while (worklist.Count > 0)
+		//	{
+		//		var method = worklist.Dequeue();
+		//		visited.Add(method);
+		//		result.Add(method);
+
+		//		var methodInfo = methods[method];
+		//		var callees = methodInfo.Invocations.Values.SelectMany(inv => inv.PossibleCallees);
+
+		//		foreach (var callee in callees)
+		//		{
+		//			if (visited.Contains(callee)) continue;
+
+		//			methodInfo = methods[method];
+		//			var callers = methodInfo.CallSites.Select(callsite => callsite.Caller);
+
+		//			if (callers.Except(visited).Any()) continue;
+
+		//			// callee can never be already in the worklist
+		//			worklist.Enqueue(callee);
+		//		}
+		//	}
+
+		//	return result;
+		//}
 
 		#endregion
 	}
