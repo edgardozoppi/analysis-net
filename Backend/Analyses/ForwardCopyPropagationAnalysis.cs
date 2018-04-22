@@ -38,8 +38,9 @@ namespace Backend.Analyses
 		{
 			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
 			var copiesToRemove = new Dictionary<IVariable, InstructionLocation>();
+			var sorted_nodes = cfg.ForwardOrder;
 
-			foreach (var node in this.cfg.Nodes)
+			foreach (var node in sorted_nodes)
 			{
 				var node_result = this.result[node.Id];
 				var copies = new Dictionary<IVariable, IVariable>();

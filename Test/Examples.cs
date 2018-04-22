@@ -303,6 +303,12 @@ namespace Test
 			var v4 = (obj1 != null || obj2 == null);
 		}
 
+		public void ExampleLambda()
+		{
+			Func<int, int> l = (x => x * x);
+			l(1);
+		}
+
 		//public void Print(params object[] args)
 		//{
 		//	Console.WriteLine(args);

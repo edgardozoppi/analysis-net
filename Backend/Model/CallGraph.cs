@@ -18,6 +18,25 @@ namespace Backend.Model
 			this.Caller = caller;
 			this.Label = label;
 		}
+
+		public override int GetHashCode()
+		{
+			return this.Caller.GetHashCode() ^
+				this.Label.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var other = obj as CallSite;
+			return other != null &&
+				this.Caller.Equals(other.Caller) &&
+				this.Label.Equals(other.Label);
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0} at {1}", this.Caller, this.Label);
+		}
 	}
 
 	public class InvocationInfo
@@ -36,6 +55,8 @@ namespace Backend.Model
 
 	public class CallGraph
 	{
+		#region class MethodInfo
+
 		private class MethodInfo
 		{
 			public IMethodReference Method { get; private set; }
@@ -52,11 +73,13 @@ namespace Backend.Model
 			}
 		}
 
+		#endregion
+
 		private IDictionary<IMethodReference, MethodInfo> methods;
 
 		public CallGraph()
 		{
-			this.methods = new Dictionary<IMethodReference, MethodInfo>(new MethodReferenceDefinitionComparer());
+			this.methods = new Dictionary<IMethodReference, MethodInfo>(MethodReferenceDefinitionComparer.Default);
 		}
 
 		public IEnumerable<IMethodReference> Methods
@@ -85,6 +108,12 @@ namespace Backend.Model
 		{
 			var methodInfo = GetMethodInfo(method);
 			return methodInfo.Invocations.Values;
+		}
+
+		public bool ContainsInvocation(IMethodReference method, string label)
+		{
+			var methodInfo = GetMethodInfo(method);
+			return methodInfo.Invocations.ContainsKey(label);
 		}
 
 		public InvocationInfo GetInvocation(IMethodReference method, string label)
@@ -135,5 +164,89 @@ namespace Backend.Model
 
 			return info;
 		}
+
+		#region Topological Sort
+
+		public IEnumerable<IMethodReference> ComputeTopologicalSort()
+		{
+			var result = ComputeTopologicalSort(this.Roots);
+			return result;
+		}
+
+		// Tarjan's topological sort recursive algorithm
+		public IEnumerable<IMethodReference> ComputeTopologicalSort(IEnumerable<IMethodReference> roots)
+		{
+			var result = new List<IMethodReference>(methods.Count);
+			var visited = new HashSet<IMethodReference>(MethodReferenceDefinitionComparer.Default);
+
+			foreach (var root in roots)
+			{
+				ForwardDFS(result, visited, root);
+			}
+
+			return result;
+		}
+
+		// Depth First Search algorithm
+		private void ForwardDFS(IList<IMethodReference> result, ISet<IMethodReference> visited, IMethodReference method)
+		{
+			var alreadyVisited = visited.Contains(method);
+
+			if (!alreadyVisited)
+			{
+				visited.Add(method);
+
+				var methodInfo = methods[method];
+				var callees = methodInfo.Invocations.Values.SelectMany(inv => inv.PossibleCallees);
+
+				foreach (var callee in callees)
+				{
+					ForwardDFS(result, visited, callee);
+				}
+
+				result.Insert(0, method);
+			}
+		}
+
+		//// Kahn's topological sort iterative algorithm
+		//public IEnumerable<IMethodReference> ComputeTopologicalSort(IEnumerable<IMethodReference> roots)
+		//{
+		//	// worklist always contains methods with no incoming edges
+		//	var worklist = new Queue<IMethodReference>();
+		//	var visited = new HashSet<IMethodReference>(MethodReferenceDefinitionComparer.Default);
+		//	var result = new List<IMethodReference>(methods.Count);
+
+		//	foreach (var root in roots)
+		//	{
+		//		worklist.Enqueue(root);
+		//	}
+
+		//	while (worklist.Count > 0)
+		//	{
+		//		var method = worklist.Dequeue();
+		//		visited.Add(method);
+		//		result.Add(method);
+
+		//		var methodInfo = methods[method];
+		//		var callees = methodInfo.Invocations.Values.SelectMany(inv => inv.PossibleCallees);
+
+		//		foreach (var callee in callees)
+		//		{
+		//			if (visited.Contains(callee)) continue;
+
+		//			methodInfo = methods[method];
+		//			var callers = methodInfo.CallSites.Select(callsite => callsite.Caller);
+
+		//			if (callers.Except(visited).Any()) continue;
+
+		//			// callee can never be already in the worklist
+		//			worklist.Enqueue(callee);
+		//		}
+		//	}
+
+		//	return result;
+		//}
+
+		#endregion
 	}
 }

@@ -294,139 +294,149 @@ namespace Backend.Model
 
 		#region Topological Sort
 
+		// Tarjan's topological sort recursive algorithm
+		private CFGNode[] ComputeForwardTopologicalSort()
+		{
+			var result = new CFGNode[this.Nodes.Count];
+			var visited = new bool[this.Nodes.Count];
+			var index = this.Nodes.Count - 1;
+
+			foreach (var node in this.Entries)
+			{
+				ForwardDFS(result, visited, node, ref index);
+			}
+
+			return result;
+		}
+
+		// Depth First Search algorithm
+		private static void ForwardDFS(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
+		{
+			var alreadyVisited = visited[node.Id];
+
+			if (!alreadyVisited)
+			{
+				visited[node.Id] = true;
+
+				foreach (var succ in node.Successors)
+				{
+					ForwardDFS(result, visited, succ, ref index);
+				}
+
+				node.ForwardIndex = index;
+				result[index] = node;
+				index--;
+			}
+		}
+
+		// Tarjan's topological sort recursive algorithm
+		private CFGNode[] ComputeBackwardTopologicalSort()
+		{
+			var result = new CFGNode[this.Nodes.Count];
+			var visited = new bool[this.Nodes.Count];
+			var index = this.Nodes.Count - 1;
+
+			foreach (var node in this.Exits)
+			{
+				BackwardDFS(result, visited, node, ref index);
+			}
+
+			return result;
+		}
+
+		// Depth First Search algorithm
+		private static void BackwardDFS(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
+		{
+			var alreadyVisited = visited[node.Id];
+
+			if (!alreadyVisited)
+			{
+				visited[node.Id] = true;
+
+				foreach (var pred in node.Predecessors)
+				{
+					BackwardDFS(result, visited, pred, ref index);
+				}
+
+				node.BackwardIndex = index;
+				result[index] = node;
+				index--;
+			}
+		}
+
+		//// Kahn's topological sort iterative algorithm
 		//private CFGNode[] ComputeForwardTopologicalSort()
 		//{
+		//	// worklist always contains nodes with no incoming edges
+		//	var worklist = new Queue<CFGNode>();
+		//	var visited = new HashSet<CFGNode>();
 		//	var result = new CFGNode[this.Nodes.Count];
-		//	var visited = new bool[this.Nodes.Count];
-		//	var index = this.Nodes.Count - 1;
+		//	var index = 0;
 
 		//	foreach (var node in this.Entries)
 		//	{
-		//		ControlFlowGraph.DepthFirstSearch(result, visited, node, ref index);
+		//		worklist.Enqueue(node);
+		//	}
+
+		//	while (worklist.Count > 0)
+		//	{
+		//		var node = worklist.Dequeue();
+		//		visited.Add(node);
+
+		//		node.ForwardIndex = index;
+		//		result[index] = node;
+		//		index++;
+
+		//		foreach (var succ in node.Successors)
+		//		{
+		//			if (visited.Contains(succ) ||
+		//				succ.Predecessors.Except(visited).Any())
+		//				continue;
+
+		//			// succ can never be already in the worklist
+		//			worklist.Enqueue(succ);
+		//		}
 		//	}
 
 		//	return result;
 		//}
 
-		//private static void DepthFirstSearch(CFGNode[] result, bool[] visited, CFGNode node, ref int index)
+		//// Kahn's topological sort iterative algorithm
+		//private CFGNode[] ComputeBackwardTopologicalSort()
 		//{
-		//	var alreadyVisited = visited[node.Id];
+		//	// worklist always contains nodes with no outgoing edges
+		//	var worklist = new Queue<CFGNode>();
+		//	var visited = new HashSet<CFGNode>();
+		//	var result = new CFGNode[this.Nodes.Count];
+		//	var index = 0;
 
-		//	if (!alreadyVisited)
+		//	foreach (var node in this.Exits)
 		//	{
-		//		visited[node.Id] = true;
-
-		//		foreach (var succ in node.Successors)
-		//		{
-		//			ControlFlowGraph.DepthFirstSearch(result, visited, succ, ref index);
-		//		}
-
-		//		node.ForwardIndex = index;
-		//		result[index] = node;
-		//		index--;
+		//		worklist.Enqueue(node);
 		//	}
+
+		//	while (worklist.Count > 0)
+		//	{
+		//		var node = worklist.Dequeue();
+		//		visited.Add(node);
+
+		//		node.BackwardIndex = index;
+		//		result[index] = node;
+		//		index++;
+
+		//		foreach (var pred in node.Predecessors)
+		//		{
+		//			if (visited.Contains(pred) ||
+		//				pred.Successors.Except(visited).Any())
+		//				continue;
+
+		//			// pred can never be already in the worklist
+		//			worklist.Enqueue(pred);
+		//		}
+		//	}
+
+		//	return result;
 		//}
-
-		private enum TopologicalSortNodeStatus
-		{
-			NeverVisited, // never pushed into stack
-			FirstVisit, // pushed into stack for the first time
-			SecondVisit // pushed into stack for the second time
-		}
-
-		private CFGNode[] ComputeForwardTopologicalSort()
-		{
-			// reverse postorder traversal from entry node
-			var stack = new Stack<CFGNode>();
-			var result = new CFGNode[this.Nodes.Count];
-			var status = new TopologicalSortNodeStatus[this.Nodes.Count];
-			var index = this.Nodes.Count - 1;
-
-			foreach (var node in this.Entries)
-			{
-				stack.Push(node);
-				status[node.Id] = TopologicalSortNodeStatus.FirstVisit;
-			}
-
-			do
-			{
-				var node = stack.Peek();
-				var node_status = status[node.Id];
-
-				if (node_status == TopologicalSortNodeStatus.FirstVisit)
-				{
-					status[node.Id] = TopologicalSortNodeStatus.SecondVisit;
-
-					foreach (var succ in node.Successors)
-					{
-						var succ_status = status[succ.Id];
-
-						if (succ_status == TopologicalSortNodeStatus.NeverVisited)
-						{
-							stack.Push(succ);
-							status[succ.Id] = TopologicalSortNodeStatus.FirstVisit;
-						}
-					}
-				}
-				else if (node_status == TopologicalSortNodeStatus.SecondVisit)
-				{
-					stack.Pop();
-					node.ForwardIndex = index;
-					result[index] = node;
-					index--;
-				}
-			}
-			while (stack.Count > 0);
-
-			return result;
-		}
-
-		private CFGNode[] ComputeBackwardTopologicalSort()
-		{
-			// reverse postorder traversal from exit node
-			var stack = new Stack<CFGNode>();
-			var result = new CFGNode[this.Nodes.Count];
-			var status = new TopologicalSortNodeStatus[this.Nodes.Count];
-			var index = this.Nodes.Count - 1;
-
-			foreach (var node in this.Exits)
-			{
-				stack.Push(node);
-				status[node.Id] = TopologicalSortNodeStatus.FirstVisit;
-			}
-
-			do
-			{
-				var node = stack.Peek();
-				var node_status = status[node.Id];
-
-				if (node_status == TopologicalSortNodeStatus.FirstVisit)
-				{
-					status[node.Id] = TopologicalSortNodeStatus.SecondVisit;
-
-					foreach (var pred in node.Predecessors)
-					{
-						var pred_status = status[pred.Id];
-
-						if (pred_status == TopologicalSortNodeStatus.NeverVisited)
-						{
-							stack.Push(pred);
-							status[pred.Id] = TopologicalSortNodeStatus.FirstVisit;
-						}
-					}
-				}
-				else if (node_status == TopologicalSortNodeStatus.SecondVisit)
-				{
-					stack.Pop();
-					node.BackwardIndex = index;
-					result[index] = node;
-					index--;
-				}
-			}
-			while (stack.Count > 0);
-
-			return result;
-		}
 
 		#endregion
 	}

@@ -287,7 +287,7 @@ namespace Backend.Serialization
 			using (var stringWriter = new StringWriter())
 			using (var xmlWriter = new XmlTextWriter(stringWriter))
 			{
-				var reachableMethods = new Dictionary<IMethodReference, int>(new MethodReferenceDefinitionComparer());
+				var reachableMethods = new Dictionary<IMethodReference, int>(MethodReferenceDefinitionComparer.Default);
 
 				xmlWriter.Formatting = Formatting.Indented;
 				xmlWriter.WriteStartElement("DirectedGraph");

@@ -29,6 +29,11 @@ namespace Backend.Analyses
 		{
 			if (this.result == null) throw new InvalidOperationException("Analysis result not available.");
 
+			// TODO: Not sure if we need to process the cfg nodes in backward order
+			// since there is no global information used, the order shouldn't matter.
+			//var sorted_nodes = cfg.BackwardOrder;
+			//
+			//foreach (var node in sorted_nodes)
 			foreach (var node in this.cfg.Nodes)
 			{
 				var node_result = this.result[node.Id];

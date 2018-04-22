@@ -10,6 +10,27 @@ namespace Backend.Model
 {
 	public class MethodReferenceDefinitionComparer : IEqualityComparer<IMethodReference>
 	{
+		private static MethodReferenceDefinitionComparer _default;
+
+		public static MethodReferenceDefinitionComparer Default
+		{
+			get
+			{
+				if (_default == null)
+				{
+					_default = new MethodReferenceDefinitionComparer();
+				}
+
+				return _default;
+			}
+		}
+
+		private MethodReferenceDefinitionComparer()
+		{
+			// Don't create a new instance of this class,
+			// use Default property instead.
+		}
+
 		public int GetHashCode(IMethodReference method)
 		{
 			return method.GetHashCode();
