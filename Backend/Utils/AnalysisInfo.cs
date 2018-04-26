@@ -38,6 +38,16 @@ namespace Backend.Utils
 			data[key] = value;
 		}
 
+		public void ClearKeys()
+		{
+			data.Clear();
+		}
+
+		public virtual void Clear()
+		{
+			this.ClearKeys();
+		}
+
 		public void Remove(string key)
 		{
 			data.Remove(key);

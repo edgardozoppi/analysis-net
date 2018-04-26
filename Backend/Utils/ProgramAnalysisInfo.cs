@@ -51,6 +51,17 @@ namespace Backend.Utils
 			methodsInfo.Remove(method);
 		}
 
+		public void ClearMethods()
+		{
+			methodsInfo.Clear();
+		}
+
+		public override void Clear()
+		{
+			base.Clear();
+			this.ClearMethods();
+		}
+
 		public MethodAnalysisInfo this[IMethodReference method]
 		{
 			get { return methodsInfo[method]; }
