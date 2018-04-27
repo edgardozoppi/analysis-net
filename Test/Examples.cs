@@ -309,6 +309,15 @@ namespace Test
 			l(1);
 		}
 
+		public void ExampleCasts()
+		{
+			Exception e = null;
+			var v = e is IndexOutOfRangeException;
+			v = !(e is IndexOutOfRangeException);
+
+			var w = e as IndexOutOfRangeException;
+		}
+
 		//public void Print(params object[] args)
 		//{
 		//	Console.WriteLine(args);
