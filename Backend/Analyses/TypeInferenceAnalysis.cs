@@ -244,6 +244,14 @@ namespace Backend.Analyses
 					case BinaryOperation.Ge:
 					case BinaryOperation.Lt:
 					case BinaryOperation.Le:
+						// If one of the operands has a reference type,
+						// then the operator must be != instead of >.
+						if ((left != null && !left.IsValueType) ||
+							(right != null && !right.IsValueType))
+						{
+							instruction.Operation = BinaryOperation.Neq;
+						}
+
 						instruction.Result.Type = Types.Instance.PlatformType.SystemBoolean;
 						break;
 				}
