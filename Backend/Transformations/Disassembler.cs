@@ -188,6 +188,7 @@ namespace Backend.Transformations
 
 			this.FillBodyVariables(body);
 			this.FillBodyInstructions(body);
+			this.FillInstructionsLocation(body);
 
 			return body;
 		}
@@ -226,6 +227,21 @@ namespace Backend.Transformations
 			foreach (var basicBlock in basicBlocks.Values)
 			{
 				body.Instructions.AddRange(basicBlock.Instructions);
+			}
+		}
+
+		private void FillInstructionsLocation(MethodBody body)
+		{
+			IPrimarySourceLocation lastLocation = null;
+
+			foreach (var instruction in body.Instructions)
+			{
+				if (instruction.Location == null)
+				{
+					instruction.Location = lastLocation;
+				}
+
+				lastLocation = instruction.Location;
 			}
 		}
 
