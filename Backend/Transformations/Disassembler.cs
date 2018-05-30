@@ -160,9 +160,9 @@ namespace Backend.Transformations
 						ProcessEndFinally(op);
 						break;
 
-					//case Bytecode.BasicOperation.EndFilter:
-					//	ProcessEndFilter(op);
-					//	break;
+					case Bytecode.BasicOperation.EndFilter:
+						ProcessEndFilter(op);
+						break;
 
 					case Bytecode.BasicOperation.LocalAllocation:
 						ProcessLocalAllocation(op);
@@ -281,6 +281,8 @@ namespace Backend.Transformations
 			{
 				stack.Clear();
 
+				ProcessEmptyOperation(op);
+
 				//// TODO: Maybe we don't need to add this branch instruction
 				//// since it is jumping to the next one,
 				//// so it is the same as falling through
@@ -298,6 +300,13 @@ namespace Backend.Transformations
 				//		}
 				//	}
 				//}
+			}
+
+			private void ProcessEndFilter(Bytecode.BasicInstruction op)
+			{
+				stack.Clear();
+
+				ProcessEmptyOperation(op);
 			}
 
 			private void ProcessLocalAllocation(Bytecode.BasicInstruction op)
