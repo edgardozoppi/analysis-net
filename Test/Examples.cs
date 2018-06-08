@@ -30,6 +30,7 @@ namespace Test
 	{
 		public int F1;
 		private static int F2 = 0;
+		private bool F3;
 
 		public void ExampleBugCopyPropagation()
 		{
@@ -286,6 +287,13 @@ namespace Test
 		{
 			var v = false;
 			System.Diagnostics.Contracts.Contract.Assert(v);
+		}
+
+		// Boolean vs Int
+		public void ExampleBoolean3()
+		{
+			this.F3 = true;
+			this.F3 = false;
 		}
 
 		// Boolean vs Int

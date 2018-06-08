@@ -150,7 +150,8 @@ namespace Backend.Analyses
 				// Set the null variable a type.
 				if (instruction.Result.Type != null &&
 				   (instruction.Operand.Type == null ||
-					instruction.Operand.Type.Equals(PlatformTypes.Object)))
+					instruction.Operand.Type.Equals(PlatformTypes.Object) ||
+					instruction.Result.Type.Equals(PlatformTypes.Boolean)))
 				{
 					instruction.Operand.Type = instruction.Result.Type;
 				}
