@@ -431,7 +431,7 @@ namespace Backend.Transformations
 						break;
 
 					case OperationCode.Array_Get:
-						this.ProcessGetArray(bb, op);
+						this.ProcessLoadMultiArrayElement(bb, op);
 						break;
 
 					case OperationCode.Ldelem:
@@ -450,6 +450,9 @@ namespace Backend.Transformations
 						break;
 
 					case OperationCode.Array_Addr:
+						this.ProcessLoadMultiArrayElementAddress(bb, op);
+						break;
+
 					case OperationCode.Ldelema:
 						this.ProcessLoadArrayElementAddress(bb, op);
 						break;
@@ -748,6 +751,9 @@ namespace Backend.Transformations
 					    break;
 
 					case OperationCode.Array_Set:
+						this.ProcessStoreMultiArrayElement(bb, op);
+						break;
+
 					case OperationCode.Stelem:
 					case OperationCode.Stelem_I:
 					case OperationCode.Stelem_I1:
@@ -1387,9 +1393,8 @@ namespace Backend.Transformations
 			bb.Instructions.Add(instruction);
 		}
 
-		private void ProcessGetArray(BasicBlockInfo bb, IOperation op)
+		private void ProcessLoadMultiArrayElement(BasicBlockInfo bb, IOperation op)
 		{
-			//var getArray = OperationHelper.GetArrayWithLowerBounds(op.OperationCode);
 			var arrayType = op.Value as IArrayTypeReference;
 			var indices = new List<IVariable>();
 
@@ -1406,7 +1411,6 @@ namespace Backend.Transformations
 			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, indices);
 			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
-			//instruction.WithLowerBound = withLowerBound;
 			bb.Instructions.Add(instruction);
 		}
 
@@ -1416,6 +1420,28 @@ namespace Backend.Transformations
 			var array = stack.Pop();			
 			var dest = stack.Push();
 			var source = new ArrayElementAccess(array, index);
+			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
+			bb.Instructions.Add(instruction);
+		}
+
+		private void ProcessLoadMultiArrayElementAddress(BasicBlockInfo bb, IOperation op)
+		{
+			var arrayType = op.Value as IArrayTypeReference;
+			var indices = new List<IVariable>();
+
+			for (uint i = 0; i < arrayType.Rank; i++)
+			{
+				var operand = stack.Pop();
+				indices.Add(operand);
+			}
+
+			var array = stack.Pop();
+
+			indices.Reverse();
+
+			var dest = stack.Push();
+			var access = new ArrayElementAccess(array, indices);
+			var source = new Reference(access);
 			var instruction = new LoadInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
@@ -1506,6 +1532,27 @@ namespace Backend.Transformations
 			var field = op.Value as IFieldReference;
 			var source = stack.Pop();
 			var dest = new StaticFieldAccess(field);
+			var instruction = new StoreInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
+			bb.Instructions.Add(instruction);
+		}
+
+		private void ProcessStoreMultiArrayElement(BasicBlockInfo bb, IOperation op)
+		{
+			var arrayType = op.Value as IArrayTypeReference;
+			var indices = new List<IVariable>();
+			var source = stack.Pop();
+
+			for (uint i = 0; i < arrayType.Rank; i++)
+			{
+				var operand = stack.Pop();
+				indices.Add(operand);
+			}
+
+			var array = stack.Pop();
+
+			indices.Reverse();
+
+			var dest = new ArrayElementAccess(array, indices);
 			var instruction = new StoreInstruction(op.Offset, dest, source) { Location = GetSourceLocation(op.Location) };
 			bb.Instructions.Add(instruction);
 		}
