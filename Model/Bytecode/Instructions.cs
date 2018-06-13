@@ -92,6 +92,12 @@ namespace Model.Bytecode
 		Address
 	}
 
+	public enum LoadArrayElementOperation
+	{
+		Content,
+		Address
+	}
+
 	public enum LoadMethodAddressOperation
 	{
 		Static,
@@ -257,14 +263,16 @@ namespace Model.Bytecode
 		}
 	}
 
-    public class GetArrayInstruction : Instruction
+	public class LoadArrayElementInstruction : Instruction
     {
-        public ArrayType Type { get; set; }
+		public LoadArrayElementOperation Operation { get; set; }
+		public ArrayType Array { get; set; }
 
-        public GetArrayInstruction(uint label, ArrayType type)
+        public LoadArrayElementInstruction(uint label, LoadArrayElementOperation operation, ArrayType array)
             : base(label)
         {
-            this.Type = type;
+			this.Operation = operation;
+			this.Array = array;
         }
 
         public override void Accept(IInstructionVisitor visitor)
@@ -275,9 +283,31 @@ namespace Model.Bytecode
 
         public override string ToString()
         {
-            return this.ToString("get {0}", this.Type);
+            return this.ToString("load {0} of array {1} element", this.Operation, this.Array);
         }
     }
+
+	public class StoreArrayElementInstruction : Instruction
+	{
+		public ArrayType Array { get; set; }
+
+		public StoreArrayElementInstruction(uint label, ArrayType array)
+			: base(label)
+		{
+			this.Array = array;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
+		public override string ToString()
+		{
+			return this.ToString("store array {0} element", this.Array);
+		}
+	}
 
 	public class CreateObjectInstruction : Instruction
 	{

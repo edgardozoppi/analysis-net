@@ -31,7 +31,7 @@ namespace Backend.Analyses
 
 			public override void Visit(CreateArrayInstruction instruction)
 			{
-				instruction.Result.Type = new ArrayType(instruction.ElementType);
+				instruction.Result.Type = new ArrayType(instruction.ElementType, instruction.Rank);
 			}
 
 			public override void Visit(CatchInstruction instruction)

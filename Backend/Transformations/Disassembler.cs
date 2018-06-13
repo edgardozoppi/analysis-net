@@ -583,11 +583,27 @@ namespace Backend.Transformations
 				body.Instructions.Add(instruction);
 			}
 
-            public override void Visit(Bytecode.GetArrayInstruction op)
+			public override void Visit(Bytecode.LoadArrayElementInstruction op)
+			{
+				switch (op.Operation)
+				{
+					case Bytecode.LoadArrayElementOperation.Content:
+						ProcessLoadArrayElement(op);
+						break;
+
+					case Bytecode.LoadArrayElementOperation.Address:
+						ProcessLoadArrayElementAddress(op);
+						break;
+
+					default: throw op.Operation.ToUnknownValueException();
+				}
+			}
+
+			private void ProcessLoadArrayElement(Bytecode.LoadArrayElementInstruction op)
             {
                 var indices = new List<IVariable>();
 
-                for (uint i = 0; i < op.Type.Rank; i++)
+                for (uint i = 0; i < op.Array.Rank; i++)
                 {
                     var operand = stack.Pop();
                     indices.Add(operand);
@@ -602,6 +618,47 @@ namespace Backend.Transformations
                 var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
                 body.Instructions.Add(instruction);
             }
+
+			private void ProcessLoadArrayElementAddress(Bytecode.LoadArrayElementInstruction op)
+			{
+				var indices = new List<IVariable>();
+
+				for (uint i = 0; i < op.Array.Rank; i++)
+				{
+					var operand = stack.Pop();
+					indices.Add(operand);
+				}
+
+				var array = stack.Pop();
+
+				indices.Reverse();
+
+				var dest = stack.Push();
+				var access = new ArrayElementAccess(array, indices);
+				var source = new Reference(access);
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
+			}
+
+			public override void Visit(Bytecode.StoreArrayElementInstruction op)
+			{
+				var indices = new List<IVariable>();
+				var source = stack.Pop();
+
+				for (uint i = 0; i < op.Array.Rank; i++)
+				{
+					var operand = stack.Pop();
+					indices.Add(operand);
+				}
+
+				var array = stack.Pop();
+
+				indices.Reverse();
+
+				var dest = new ArrayElementAccess(array, indices);
+				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
+			}
 
 			public override void Visit(Bytecode.CreateObjectInstruction op)
 			{

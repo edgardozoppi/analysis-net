@@ -26,6 +26,7 @@ namespace Model.Bytecode.Visitor
 		void Visit(IndirectMethodCallInstruction instruction);
 		void Visit(CreateObjectInstruction instruction);
 		void Visit(CreateArrayInstruction instruction);
-        void Visit(GetArrayInstruction instruction);
+        void Visit(LoadArrayElementInstruction instruction);
+		void Visit(StoreArrayElementInstruction instruction);
 	}
 }

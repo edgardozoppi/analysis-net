@@ -326,6 +326,20 @@ namespace Test
 			var w = e as IndexOutOfRangeException;
 		}
 
+		public void ExampleArray()
+		{
+			var a = new int[3];
+			var b = a[0];
+			a[2] = 50;
+		}
+
+		public void ExampleMultiArray()
+		{
+			var a = new int[3, 4];
+			var b = a[0, 1];
+			a[2, 3] = 50;
+		}
+
 		//public void Print(params object[] args)
 		//{
 		//	Console.WriteLine(args);

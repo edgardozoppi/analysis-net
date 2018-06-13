@@ -168,7 +168,8 @@ namespace CCIProvider
 					break;
 
 				case Cci.OperationCode.Array_Get:
-                    instruction = ProcessGetArray(operation);
+				case Cci.OperationCode.Array_Addr:
+					instruction = ProcessLoadArrayElement(operation);
                     break;
 
 				case Cci.OperationCode.Ldelem:
@@ -186,7 +187,6 @@ namespace CCIProvider
 					instruction = ProcessBasic(operation);
 					break;
 
-				case Cci.OperationCode.Array_Addr:
 				case Cci.OperationCode.Ldelema:
 					instruction = ProcessBasic(operation);
 					break;
@@ -461,6 +461,9 @@ namespace CCIProvider
 					break;
 
 				case Cci.OperationCode.Array_Set:
+					instruction = ProcessStoreArrayElement(operation);
+					break;
+
 				case Cci.OperationCode.Stelem:
 				case Cci.OperationCode.Stelem_I:
 				case Cci.OperationCode.Stelem_I1:
@@ -556,15 +559,24 @@ namespace CCIProvider
 			return instruction;
 		}
 
-        private IInstruction ProcessGetArray(Cci.IOperation op)
+        private IInstruction ProcessLoadArrayElement(Cci.IOperation op)
         {
-            //var getArray = OperationHelper.GetArrayWithLowerBounds(op.OperationCode);
-            var cciArrayType = op.Value as Cci.IArrayTypeReference;
+			var operation = OperationHelper.ToLoadArrayElementOperation(op.OperationCode);
+			var cciArrayType = op.Value as Cci.IArrayTypeReference;
             var ourArrayType = typeExtractor.ExtractType(cciArrayType);
-            var instruction = new GetArrayInstruction(op.Offset, ourArrayType);
-            //instruction.WithLowerBound = withLowerBound;
-            return instruction;
+
+            var instruction = new LoadArrayElementInstruction(op.Offset, operation, ourArrayType);
+			return instruction;
         }
+
+		private IInstruction ProcessStoreArrayElement(Cci.IOperation op)
+		{
+			var cciArrayType = op.Value as Cci.IArrayTypeReference;
+			var ourArrayType = typeExtractor.ExtractType(cciArrayType);
+
+			var instruction = new StoreArrayElementInstruction(op.Offset, ourArrayType);
+			return instruction;
+		}
 
 		private IInstruction ProcessCreateObject(Cci.IOperation op)
 		{

@@ -714,7 +714,8 @@ namespace Model.Types
 
 		public override string ToString()
 		{
-			return string.Format("{0}[]", this.ElementsType);
+			var rank = new string(',', (int)this.Rank - 1);
+			return string.Format("{0}[{1}]", this.ElementsType, rank);
 		}
 
 		public override int GetHashCode()
