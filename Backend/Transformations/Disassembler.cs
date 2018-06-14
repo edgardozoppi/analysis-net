@@ -145,19 +145,22 @@ namespace Backend.Transformations
 
 			if (!method.IsStatic)
 			{
-				var t = new LocalVariable("this", true) { Type = this.method.ContainingType };
+				var isByReference = methodDefinition.ContainingType.IsValueType;
+				var type = GetParameterType(this.method.ContainingType, isByReference);
+				var t = new LocalVariable("this", true) { Type = type };
 				this.thisParameter = t;
 			}
 
 			foreach (var parameter in method.Parameters)
 			{
-				var p = new LocalVariable(parameter.Name.Value, true) { Type = parameter.Type };
+				var type = GetParameterType(parameter.Type, parameter.IsByReference);
+				var p = new LocalVariable(parameter.Name.Value, true) { Type = type };
 				this.parameters.Add(parameter, p);
 			}
 
 			foreach (var local in method.Body.LocalVariables)
 			{
-				var name = this.GetLocalSourceName(local);
+				var name = GetLocalSourceName(local);
 				var l = new LocalVariable(name) { Type = local.Type };
 				this.locals.Add(local, l);
 			}
@@ -1658,6 +1661,18 @@ namespace Backend.Transformations
 			{
 				var locations = this.sourceLocationProvider.GetPrimarySourceLocationsFor(location);
 				result = locations.SingleOrDefault();
+			}
+
+			return result;
+		}
+
+		private static ITypeReference GetParameterType(ITypeReference type, bool isByReference)
+		{
+			var result = type;
+
+			if (isByReference)
+			{
+				result = Types.Instance.PointerType(type);
 			}
 
 			return result;
