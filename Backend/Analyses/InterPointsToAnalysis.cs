@@ -486,7 +486,7 @@ namespace Backend.Analyses
 
 				method.Body.UpdateVariables();
 
-				var typeAnalysis = new TypeInferenceAnalysis(cfg);
+				var typeAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
 				typeAnalysis.Analyze();
 
 				methodInfo.Add(INFO_CFG, cfg);

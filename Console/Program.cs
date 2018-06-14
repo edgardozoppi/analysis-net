@@ -72,7 +72,7 @@ namespace Console
 
 			methodBody.UpdateVariables();
 
-			var typeAnalysis = new TypeInferenceAnalysis(cfg);
+			var typeAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
 			typeAnalysis.Analyze();
 
 			// Copy Propagation

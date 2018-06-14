@@ -340,6 +340,12 @@ namespace Test
 			a[2, 3] = 50;
 		}
 
+		public int ExampleRefParameter(ref int p)
+		{
+			var v = p;
+			return v;
+		}
+
 		//public void Print(params object[] args)
 		//{
 		//	Console.WriteLine(args);
