@@ -87,6 +87,12 @@ namespace Model.Types
 			return result;
 		}
 
+		public static bool IsPointer(this IType type)
+		{
+			var result = type is PointerType;
+			return result;
+		}
+
 		public static bool IsStruct(this IType type)
 		{
 			var result = type.TypeKind == TypeKind.ValueType && !type.IsScalar();

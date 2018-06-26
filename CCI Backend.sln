@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2015
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console", "Console\Console.csproj", "{C836D6AD-2A48-4FFF-A958-023C48A65478}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -15,6 +15,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Model", "Model\Model.csproj", "{F08216AD-E55C-44B1-A253-AB8B024B7597}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CCIProvider", "CCIProvider\CCIProvider.csproj", "{D19D0C62-FB8C-427D-B6A4-8433EF3DB6A5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetadataProvider", "MetadataProvider\MetadataProvider.csproj", "{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -78,8 +80,23 @@ Global
 		{D19D0C62-FB8C-427D-B6A4-8433EF3DB6A5}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{D19D0C62-FB8C-427D-B6A4-8433EF3DB6A5}.Release|x86.ActiveCfg = Release|Any CPU
 		{D19D0C62-FB8C-427D-B6A4-8433EF3DB6A5}.Release|x86.Build.0 = Release|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Debug|x86.Build.0 = Debug|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Release|x86.ActiveCfg = Release|Any CPU
+		{7D94DAAC-E703-430D-BCEB-D10E4C565FF8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8D44E32B-6443-426E-9104-AE7782DDD017}
 	EndGlobalSection
 EndGlobal
