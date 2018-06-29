@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,17 +39,16 @@ namespace MetadataProvider
 					throw new Exception("The input is not a valid CLR module or assembly.");
 				}
 
-				var metadata = reader.GetMetadataReader();
-				var assembly = ExtractAssembly(metadata);
+				var assembly = ExtractAssembly(reader);
 
 				host.Assemblies.Add(assembly);
 				return assembly;
 			}
 		}
 
-		private Assembly ExtractAssembly(MetadataReader metadata)
+		private Assembly ExtractAssembly(PEReader reader)
 		{
-			var extractor = new AssemblyExtractor(metadata);
+			var extractor = new AssemblyExtractor(reader);
 			var result = extractor.Extract();
 			return result;
 		}

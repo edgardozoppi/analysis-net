@@ -5,6 +5,7 @@ using Model;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
 using SR = System.Reflection;
+using SRPE = System.Reflection.PortableExecutable;
 using SRM = System.Reflection.Metadata;
 
 namespace MetadataProvider
@@ -13,16 +14,19 @@ namespace MetadataProvider
 	{
 		private IDictionary<SRM.TypeDefinitionHandle, ClassDefinition> definedTypes;
 
+		private SRPE.PEReader reader;
 		private SRM.MetadataReader metadata;
 		private GenericContext genericContext;
 		private SignatureTypeProvider signatureTypeProvider;
 		private Assembly assembly;
 		private Namespace currentNamespace;
 		private ClassDefinition currentType;
+		private MethodDefinition currentMethod;
 
-		public AssemblyExtractor(SRM.MetadataReader metadata)
+		public AssemblyExtractor(SRPE.PEReader reader)
 		{
-			this.metadata = metadata;
+			this.reader = reader;
+			this.metadata = SRM.PEReaderExtensions.GetMetadataReader(reader);
 			this.definedTypes = new Dictionary<SRM.TypeDefinitionHandle, ClassDefinition>();
 			this.genericContext = new GenericContext();
 			this.signatureTypeProvider = new SignatureTypeProvider(this);
@@ -128,6 +132,13 @@ namespace MetadataProvider
 				ExtractGenericParameter(GenericParameterKind.Type, type, handle);
 			}
 
+			ExtractBaseType(typedef.BaseType);
+
+			foreach (var handle in typedef.GetInterfaceImplementations())
+			{
+				ExtractInterfaceImplementation(handle);
+			}
+
 			foreach (var handle in typedef.GetFields())
 			{
 				ExtractField(handle);
@@ -146,6 +157,18 @@ namespace MetadataProvider
 			}
 
 			currentType = currentType.ContainingType as ClassDefinition;
+		}
+
+		private void ExtractBaseType(SRM.EntityHandle handle)
+		{
+			currentType.Base = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, genericContext, handle);
+		}
+
+		private void ExtractInterfaceImplementation(SRM.InterfaceImplementationHandle handle)
+		{
+			var interfaceref = metadata.GetInterfaceImplementation(handle);
+			var typeref = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, genericContext, interfaceref.Interface);
+			currentType.Interfaces.Add(typeref);
 		}
 
 		private void ExtractGenericParameter(GenericParameterKind parameterKind, IGenericDefinition genericContainer, SRM.GenericParameterHandle handle)
@@ -213,6 +236,7 @@ namespace MetadataProvider
 			};
 
 			currentType.Methods.Add(method);
+			currentMethod = method;
 
 			foreach (var handle in methoddef.GetGenericParameters())
 			{
@@ -222,17 +246,18 @@ namespace MetadataProvider
 			var signature = methoddef.DecodeSignature(signatureTypeProvider, genericContext);
 			method.ReturnType = signature.ReturnType;
 
-			//TODO: agregar body, etc.
-
 			foreach (var handle in methoddef.GetParameters())
 			{
-				ExtractParameter(method, signature, handle);
+				ExtractParameter(signature, handle);
 			}
 
+			ExtractMethodBody(methoddef.RelativeVirtualAddress);
+
 			genericContext.MethodParameters.Clear();
+			currentMethod = null;
 		}
 
-		private void ExtractParameter(MethodDefinition method, SRM.MethodSignature<IType> signature, SRM.ParameterHandle handle)
+		private void ExtractParameter(SRM.MethodSignature<IType> signature, SRM.ParameterHandle handle)
 		{
 			var parameterdef = metadata.GetParameter(handle);
 			var type = signature.ParameterTypes[parameterdef.SequenceNumber - 1];
@@ -244,7 +269,7 @@ namespace MetadataProvider
 				DefaultValue = ExtractParameterDefaultValue(parameterdef, type)
 			};
 
-			method.Parameters.Add(parameter);
+			currentMethod.Parameters.Add(parameter);
 		}
 
 		private static MethodParameterKind GetParameterKind(SR.ParameterAttributes attributes, IType type)
@@ -283,6 +308,13 @@ namespace MetadataProvider
 			}
 
 			return result;
+		}
+
+		private void ExtractMethodBody(int relativeVirtualAddress)
+		{
+			var bodyBlock = SRM.PEReaderExtensions.GetMethodBody(reader, relativeVirtualAddress);
+			//var ilReader = new ILReader(metadata, signatureTypeProvider, genericContext, bodyBlock.GetILReader());
+			//var instructions = ilReader.ReadInstructions();
 		}
 
 		private static string GetGenericName(string name)

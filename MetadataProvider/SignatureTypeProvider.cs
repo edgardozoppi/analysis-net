@@ -181,24 +181,27 @@ namespace MetadataProvider
 
 		public virtual IType GetTypeFromHandle(SRM.MetadataReader reader, GenericContext genericContext, SRM.EntityHandle handle)
 		{
-			IType result;
+			IType result = null;
 
-			switch (handle.Kind)
+			if (!handle.IsNil)
 			{
-				case SRM.HandleKind.TypeDefinition:
-					result = GetTypeFromDefinition(reader, (SRM.TypeDefinitionHandle)handle);
-					break;
+				switch (handle.Kind)
+				{
+					case SRM.HandleKind.TypeDefinition:
+						result = GetTypeFromDefinition(reader, (SRM.TypeDefinitionHandle)handle);
+						break;
 
-				case SRM.HandleKind.TypeReference:
-					result =  GetTypeFromReference(reader, (SRM.TypeReferenceHandle)handle);
-					break;
+					case SRM.HandleKind.TypeReference:
+						result = GetTypeFromReference(reader, (SRM.TypeReferenceHandle)handle);
+						break;
 
-				case SRM.HandleKind.TypeSpecification:
-					result = GetTypeFromSpecification(reader, genericContext, (SRM.TypeSpecificationHandle)handle);
-					break;
+					case SRM.HandleKind.TypeSpecification:
+						result = GetTypeFromSpecification(reader, genericContext, (SRM.TypeSpecificationHandle)handle);
+						break;
 
-				default:
-					throw handle.Kind.ToUnknownValueException();
+					default:
+						throw handle.Kind.ToUnknownValueException();
+				}
 			}
 
 			return result;
