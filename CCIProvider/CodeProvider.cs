@@ -87,7 +87,7 @@ namespace CCIProvider
 				{
 					case Cci.HandlerKind.Filter:
 						var filterExceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
-						var filterHandler = new FilterExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, filterExceptionType);
+						var filterHandler = new FilterExceptionHandler(cciExceptionInfo.FilterDecisionStartOffset, cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, filterExceptionType);
 						tryHandler.Handler = filterHandler;
 						break;
 

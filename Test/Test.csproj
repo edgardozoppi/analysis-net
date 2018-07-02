@@ -41,7 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExamplesGenerics.cs" />
-    <None Include="Examples.cs" />
+    <Compile Include="Examples.cs" />
     <None Include="ExamplesCallGraph.cs" />
     <Compile Include="ExamplesPointsTo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

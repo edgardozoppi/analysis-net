@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using SRM = System.Reflection.Metadata;
@@ -20,39 +21,67 @@ namespace MetadataProvider
 			this.Opcode = opcode;
 			this.Operand = operand;
 		}
+
+		public override string ToString()
+		{
+			return string.Format("L_{0:X4}  {1} {2}", this.Offset, this.Opcode, this.Operand);
+		}
 	}
 
 	internal class ILReader
 	{
-		private readonly uint maxOffset;
-		private readonly SRM.BlobReader reader;
-		private readonly SRM.MetadataReader metadata;
-		private readonly GenericContext genericContext;
-		private readonly SignatureTypeProvider signatureTypeProvider;
-
-		public ILReader(SRM.MetadataReader metadata, SignatureTypeProvider signatureTypeProvider, GenericContext genericContext, SRM.BlobReader reader)
+		private enum ILTokenType
 		{
+			Module = 0x00,
+			TypeReference = 0x01,
+			TypeDefinition = 0x02,
+			FieldDefinition = 0x04,
+			MethodDefinition = 0x06,
+			ParameterDefinition = 0x08,
+			InterfaceImplementation = 0x09,
+			MemberReference = 0x0A,
+			CustomAttribute = 0x0C,
+			Permission = 0x0E,
+			Signature = 0x11,
+			Event = 0x14,
+			Property = 0x17,
+			ModuleReference = 0x1A,
+			TypeSpecification = 0x1B,
+			Assembly = 0x20,
+			AssemblyReference = 0x23,
+			File = 0x26,
+			ExportedType = 0x27,
+			ManifestResource = 0x28,
+			GenericParameter = 0x2A,
+			MethodSpecification = 0x2B,
+			GenericParameterConstraint = 0x2C,
+			UserString = 0x70,
+		}
+
+		private SRM.BlobReader reader;
+
+		// TODO: metadata field is not needed, just for debug!
+		private SRM.MetadataReader metadata;
+
+		// TODO: metadata parameter is not needed, just for debug!
+		public ILReader(SRM.MethodBodyBlock bodyBlock, SRM.MetadataReader metadata)
+		{
+			this.reader = bodyBlock.GetILReader();
 			this.metadata = metadata;
-			this.signatureTypeProvider = signatureTypeProvider;
-			this.genericContext = genericContext;
-			this.reader = reader;
-			this.maxOffset = (uint)(reader.Offset + reader.Length);
 		}
 
 		public IEnumerable<ILInstruction> ReadInstructions()
 		{
-			var result = new List<ILInstruction>();
+			reader.Reset();
 
-			while (reader.Offset < maxOffset)
+			while (reader.RemainingBytes > 0)
 			{
 				var instruction = ReadInstruction();
-				result.Add(instruction);
+				yield return instruction;
 			}
-
-			return result;
 		}
 
-		private ILInstruction ReadInstruction()
+		public ILInstruction ReadInstruction()
 		{
 			const int C_i4_M1 = -1;
 			const int C_i4_0 = 0;
@@ -65,6 +94,7 @@ namespace MetadataProvider
 			const int C_i4_7 = 7;
 			const int C_i4_8 = 8;
 
+			var maxOffset = (uint)(reader.Offset + reader.Length);
 			var offset = (uint)reader.Offset;
 			ushort value = reader.ReadByte();
 
@@ -86,33 +116,38 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Ldarg_1:
 				case SRM.ILOpCode.Ldarg_2:
 				case SRM.ILOpCode.Ldarg_3:
-					operand = this.GetParameter((uint)(value - SRM.ILOpCode.Ldarg_0));
+					operand = (uint)(value - SRM.ILOpCode.Ldarg_0);
+					//operand = GetParameter((uint)(value - SRM.ILOpCode.Ldarg_0));
 					break;
 
 				case SRM.ILOpCode.Ldloc_0:
 				case SRM.ILOpCode.Ldloc_1:
 				case SRM.ILOpCode.Ldloc_2:
 				case SRM.ILOpCode.Ldloc_3:
-					operand = this.GetLocal((uint)(value - SRM.ILOpCode.Ldloc_0));
+					operand = (uint)(value - SRM.ILOpCode.Ldloc_0);
+					//operand = GetLocal((uint)(value - SRM.ILOpCode.Ldloc_0));
 					break;
 
 				case SRM.ILOpCode.Stloc_0:
 				case SRM.ILOpCode.Stloc_1:
 				case SRM.ILOpCode.Stloc_2:
 				case SRM.ILOpCode.Stloc_3:
-					operand = this.GetLocal((uint)(value - SRM.ILOpCode.Stloc_0));
+					operand = (uint)(value - SRM.ILOpCode.Stloc_0);
+					//operand = GetLocal((uint)(value - SRM.ILOpCode.Stloc_0));
 					break;
 
 				case SRM.ILOpCode.Ldarg_s:
 				case SRM.ILOpCode.Ldarga_s:
 				case SRM.ILOpCode.Starg_s:
-					operand = this.GetParameter(reader.ReadByte());
+					operand = reader.ReadByte();
+					//operand = GetParameter(reader.ReadByte());
 					break;
 
 				case SRM.ILOpCode.Ldloc_s:
 				case SRM.ILOpCode.Ldloca_s:
 				case SRM.ILOpCode.Stloc_s:
-					operand = this.GetLocal(reader.ReadByte());
+					operand = reader.ReadByte();
+					//operand = GetLocal(reader.ReadByte());
 					break;
 
 				case SRM.ILOpCode.Ldnull:
@@ -183,47 +218,51 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Jmp:
-					operand = this.GetMethod(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetMethod(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Call:
 					{
-						IMethodReference methodReference = this.GetMethod(reader.ReadUInt32());
-						IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
-						if (arrayType != null)
-						{
-							// For Get(), Set() and Address() on arrays, the runtime provides method implementations.
-							// Hence, CCI2 replaces these with pseudo instructions Array_set, Array_Get and Array_Addr.
-							// All other methods on arrays will not use pseudo instruction and will have methodReference as their operand. 
-							if (methodReference.Name.UniqueKey == this.PEFileToObjectModel.NameTable.Set.UniqueKey)
-							{
-								value = SRM.ILOpCode.Array_set;
-								operand = arrayType;
-							}
-							else if (methodReference.Name.UniqueKey == this.PEFileToObjectModel.NameTable.Get.UniqueKey)
-							{
-								value = SRM.ILOpCode.Array_Get;
-								operand = arrayType;
-							}
-							else if (methodReference.Name.UniqueKey == this.PEFileToObjectModel.NameTable.Address.UniqueKey)
-							{
-								value = SRM.ILOpCode.Array_Addr;
-								operand = arrayType;
-							}
-							else
-							{
-								operand = methodReference;
-							}
-						}
-						else
-						{
-							operand = methodReference;
-						}
+						operand = ReadHandle();
+
+						//IMethodReference methodReference = GetMethod(reader.ReadUInt32());
+						//IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
+						//if (arrayType != null)
+						//{
+						//	// For Get(), Set() and Address() on arrays, the runtime provides method implementations.
+						//	// Hence, CCI2 replaces these with pseudo instructions Array_set, Array_Get and Array_Addr.
+						//	// All other methods on arrays will not use pseudo instruction and will have methodReference as their operand. 
+						//	if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Set.UniqueKey)
+						//	{
+						//		value = SRM.ILOpCode.Array_set;
+						//		operand = arrayType;
+						//	}
+						//	else if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Get.UniqueKey)
+						//	{
+						//		value = SRM.ILOpCode.Array_Get;
+						//		operand = arrayType;
+						//	}
+						//	else if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Address.UniqueKey)
+						//	{
+						//		value = SRM.ILOpCode.Array_Addr;
+						//		operand = arrayType;
+						//	}
+						//	else
+						//	{
+						//		operand = methodReference;
+						//	}
+						//}
+						//else
+						//{
+						//	operand = methodReference;
+						//}
 					}
 					break;
 
 				case SRM.ILOpCode.Calli:
-					operand = this.GetFunctionPointerType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetFunctionPointerType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ret:
@@ -243,7 +282,7 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Ble_un_s:
 				case SRM.ILOpCode.Blt_un_s:
 					{
-						uint jumpOffset = (uint)(reader.Offset + 1 + reader.ReadSByte());
+						var jumpOffset = (uint)(reader.Offset + 1 + reader.ReadSByte());
 						if (jumpOffset >= maxOffset)
 						{
 							//  Error...
@@ -266,7 +305,7 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Ble_un:
 				case SRM.ILOpCode.Blt_un:
 					{
-						uint jumpOffset = (uint)(reader.Offset + 4 + reader.ReadInt32());
+						var jumpOffset = (uint)(reader.Offset + 4 + reader.ReadInt32());
 						if (jumpOffset >= maxOffset)
 						{
 							//  Error...
@@ -277,12 +316,12 @@ namespace MetadataProvider
 
 				case SRM.ILOpCode.Switch:
 					{
-						uint numTargets = reader.ReadUInt32();
-						uint[] targets = new uint[numTargets];
-						uint asOffset = (uint)reader.Offset + numTargets * 4;
-						for (int i = 0; i < numTargets; i++)
+						var numTargets = reader.ReadUInt32();
+						var targets = new uint[numTargets];
+						var asOffset = (uint)reader.Offset + numTargets * 4;
+						for (var i = 0; i < numTargets; i++)
 						{
-							uint targetAddress = reader.ReadUInt32() + asOffset;
+							var targetAddress = reader.ReadUInt32() + asOffset;
 							if (targetAddress >= maxOffset)
 							{
 								//  Error...
@@ -338,79 +377,87 @@ namespace MetadataProvider
 
 				case SRM.ILOpCode.Callvirt:
 					{
-						IMethodReference methodReference = this.GetMethod(reader.ReadUInt32());
-						IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
-						if (arrayType != null)
-						{
-							// For Get(), Set() and Address() on arrays, the runtime provides method implementations.
-							// Hence, CCI2 replaces these with pseudo instructions Array_set, Array_Get and Array_Addr.
-							// All other methods on arrays will not use pseudo instruction and will have methodReference as their operand. 
-							if (methodReference.Name.UniqueKey == this.PEFileToObjectModel.NameTable.Set.UniqueKey)
-							{
-								value = SRM.ILOpCode.Array_set;
-								operand = arrayType;
-							}
-							else if (methodReference.Name.UniqueKey == this.PEFileToObjectModel.NameTable.Get.UniqueKey)
-							{
-								value = SRM.ILOpCode.Array_Get;
-								operand = arrayType;
-							}
-							else if (methodReference.Name.UniqueKey == this.PEFileToObjectModel.NameTable.Address.UniqueKey)
-							{
-								value = SRM.ILOpCode.Array_Addr;
-								operand = arrayType;
-							}
-							else
-							{
-								operand = methodReference;
-							}
-						}
-						else
-						{
-							operand = methodReference;
-						}
+						operand = ReadHandle();
+
+						//IMethodReference methodReference = GetMethod(reader.ReadUInt32());
+						//IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
+						//if (arrayType != null)
+						//{
+						//	// For Get(), Set() and Address() on arrays, the runtime provides method implementations.
+						//	// Hence, CCI2 replaces these with pseudo instructions Array_set, Array_Get and Array_Addr.
+						//	// All other methods on arrays will not use pseudo instruction and will have methodReference as their operand. 
+						//	if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Set.UniqueKey)
+						//	{
+						//		value = SRM.ILOpCode.Array_set;
+						//		operand = arrayType;
+						//	}
+						//	else if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Get.UniqueKey)
+						//	{
+						//		value = SRM.ILOpCode.Array_Get;
+						//		operand = arrayType;
+						//	}
+						//	else if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Address.UniqueKey)
+						//	{
+						//		value = SRM.ILOpCode.Array_Addr;
+						//		operand = arrayType;
+						//	}
+						//	else
+						//	{
+						//		operand = methodReference;
+						//	}
+						//}
+						//else
+						//{
+						//	operand = methodReference;
+						//}
 					}
 					break;
 
 				case SRM.ILOpCode.Cpobj:
 				case SRM.ILOpCode.Ldobj:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldstr:
-					operand = this.GetUserStringForToken(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetUserStringForToken(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Newobj:
 					{
-						IMethodReference methodReference = this.GetMethod(reader.ReadUInt32());
-						IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
-						if (arrayType != null && !arrayType.IsVector)
-						{
-							uint numParam = IteratorHelper.EnumerableCount(methodReference.Parameters);
-							if (numParam != arrayType.Rank)
-								value = SRM.ILOpCode.Array_Create_WithLowerBound;
-							else
-								value = SRM.ILOpCode.Array_Create;
-							operand = arrayType;
-						}
-						else
-						{
-							operand = methodReference;
-						}
+						operand = ReadHandle();
+
+						//IMethodReference methodReference = GetMethod(reader.ReadUInt32());
+						//IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
+						//if (arrayType != null && !arrayType.IsVector)
+						//{
+						//	var numParam = methodReference.Parameters.Length;
+						//	if (numParam != arrayType.Rank)
+						//		value = SRM.ILOpCode.Array_Create_WithLowerBound;
+						//	else
+						//		value = SRM.ILOpCode.Array_Create;
+						//	operand = arrayType;
+						//}
+						//else
+						//{
+						//	operand = methodReference;
+						//}
 					}
 					break;
 
 				case SRM.ILOpCode.Castclass:
 				case SRM.ILOpCode.Isinst:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Conv_r_un:
 					break;
 
 				case SRM.ILOpCode.Unbox:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Throw:
@@ -419,19 +466,23 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Ldfld:
 				case SRM.ILOpCode.Ldflda:
 				case SRM.ILOpCode.Stfld:
-					operand = this.GetField(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetField(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldsfld:
 				case SRM.ILOpCode.Ldsflda:
 				case SRM.ILOpCode.Stsfld:
-					operand = this.GetField(reader.ReadUInt32());
-					var fieldRef = operand as FieldReference;
-					if (fieldRef != null) fieldRef.isStatic = true;
+					operand = ReadHandle();
+
+					//operand = GetField(reader.ReadUInt32());
+					//var fieldRef = operand as FieldReference;
+					//if (fieldRef != null) fieldRef.isStatic = true;
 					break;
 
 				case SRM.ILOpCode.Stobj:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Conv_ovf_i1_un:
@@ -447,16 +498,17 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Box:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Newarr:
 					{
-						var elementType = this.GetType(reader.ReadUInt32());
-						if (elementType != null)
-							operand = Vector.GetVector(elementType, PEFileToObjectModel.InternFactory);
-						else
-							operand = Dummy.ArrayType;
+						operand = ReadHandle();
+
+						//var elementType = GetType(reader.ReadUInt32());
+						//if (elementType != null)
+						//	operand = Vector.GetVector(elementType, PEFileToObjectModel.InternFactory);
 					}
 					break;
 
@@ -464,7 +516,8 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Ldelema:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldelem_i1:
@@ -489,15 +542,18 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Ldelem:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Stelem:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Unbox_any:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Conv_ovf_i1:
@@ -511,18 +567,21 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Refanyval:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ckfinite:
 					break;
 
 				case SRM.ILOpCode.Mkrefany:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldtoken:
-					operand = this.GetRuntimeHandleFromToken(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetRuntimeHandleFromToken(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Conv_u2:
@@ -541,7 +600,7 @@ namespace MetadataProvider
 
 				case SRM.ILOpCode.Leave:
 					{
-						uint leaveOffset = (uint)(reader.Offset + 4 + reader.ReadInt32());
+						var leaveOffset = (uint)(reader.Offset + 4 + reader.ReadInt32());
 						if (leaveOffset >= maxOffset)
 						{
 							//  Error...
@@ -552,7 +611,7 @@ namespace MetadataProvider
 
 				case SRM.ILOpCode.Leave_s:
 					{
-						uint leaveOffset = (uint)(reader.Offset + 1 + reader.ReadSByte());
+						var leaveOffset = (uint)(reader.Offset + 1 + reader.ReadSByte());
 						if (leaveOffset >= maxOffset)
 						{
 							//  Error...
@@ -573,19 +632,22 @@ namespace MetadataProvider
 
 				case SRM.ILOpCode.Ldftn:
 				case SRM.ILOpCode.Ldvirtftn:
-					operand = this.GetMethod(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetMethod(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldarg:
 				case SRM.ILOpCode.Ldarga:
 				case SRM.ILOpCode.Starg:
-					operand = this.GetParameter(reader.ReadUInt16());
+					operand = reader.ReadUInt16();
+					//operand = GetParameter(reader.ReadUInt16());
 					break;
 
 				case SRM.ILOpCode.Ldloc:
 				case SRM.ILOpCode.Ldloca:
 				case SRM.ILOpCode.Stloc:
-					operand = this.GetLocal(reader.ReadUInt16());
+					operand = reader.ReadUInt16();
+					//operand = GetLocal(reader.ReadUInt16());
 					break;
 
 				case SRM.ILOpCode.Localloc:
@@ -603,11 +665,13 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Initobj:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Constrained:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Cpblk:
@@ -622,13 +686,13 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Sizeof:
-					operand = this.GetType(reader.ReadUInt32());
+					operand = ReadHandle();
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Refanytype:
 				case SRM.ILOpCode.Readonly:
 					break;
-
 
 				default:
 					throw opcode.ToUnknownValueException();
@@ -638,52 +702,110 @@ namespace MetadataProvider
 			return result;
 		}
 
-		private IParameterDefinition GetParameter(uint rawParamNum)
+		private object ReadHandle()
 		{
-			if (!this.MethodDefinition.IsStatic)
+			object result;
+			var token = reader.ReadInt32();
+			var tokenType = GetTokenType(token);
+
+			switch (tokenType)
+			{
+				case ILTokenType.MemberReference:
+					result = MetadataTokens.MemberReferenceHandle(token);
+					break;
+
+				case ILTokenType.TypeReference:
+					result = MetadataTokens.TypeReferenceHandle(token);
+					break;
+
+				case ILTokenType.FieldDefinition:
+					result = MetadataTokens.FieldDefinitionHandle(token);
+					break;
+
+				case ILTokenType.MethodDefinition:
+					result = MetadataTokens.MethodDefinitionHandle(token);
+					break;
+
+				case ILTokenType.MethodSpecification:
+					result = MetadataTokens.MethodSpecificationHandle(token);
+					break;
+
+				case ILTokenType.TypeDefinition:
+					result = MetadataTokens.TypeDefinitionHandle(token);
+					break;
+
+				case ILTokenType.TypeSpecification:
+					result = MetadataTokens.TypeSpecificationHandle(token);
+					break;
+
+				case ILTokenType.ParameterDefinition:
+					result = MetadataTokens.ParameterHandle(token);
+					break;
+
+				case ILTokenType.UserString:
+					result = MetadataTokens.UserStringHandle(token);
+					break;
+
+				default:
+					result = MetadataTokens.EntityHandle(token);
+					break;
+			}
+
+			return result;
+		}
+
+		private static ILTokenType GetTokenType(int token)
+		{
+			return unchecked((ILTokenType)(token >> 24));
+		}
+
+		/*
+		private static IParameterDefinition GetParameter(uint rawParamNum)
+		{
+			if (!MethodDefinition.IsStatic)
 			{
 				if (rawParamNum == 0) return null; //this
 				rawParamNum--;
 			}
-			IParameterDefinition[] mpa = this.MethodDefinition.RequiredModuleParameters;
+			IParameterDefinition[] mpa = MethodDefinition.RequiredModuleParameters;
 			if (mpa != null && rawParamNum < mpa.Length) return mpa[rawParamNum];
 			//  Error...
 			return Dummy.ParameterDefinition;
 		}
 
-		private ILocalDefinition GetLocal(uint rawLocNum)
+		private static ILocalDefinition GetLocal(uint rawLocNum)
 		{
-			var locVarDef = this.MethodBody.LocalVariables;
+			var locVarDef = MethodBody.LocalVariables;
 			if (locVarDef != null && rawLocNum < locVarDef.Length)
 				return locVarDef[rawLocNum];
 			//  Error...
 			return Dummy.LocalVariable;
 		}
 
-		private IMethodReference GetMethod(uint methodToken)
+		private static IMethodReference GetMethod(uint methodToken)
 		{
-			IMethodReference mmr = this.PEFileToObjectModel.GetMethodReferenceForToken(this.MethodDefinition, methodToken);
+			IMethodReference mmr = PEFileToObjectModel.GetMethodReferenceForToken(MethodDefinition, methodToken);
 			return mmr;
 		}
 
-		private IFieldReference GetField(uint fieldToken)
+		private static IFieldReference GetField(uint fieldToken)
 		{
-			IFieldReference mfr = this.PEFileToObjectModel.GetFieldReferenceForToken(this.MethodDefinition, fieldToken);
+			IFieldReference mfr = PEFileToObjectModel.GetFieldReferenceForToken(MethodDefinition, fieldToken);
 			return mfr;
 		}
 
-		private ITypeReference GetType(uint typeToken)
+		private static ITypeReference GetType(uint typeToken)
 		{
-			ITypeReference mtr = this.PEFileToObjectModel.GetTypeReferenceForToken(this.MethodDefinition, typeToken);
+			ITypeReference mtr = PEFileToObjectModel.GetTypeReferenceForToken(MethodDefinition, typeToken);
 			if (mtr != null)
 				return mtr;
 			//  Error...
 			return Dummy.TypeReference;
 		}
 
-		private IFunctionPointerTypeReference GetFunctionPointerType(uint standAloneSigToken)
+		private static IFunctionPointerTypeReference GetFunctionPointerType(uint standAloneSigToken)
 		{
-			FunctionPointerType fpt = this.GetStandAloneMethodSignature(standAloneSigToken);
+			FunctionPointerType fpt = GetStandAloneMethodSignature(standAloneSigToken);
 			if (fpt != null)
 				return fpt;
 			//  Error...
@@ -692,7 +814,8 @@ namespace MetadataProvider
 
 		private object GetRuntimeHandleFromToken(uint token)
 		{
-			return this.PEFileToObjectModel.GetReferenceForToken(this.MethodDefinition, token);
+			return PEFileToObjectModel.GetReferenceForToken(MethodDefinition, token);
 		}
+		*/
 	}
 }

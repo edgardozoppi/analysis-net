@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using Model.Types;
 
-namespace Model.ThreeAddressCode
+namespace Model
 {
 	public enum ExceptionHandlerBlockKind
 	{
@@ -51,13 +51,15 @@ namespace Model.ThreeAddressCode
 	public class FilterExceptionHandler : IExceptionHandler
 	{
 		public ExceptionHandlerBlockKind Kind { get; private set; }
+		public string FilterStart { get; set; }
 		public string Start { get; set; }
 		public string End { get; set; }
 		public IType ExceptionType { get; set; }
 
-		public FilterExceptionHandler(uint start, uint end, IType exceptionType)
+		public FilterExceptionHandler(uint filterStart, uint start, uint end, IType exceptionType)
 		{
 			this.Kind = ExceptionHandlerBlockKind.Filter;
+			this.FilterStart = string.Format("L_{0:X4}", filterStart);
 			this.Start = string.Format("L_{0:X4}", start);
 			this.End = string.Format("L_{0:X4}", end);
 			this.ExceptionType = exceptionType;
@@ -65,7 +67,7 @@ namespace Model.ThreeAddressCode
 
 		public override string ToString()
 		{
-			return string.Format("filter {0} handler {1} to {2}", this.ExceptionType, this.Start, this.End);
+			return string.Format("filter {0} {1} to {2} handler {2} to {3}", this.ExceptionType, this.FilterStart, this.Start, this.End);
 		}
 	}
 

@@ -232,7 +232,10 @@ namespace MetadataProvider
 				IsStatic = methoddef.Attributes.HasFlag(SR.MethodAttributes.Static),
 				IsAbstract = methoddef.Attributes.HasFlag(SR.MethodAttributes.Abstract),
 				IsVirtual = methoddef.Attributes.HasFlag(SR.MethodAttributes.Virtual),
-				IsConstructor = name.EndsWith(".ctor")
+				IsConstructor = name.EndsWith(".ctor"),
+
+				// TODO: Figure out if the method is external
+				//IsExternal = ??
 			};
 
 			currentType.Methods.Add(method);
@@ -312,9 +315,124 @@ namespace MetadataProvider
 
 		private void ExtractMethodBody(int relativeVirtualAddress)
 		{
+			if (relativeVirtualAddress == 0) return;
 			var bodyBlock = SRM.PEReaderExtensions.GetMethodBody(reader, relativeVirtualAddress);
-			//var ilReader = new ILReader(metadata, signatureTypeProvider, genericContext, bodyBlock.GetILReader());
-			//var instructions = ilReader.ReadInstructions();
+			var body = new MethodBody(MethodBodyKind.Bytecode)
+			{
+				MaxStack = (ushort)bodyBlock.MaxStack
+			};
+
+			ExtractParameters(body.Parameters);
+			ExtractLocalVariables(bodyBlock, body.LocalVariables);
+			ExtractExceptionInformation(bodyBlock, body.ExceptionInformation);
+			ExtractInstructions(bodyBlock);
+
+			currentMethod.Body = body;
+		}
+
+		private void ExtractParameters(IList<IVariable> parameters)
+		{
+			if (!currentMethod.IsStatic)
+			{
+				IType type = currentMethod.ContainingType;
+
+				if (type.TypeKind == TypeKind.ValueType)
+				{
+					type = signatureTypeProvider.GetByReferenceType(type);
+				}
+
+				var v = new LocalVariable("this", true) { Type = type };
+				parameters.Add(v);
+			}
+
+			foreach (var parameter in currentMethod.Parameters)
+			{
+				var v = new LocalVariable(parameter.Name, true)
+				{
+					Type = parameter.Type
+				};
+
+				parameters.Add(v);
+			}
+		}
+
+		private void ExtractLocalVariables(SRM.MethodBodyBlock bodyBlock, ISet<IVariable> variables)
+		{
+			if (bodyBlock.LocalSignature.IsNil) return;
+			var localSignature = metadata.GetStandaloneSignature(bodyBlock.LocalSignature);
+			var types = localSignature.DecodeLocalSignature(signatureTypeProvider, genericContext);
+
+			for (var i = 0; i < types.Length; ++i)
+			{
+				var name = GetLocalSourceName(i);
+				var type = types[i];
+				var v = new LocalVariable(name)
+				{
+					Type = type
+				};
+
+				variables.Add(v);
+			}
+		}
+
+		private string GetLocalSourceName(int localVariableIndex)
+		{
+			// TODO: Figure out how to get original variable name from PDB!
+			return string.Format("local_{0}", localVariableIndex);
+		}
+
+		private void ExtractExceptionInformation(SRM.MethodBodyBlock bodyBlock, IList<ProtectedBlock> handlers)
+		{
+			foreach (var region in bodyBlock.ExceptionRegions)
+			{
+				var endOffset = region.TryOffset + region.TryLength;
+				var tryHandler = new ProtectedBlock((uint)region.TryOffset, (uint)endOffset);
+				endOffset = region.HandlerOffset + region.HandlerLength;
+
+				switch (region.Kind)
+				{
+					case SRM.ExceptionRegionKind.Filter:
+						var filterExceptionType = signatureTypeProvider.GetPrimitiveType(SRM.PrimitiveTypeCode.Object);
+						var filterHandler = new FilterExceptionHandler((uint)region.FilterOffset, (uint)region.HandlerOffset, (uint)endOffset, filterExceptionType);
+						tryHandler.Handler = filterHandler;
+						break;
+
+					case SRM.ExceptionRegionKind.Catch:
+						var catchExceptionType = signatureTypeProvider.GetTypeFromHandle(metadata, genericContext, region.CatchType);
+						var catchHandler = new CatchExceptionHandler((uint)region.HandlerOffset, (uint)endOffset, catchExceptionType);
+						tryHandler.Handler = catchHandler;
+						break;
+
+					case SRM.ExceptionRegionKind.Fault:
+						var faultHandler = new FaultExceptionHandler((uint)region.HandlerOffset, (uint)endOffset);
+						tryHandler.Handler = faultHandler;
+						break;
+
+					case SRM.ExceptionRegionKind.Finally:
+						var finallyHandler = new FinallyExceptionHandler((uint)region.HandlerOffset, (uint)endOffset);
+						tryHandler.Handler = finallyHandler;
+						break;
+
+					default:
+						throw new Exception("Unknown exception region kind");
+				}
+
+				handlers.Add(tryHandler);
+			}
+		}
+
+		private void ExtractInstructions(SRM.MethodBodyBlock bodyBlock)
+		{
+			var ilReader = new ILReader(bodyBlock, metadata);
+			var instructions = ilReader.ReadInstructions();
+
+			Console.WriteLine();
+			Console.WriteLine(currentMethod.Name);
+
+			foreach (var instruction in instructions)
+			{
+				Console.WriteLine(instruction);
+			}
 		}
 
 		private static string GetGenericName(string name)
