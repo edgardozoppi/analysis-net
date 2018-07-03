@@ -297,6 +297,13 @@ namespace Test
 		}
 
 		// Boolean vs Int
+		public static void ExampleBoolean4()
+		{
+			var list = new List<object>();
+			list.Add(0);
+			list.Add(false);
+		}
+		// Boolean vs Int
 		// Boolean vs object reference
 		public void ExampleConditionalBranches()
 		{
