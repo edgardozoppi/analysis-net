@@ -255,6 +255,27 @@ namespace Model
 			return result;
 		}
 
+		public static MethodReference Instantiate(this IMethodReference method, params IType[] genericArguments)
+		{
+			return method.Instantiate(genericArguments.AsEnumerable());
+		}
+
+		public static MethodReference Instantiate(this IMethodReference method, IEnumerable<IType> genericArguments)
+		{
+			var result = new MethodReference(method.Name, method.ReturnType)
+			{
+				IsStatic = method.IsStatic,
+				ContainingType = method.ContainingType,
+				GenericParameterCount = method.GenericParameterCount,
+				GenericMethod = method
+			};
+
+			result.GenericArguments.AddRange(genericArguments);
+			result.Parameters.AddRange(method.Parameters);
+			//result.Resolve(host);
+			return result;
+		}
+
 		public static Assembly LoadAssemblyWithReferences(this ILoader loader, string fileName)
 		{
 			var directory = Path.GetDirectoryName(fileName);

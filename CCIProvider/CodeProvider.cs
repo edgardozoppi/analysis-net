@@ -64,7 +64,7 @@ namespace CCIProvider
 			}
 		}
 
-		private void ExtractLocalVariables(IEnumerable<Cci.ILocalDefinition> cciLocalVariables, ISet<IVariable> ourLocalVariables)
+		private void ExtractLocalVariables(IEnumerable<Cci.ILocalDefinition> cciLocalVariables, IList<IVariable> ourLocalVariables)
 		{
 			foreach (var local in cciLocalVariables)
 			{

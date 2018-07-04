@@ -996,7 +996,7 @@ namespace Backend.Transformations
 
 			body.MaxStack = method.Body.MaxStack;
 			body.Parameters.AddRange(method.Body.Parameters);
-			body.LocalVariables.UnionWith(method.Body.LocalVariables);
+			body.LocalVariables.AddRange(method.Body.LocalVariables);
 			body.ExceptionInformation.AddRange(method.Body.ExceptionInformation);
 
 			if (method.Body.Instructions.Count > 0)
@@ -1049,7 +1049,7 @@ namespace Backend.Transformations
 					}
 				}
 
-				body.LocalVariables.UnionWith(stack.Variables);
+				body.LocalVariables.AddRange(stack.Variables);
 
 				var instructions = body.Instructions.OrderBy(op => op.Offset).ToList();
 				body.Instructions.Clear();

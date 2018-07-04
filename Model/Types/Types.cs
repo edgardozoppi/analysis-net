@@ -596,6 +596,8 @@ namespace Model.Types
 		public IList<IMethodParameterReference> Parameters { get; private set; }
 		public bool IsStatic { get; set; }
 
+		// TODO: Not sure if we should add GenericParameterCount property.
+
 		public FunctionPointerType(IType returnType)
 		{
 			this.ReturnType = returnType;

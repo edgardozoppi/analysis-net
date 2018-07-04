@@ -1247,41 +1247,7 @@ namespace Model.Types
 
 		public override string ToString()
 		{
-			var result = new StringBuilder();
-			result.AppendFormat("class {0}", this.GenericName);
-
-			result.AppendFormat(" : {0}", this.Base);
-
-			if (this.Interfaces.Count > 0)
-			{
-				var interfaces = string.Join(", ", this.Interfaces);
-				result.AppendFormat(", {0}", interfaces);
-			}
-
-			result.AppendLine();
-			result.AppendLine("{");
-
-			foreach (var type in this.Types)
-			{
-				var typeString = type.ToString();
-				typeString = typeString.Replace("\n", "\n  ");
-				result.AppendFormat("{0}\n", typeString);
-			}
-
-			foreach (var field in this.Fields)
-			{
-				result.AppendFormat("  {0};\n", field);
-			}
-
-			foreach (var method in this.Methods)
-			{
-				var methodString = method.ToString();
-				methodString = methodString.Replace("\n", "\n  ");
-				result.AppendFormat("{0}\n", methodString);
-			}
-
-			result.AppendLine("}");
-			return result.ToString();
+			return this.GenericName;
 		}
 
 		public override int GetHashCode()
@@ -1300,7 +1266,7 @@ namespace Model.Types
 	public class MethodBody : IInstructionContainer
 	{
 		public IList<IVariable> Parameters { get; private set; }
-		public ISet<IVariable> LocalVariables { get; private set; }
+		public IList<IVariable> LocalVariables { get; private set; }
 		public IList<IInstruction> Instructions { get; private set; }
 		public IList<ProtectedBlock> ExceptionInformation { get; private set; }
 		public ushort MaxStack { get; set; }
@@ -1310,7 +1276,7 @@ namespace Model.Types
 		{
 			this.Kind = kind;
 			this.Parameters = new List<IVariable>();
-			this.LocalVariables = new HashSet<IVariable>();
+			this.LocalVariables = new List<IVariable>();
 			this.Instructions = new List<IInstruction>();
 			this.ExceptionInformation = new List<ProtectedBlock>();
 		}
@@ -1327,7 +1293,7 @@ namespace Model.Types
 				this.LocalVariables.AddRange(instruction.Variables);
 			}
 
-			this.LocalVariables.ExceptWith(this.Parameters);
+			this.LocalVariables.RemoveAll(this.Parameters);
 		}
 
 		public override string ToString()

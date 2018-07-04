@@ -9,16 +9,35 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataProvider
 {
+	internal enum OperandType
+	{
+		None,
+		Immediate,
+		BranchTarget,
+		SwitchTargets,
+		MemberReference,
+		TypeReference,
+		//TypeDefinition,
+		TypeSpecification,
+		MethodDefinition,
+		MethodSpecification,
+		FieldDefinition,
+		//ParameterDefinition,
+		UserString
+	}
+
 	internal struct ILInstruction
 	{
 		public uint Offset;
 		public SRM.ILOpCode Opcode;
+		public OperandType OperandType;
 		public object Operand;
 
-		public ILInstruction(uint offset, SRM.ILOpCode opcode, object operand)
+		public ILInstruction(uint offset, SRM.ILOpCode opcode, OperandType operandType, object operand)
 		{
 			this.Offset = offset;
 			this.Opcode = opcode;
+			this.OperandType = operandType;
 			this.Operand = operand;
 		}
 
@@ -59,15 +78,10 @@ namespace MetadataProvider
 		}
 
 		private SRM.BlobReader reader;
-
-		// TODO: metadata field is not needed, just for debug!
-		private SRM.MetadataReader metadata;
-
-		// TODO: metadata parameter is not needed, just for debug!
-		public ILReader(SRM.MethodBodyBlock bodyBlock, SRM.MetadataReader metadata)
+		
+		public ILReader(SRM.MethodBodyBlock bodyBlock)
 		{
 			this.reader = bodyBlock.GetILReader();
-			this.metadata = metadata;
 		}
 
 		public IEnumerable<ILInstruction> ReadInstructions()
@@ -104,6 +118,7 @@ namespace MetadataProvider
 			}
 
 			var opcode = (SRM.ILOpCode)value;
+			var operandType = OperandType.None;
 			object operand = null;
 
 			switch (opcode)
@@ -116,7 +131,8 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Ldarg_1:
 				case SRM.ILOpCode.Ldarg_2:
 				case SRM.ILOpCode.Ldarg_3:
-					operand = (uint)(value - SRM.ILOpCode.Ldarg_0);
+					operandType = OperandType.Immediate;
+					operand = (int)(value - SRM.ILOpCode.Ldarg_0);
 					//operand = GetParameter((uint)(value - SRM.ILOpCode.Ldarg_0));
 					break;
 
@@ -124,7 +140,8 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Ldloc_1:
 				case SRM.ILOpCode.Ldloc_2:
 				case SRM.ILOpCode.Ldloc_3:
-					operand = (uint)(value - SRM.ILOpCode.Ldloc_0);
+					operandType = OperandType.Immediate;
+					operand = (int)(value - SRM.ILOpCode.Ldloc_0);
 					//operand = GetLocal((uint)(value - SRM.ILOpCode.Ldloc_0));
 					break;
 
@@ -132,21 +149,24 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Stloc_1:
 				case SRM.ILOpCode.Stloc_2:
 				case SRM.ILOpCode.Stloc_3:
-					operand = (uint)(value - SRM.ILOpCode.Stloc_0);
+					operandType = OperandType.Immediate;
+					operand = (int)(value - SRM.ILOpCode.Stloc_0);
 					//operand = GetLocal((uint)(value - SRM.ILOpCode.Stloc_0));
 					break;
 
 				case SRM.ILOpCode.Ldarg_s:
 				case SRM.ILOpCode.Ldarga_s:
 				case SRM.ILOpCode.Starg_s:
-					operand = reader.ReadByte();
+					operandType = OperandType.Immediate;
+					operand = (int)reader.ReadByte();
 					//operand = GetParameter(reader.ReadByte());
 					break;
 
 				case SRM.ILOpCode.Ldloc_s:
 				case SRM.ILOpCode.Ldloca_s:
 				case SRM.ILOpCode.Stloc_s:
-					operand = reader.ReadByte();
+					operandType = OperandType.Immediate;
+					operand = (int)reader.ReadByte();
 					//operand = GetLocal(reader.ReadByte());
 					break;
 
@@ -154,62 +174,77 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_m1:
+					operandType = OperandType.Immediate;
 					operand = C_i4_M1;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_0:
+					operandType = OperandType.Immediate;
 					operand = C_i4_0;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_1:
+					operandType = OperandType.Immediate;
 					operand = C_i4_1;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_2:
+					operandType = OperandType.Immediate;
 					operand = C_i4_2;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_3:
+					operandType = OperandType.Immediate;
 					operand = C_i4_3;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_4:
+					operandType = OperandType.Immediate;
 					operand = C_i4_4;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_5:
+					operandType = OperandType.Immediate;
 					operand = C_i4_5;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_6:
+					operandType = OperandType.Immediate;
 					operand = C_i4_6;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_7:
+					operandType = OperandType.Immediate;
 					operand = C_i4_7;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_8:
+					operandType = OperandType.Immediate;
 					operand = C_i4_8;
 					break;
 
 				case SRM.ILOpCode.Ldc_i4_s:
+					operandType = OperandType.Immediate;
 					operand = (int)reader.ReadSByte();
 					break;
 
 				case SRM.ILOpCode.Ldc_i4:
+					operandType = OperandType.Immediate;
 					operand = reader.ReadInt32();
 					break;
 
 				case SRM.ILOpCode.Ldc_i8:
+					operandType = OperandType.Immediate;
 					operand = reader.ReadInt64();
 					break;
 
 				case SRM.ILOpCode.Ldc_r4:
+					operandType = OperandType.Immediate;
 					operand = reader.ReadSingle();
 					break;
 
 				case SRM.ILOpCode.Ldc_r8:
+					operandType = OperandType.Immediate;
 					operand = reader.ReadDouble();
 					break;
 
@@ -218,13 +253,13 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Jmp:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetMethod(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Call:
 					{
-						operand = ReadHandle();
+						operand = ReadHandle(ref operandType);
 
 						//IMethodReference methodReference = GetMethod(reader.ReadUInt32());
 						//IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
@@ -261,7 +296,7 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Calli:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetFunctionPointerType(reader.ReadUInt32());
 					break;
 
@@ -287,6 +322,7 @@ namespace MetadataProvider
 						{
 							//  Error...
 						}
+						operandType = OperandType.BranchTarget;
 						operand = jumpOffset;
 					}
 					break;
@@ -310,6 +346,7 @@ namespace MetadataProvider
 						{
 							//  Error...
 						}
+						operandType = OperandType.BranchTarget;
 						operand = jumpOffset;
 					}
 					break;
@@ -328,6 +365,7 @@ namespace MetadataProvider
 							}
 							targets[i] = targetAddress;
 						}
+						operandType = OperandType.SwitchTargets;
 						operand = targets;
 					}
 					break;
@@ -377,7 +415,7 @@ namespace MetadataProvider
 
 				case SRM.ILOpCode.Callvirt:
 					{
-						operand = ReadHandle();
+						operand = ReadHandle(ref operandType);
 
 						//IMethodReference methodReference = GetMethod(reader.ReadUInt32());
 						//IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
@@ -415,18 +453,18 @@ namespace MetadataProvider
 
 				case SRM.ILOpCode.Cpobj:
 				case SRM.ILOpCode.Ldobj:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldstr:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetUserStringForToken(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Newobj:
 					{
-						operand = ReadHandle();
+						operand = ReadHandle(ref operandType);
 
 						//IMethodReference methodReference = GetMethod(reader.ReadUInt32());
 						//IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
@@ -448,7 +486,7 @@ namespace MetadataProvider
 
 				case SRM.ILOpCode.Castclass:
 				case SRM.ILOpCode.Isinst:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
@@ -456,7 +494,7 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Unbox:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
@@ -466,14 +504,14 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Ldfld:
 				case SRM.ILOpCode.Ldflda:
 				case SRM.ILOpCode.Stfld:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetField(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldsfld:
 				case SRM.ILOpCode.Ldsflda:
 				case SRM.ILOpCode.Stsfld:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 
 					//operand = GetField(reader.ReadUInt32());
 					//var fieldRef = operand as FieldReference;
@@ -481,7 +519,7 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Stobj:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
@@ -498,13 +536,13 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Box:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Newarr:
 					{
-						operand = ReadHandle();
+						operand = ReadHandle(ref operandType);
 
 						//var elementType = GetType(reader.ReadUInt32());
 						//if (elementType != null)
@@ -516,7 +554,7 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Ldelema:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
@@ -542,17 +580,17 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Ldelem:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Stelem:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Unbox_any:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
@@ -567,7 +605,7 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Refanyval:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
@@ -575,12 +613,12 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Mkrefany:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldtoken:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetRuntimeHandleFromToken(reader.ReadUInt32());
 					break;
 
@@ -605,6 +643,7 @@ namespace MetadataProvider
 						{
 							//  Error...
 						}
+						operandType = OperandType.BranchTarget;
 						operand = leaveOffset;
 					}
 					break;
@@ -616,6 +655,7 @@ namespace MetadataProvider
 						{
 							//  Error...
 						}
+						operandType = OperandType.BranchTarget;
 						operand = leaveOffset;
 					}
 					break;
@@ -632,21 +672,23 @@ namespace MetadataProvider
 
 				case SRM.ILOpCode.Ldftn:
 				case SRM.ILOpCode.Ldvirtftn:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetMethod(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldarg:
 				case SRM.ILOpCode.Ldarga:
 				case SRM.ILOpCode.Starg:
-					operand = reader.ReadUInt16();
+					operandType = OperandType.Immediate;
+					operand = (int)reader.ReadUInt16();
 					//operand = GetParameter(reader.ReadUInt16());
 					break;
 
 				case SRM.ILOpCode.Ldloc:
 				case SRM.ILOpCode.Ldloca:
 				case SRM.ILOpCode.Stloc:
-					operand = reader.ReadUInt16();
+					operandType = OperandType.Immediate;
+					operand = (int)reader.ReadUInt16();
 					//operand = GetLocal(reader.ReadUInt16());
 					break;
 
@@ -657,6 +699,7 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Unaligned:
+					operandType = OperandType.Immediate;
 					operand = reader.ReadByte();
 					break;
 
@@ -665,12 +708,12 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Initobj:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Constrained:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
@@ -686,7 +729,7 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Sizeof:
-					operand = ReadHandle();
+					operand = ReadHandle(ref operandType);
 					//operand = GetType(reader.ReadUInt32());
 					break;
 
@@ -698,11 +741,11 @@ namespace MetadataProvider
 					throw opcode.ToUnknownValueException();
 			}
 
-			var result = new ILInstruction(offset, opcode, operand);
+			var result = new ILInstruction(offset, opcode, operandType, operand);
 			return result;
 		}
 
-		private object ReadHandle()
+		private object ReadHandle(ref OperandType operandType)
 		{
 			object result;
 			var token = reader.ReadInt32();
@@ -711,38 +754,47 @@ namespace MetadataProvider
 			switch (tokenType)
 			{
 				case ILTokenType.MemberReference:
+					operandType = OperandType.MemberReference;
 					result = MetadataTokens.MemberReferenceHandle(token);
 					break;
 
 				case ILTokenType.TypeReference:
+					operandType = OperandType.TypeReference;
 					result = MetadataTokens.TypeReferenceHandle(token);
 					break;
 
 				case ILTokenType.FieldDefinition:
+					operandType = OperandType.FieldDefinition;
 					result = MetadataTokens.FieldDefinitionHandle(token);
 					break;
 
 				case ILTokenType.MethodDefinition:
+					operandType = OperandType.MethodDefinition;
 					result = MetadataTokens.MethodDefinitionHandle(token);
 					break;
 
 				case ILTokenType.MethodSpecification:
+					operandType = OperandType.MethodSpecification;
 					result = MetadataTokens.MethodSpecificationHandle(token);
 					break;
 
-				case ILTokenType.TypeDefinition:
-					result = MetadataTokens.TypeDefinitionHandle(token);
-					break;
+				//case ILTokenType.TypeDefinition:
+				//	operandType = OperandType.TypeDefinition;
+				//	result = MetadataTokens.TypeDefinitionHandle(token);
+				//	break;
 
 				case ILTokenType.TypeSpecification:
+					operandType = OperandType.TypeSpecification;
 					result = MetadataTokens.TypeSpecificationHandle(token);
 					break;
 
-				case ILTokenType.ParameterDefinition:
-					result = MetadataTokens.ParameterHandle(token);
-					break;
+				//case ILTokenType.ParameterDefinition:
+				//	operandType = OperandType.ParameterDefinition;
+				//	result = MetadataTokens.ParameterHandle(token);
+				//	break;
 
 				case ILTokenType.UserString:
+					operandType = OperandType.UserString;
 					result = MetadataTokens.UserStringHandle(token);
 					break;
 

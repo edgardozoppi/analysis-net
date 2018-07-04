@@ -86,25 +86,40 @@ namespace MetadataProvider
 			switch (typeref.ResolutionScope.Kind)
 			{
 				case SRM.HandleKind.AssemblyReference:
-					var assemblyHandle = (SRM.AssemblyReferenceHandle)typeref.ResolutionScope;
-					var assembly = reader.GetAssemblyReference(assemblyHandle);
-					name = reader.GetString(assembly.Name);
-					type.ContainingAssembly = new AssemblyReference(name);
-					break;
+					{
+						var assemblyHandle = (SRM.AssemblyReferenceHandle)typeref.ResolutionScope;
+						var assembly = reader.GetAssemblyReference(assemblyHandle);
+						name = reader.GetString(assembly.Name);
+						type.ContainingAssembly = new AssemblyReference(name);
+						break;
+					}
 
 				//case SRM.HandleKind.ModuleReference:
-				//	var moduleHandle = (SRM.ModuleReferenceHandle)typeref.ResolutionScope;
-				//	var module = reader.GetModuleReference(moduleHandle);
-				//	name = reader.GetString(module.Name);
-				//	type.ContainingAssembly = new AssemblyReference(name);
-				//	break;
+				//	{
+				//		var moduleHandle = (SRM.ModuleReferenceHandle)typeref.ResolutionScope;
+				//		var module = reader.GetModuleReference(moduleHandle);
+				//		name = reader.GetString(module.Name);
+				//		type.ContainingAssembly = new AssemblyReference(name);
+				//		break;
+				//	}
 
 				case SRM.HandleKind.TypeReference:
-					var containingTypeHandle = (SRM.TypeReferenceHandle)typeref.ResolutionScope;
-					var containingType = GetTypeFromReference(reader, containingTypeHandle);
-					type.ContainingType = (IBasicType)containingType;
-					type.ContainingAssembly = type.ContainingType.ContainingAssembly;
-					break;
+					{
+						var containingTypeHandle = (SRM.TypeReferenceHandle)typeref.ResolutionScope;
+						var containingType = GetTypeFromReference(reader, containingTypeHandle);
+						type.ContainingType = (IBasicType)containingType;
+						type.ContainingAssembly = type.ContainingType.ContainingAssembly;
+						break;
+					}
+
+				case SRM.HandleKind.TypeDefinition:
+					{
+						var containingTypeHandle = (SRM.TypeDefinitionHandle)typeref.ResolutionScope;
+						var containingType = GetTypeFromDefinition(reader, containingTypeHandle);
+						type.ContainingType = (IBasicType)containingType;
+						type.ContainingAssembly = type.ContainingType.ContainingAssembly;
+						break;
+					}
 
 				default:
 					throw typeref.ResolutionScope.Kind.ToUnknownValueException();
@@ -130,7 +145,9 @@ namespace MetadataProvider
 
 		public virtual IType GetTypeFromSpecification(SRM.MetadataReader reader, GenericContext genericContext, SRM.TypeSpecificationHandle handle, byte rawTypeKind = 0)
 		{
-			return reader.GetTypeSpecification(handle).DecodeSignature(this, genericContext);
+			var typespec = reader.GetTypeSpecification(handle);
+			var result = typespec.DecodeSignature(this, genericContext);
+			return result;
 		}
 
 		public virtual IType GetSZArrayType(IType elementsType)
@@ -214,6 +231,7 @@ namespace MetadataProvider
 
 		public virtual IType GetFunctionPointerType(SRM.MethodSignature<IType> signature)
 		{
+			// TODO: Not sure if FunctionPointerType should have GenericParameterCount property.
 			var result = new FunctionPointerType(signature.ReturnType)
 			{
 				IsStatic = !signature.Header.IsInstance,
