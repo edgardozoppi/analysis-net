@@ -11,19 +11,24 @@ namespace MetadataProvider
 {
 	internal class GenericContext
 	{
-		public IList<IType> TypeParameters { get; private set; }
-		public IList<IType> MethodParameters { get; private set; }
+		public IList<IGenericParameterReference> TypeParameters { get; private set; }
+		public IList<IGenericParameterReference> MethodParameters { get; private set; }
 
 		public GenericContext()
 		{
-			this.TypeParameters = new List<IType>();
-			this.MethodParameters = new List<IType>();
+			this.TypeParameters = new List<IGenericParameterReference>();
+			this.MethodParameters = new List<IGenericParameterReference>();
 		}
 
 		public void Clear()
 		{
 			this.TypeParameters.Clear();
 			this.MethodParameters.Clear();
+		}
+
+		public override string ToString()
+		{
+			return string.Format("Type: {0}, Method: {1}", this.TypeParameters.Count, this.MethodParameters.Count);
 		}
 	}
 

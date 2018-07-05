@@ -19,8 +19,8 @@ namespace MetadataProvider
 
 		private SRPE.PEReader reader;
 		private SRM.MetadataReader metadata;
-		private GenericContext genericContextDef;
-		private GenericContext genericContextRef;
+		private GenericContext defGenericContext;
+		private GenericContext refGenericContext;
 		private SignatureTypeProvider signatureTypeProvider;
 		private Assembly assembly;
 		private Namespace currentNamespace;
@@ -34,8 +34,8 @@ namespace MetadataProvider
 			this.definedTypes = new Dictionary<SRM.TypeDefinitionHandle, ClassDefinition>();
 			this.definedMethods = new Dictionary<SRM.MethodDefinitionHandle, MethodDefinition>();
 			this.definedFields = new Dictionary<SRM.FieldDefinitionHandle, FieldDefinition>();
-			this.genericContextDef = new GenericContext();
-			this.genericContextRef = new GenericContext();
+			this.defGenericContext = new GenericContext();
+			this.refGenericContext = new GenericContext();
 			this.signatureTypeProvider = new SignatureTypeProvider(this);
 		}
 
@@ -191,7 +191,7 @@ namespace MetadataProvider
 				ExtractMethod(handle);
 			}
 
-			genericContextDef.TypeParameters.Clear();
+			defGenericContext.TypeParameters.Clear();
 
 			foreach (var handle in typedef.GetNestedTypes())
 			{
@@ -203,13 +203,13 @@ namespace MetadataProvider
 
 		private void ExtractBaseType(SRM.EntityHandle handle)
 		{
-			currentType.Base = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, genericContextDef, handle);
+			currentType.Base = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, handle);
 		}
 
 		private void ExtractInterfaceImplementation(SRM.InterfaceImplementationHandle handle)
 		{
 			var interfaceref = metadata.GetInterfaceImplementation(handle);
-			var typeref = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, genericContextDef, interfaceref.Interface);
+			var typeref = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, interfaceref.Interface);
 			currentType.Interfaces.Add(typeref);
 		}
 
@@ -236,11 +236,11 @@ namespace MetadataProvider
 
 			if (parameterKind == GenericParameterKind.Type)
 			{
-				genericContextDef.TypeParameters.Add(genericParameter);
+				defGenericContext.TypeParameters.Add(genericParameter);
 			}
 			else if (parameterKind == GenericParameterKind.Method)
 			{
-				genericContextDef.MethodParameters.Add(genericParameter);
+				defGenericContext.MethodParameters.Add(genericParameter);
 			}
 			else
 			{
@@ -256,7 +256,7 @@ namespace MetadataProvider
 			var field = GetDefinedField(handle);
 
 			field.ContainingType = currentType;
-			field.Type = fielddef.DecodeSignature(signatureTypeProvider, genericContextDef);
+			field.Type = fielddef.DecodeSignature(signatureTypeProvider, defGenericContext);
 			field.IsStatic = fielddef.Attributes.HasFlag(SR.FieldAttributes.Static);
 
 			currentType.Fields.Add(field);
@@ -284,7 +284,7 @@ namespace MetadataProvider
 				ExtractGenericParameter(GenericParameterKind.Method, method, handle);
 			}
 
-			var signature = methoddef.DecodeSignature(signatureTypeProvider, genericContextDef);
+			var signature = methoddef.DecodeSignature(signatureTypeProvider, defGenericContext);
 			method.ReturnType = signature.ReturnType;
 
 			foreach (var handle in methoddef.GetParameters())
@@ -294,7 +294,7 @@ namespace MetadataProvider
 
 			ExtractMethodBody(methoddef.RelativeVirtualAddress);
 
-			genericContextDef.MethodParameters.Clear();
+			defGenericContext.MethodParameters.Clear();
 			currentMethod = null;
 		}
 
@@ -398,7 +398,7 @@ namespace MetadataProvider
 		{
 			if (bodyBlock.LocalSignature.IsNil) return;
 			var localSignature = metadata.GetStandaloneSignature(bodyBlock.LocalSignature);
-			var types = localSignature.DecodeLocalSignature(signatureTypeProvider, genericContextDef);
+			var types = localSignature.DecodeLocalSignature(signatureTypeProvider, defGenericContext);
 
 			for (var i = 0; i < types.Length; ++i)
 			{
@@ -436,7 +436,7 @@ namespace MetadataProvider
 						break;
 
 					case SRM.ExceptionRegionKind.Catch:
-						var catchExceptionType = signatureTypeProvider.GetTypeFromHandle(metadata, genericContextDef, region.CatchType);
+						var catchExceptionType = signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, region.CatchType);
 						var catchHandler = new CatchExceptionHandler((uint)region.HandlerOffset, (uint)endOffset, catchExceptionType);
 						tryHandler.Handler = catchHandler;
 						break;
@@ -909,8 +909,6 @@ namespace MetadataProvider
 						break;
 					}
 
-				case OperandType.BranchTarget:
-				case OperandType.SwitchTargets:
 				case OperandType.Immediate:
 					{
 						result = (T)op.Operand;
@@ -941,7 +939,7 @@ namespace MetadataProvider
 				case OperandType.TypeSpecification:
 					{
 						var handle = (SRM.TypeSpecificationHandle)op.Operand;
-						result = (T)signatureTypeProvider.GetTypeFromSpecification(metadata, genericContextDef, handle);
+						result = (T)signatureTypeProvider.GetTypeFromSpecification(metadata, defGenericContext, handle);
 						break;
 					}
 
@@ -955,7 +953,7 @@ namespace MetadataProvider
 				case OperandType.MemberReference:
 					{
 						var handle = (SRM.MemberReferenceHandle)op.Operand;
-						result = (T)GetTypeMemberReference(handle);
+						result = (T)GetMemberReference(handle);
 						break;
 					}
 
@@ -973,7 +971,7 @@ namespace MetadataProvider
 			return result;
 		}
 
-		private ITypeMemberReference GetTypeMemberReference(SRM.MemberReferenceHandle handle)
+		private ITypeMemberReference GetMemberReference(SRM.MemberReferenceHandle handle)
 		{
 			ITypeMemberReference result;
 			var member = metadata.GetMemberReference(handle);
@@ -999,12 +997,10 @@ namespace MetadataProvider
 		private IFieldReference GetFieldReference(SRM.MemberReference member)
 		{
 			var name = metadata.GetString(member.Name);
-			var containingType = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, genericContextDef, member.Parent);
+			var containingType = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, member.Parent);
 
-			var newGenericContext = new GenericContext();
-			newGenericContext.TypeParameters.AddRange(containingType.GenericArguments);
-
-			var type = member.DecodeFieldSignature(signatureTypeProvider, newGenericContext);
+			CreateGenericParameterReferences(GenericParameterKind.Type, containingType.GenericParameterCount);
+			var type = member.DecodeFieldSignature(signatureTypeProvider, refGenericContext);
 			var signatureReader = metadata.GetBlobReader(member.Signature);
 			var signatureHeader = signatureReader.ReadSignatureHeader();
 			var field = new FieldReference(name, type)
@@ -1013,19 +1009,17 @@ namespace MetadataProvider
 				IsStatic = !signatureHeader.IsInstance
 			};
 
+			BindGenericParameterReferences(GenericParameterKind.Type, containingType);
 			return field;
 		}
 
 		private IMethodReference GetMethodReference(SRM.MemberReference member)
 		{
 			var name = metadata.GetString(member.Name);
-			var containingType = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, genericContextDef, member.Parent);
+			var containingType = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, member.Parent);
 
-			genericContextRef.TypeParameters.AddRange(containingType.GenericArguments);
-
-			var signature = member.DecodeMethodSignature(signatureTypeProvider, genericContextRef);
-
-			genericContextRef.TypeParameters.Clear();
+			CreateGenericParameterReferences(GenericParameterKind.Type, containingType.GenericParameterCount);
+			var signature = member.DecodeMethodSignature(signatureTypeProvider, refGenericContext);
 
 			var method = new MethodReference(name, signature.ReturnType)
 			{
@@ -1042,20 +1036,21 @@ namespace MetadataProvider
 				method.Parameters.Add(parameter);
 			}
 
-			method.GenericArguments.AddRange(genericContextRef.MethodParameters);
+			BindGenericParameterReferences(GenericParameterKind.Type, containingType);
 			return method;
 		}
 
 		private IMethodReference GetMethodReference(SRM.MethodSpecificationHandle handle)
 		{
 			var methodspec = metadata.GetMethodSpecification(handle);
-			var genericArguments = methodspec.DecodeSignature(signatureTypeProvider, genericContextDef);
+			var genericArguments = methodspec.DecodeSignature(signatureTypeProvider, defGenericContext);
 
-			genericContextRef.MethodParameters.AddRange(genericArguments);
+			CreateGenericParameterReferences(GenericParameterKind.Method, genericArguments.Length);
 
 			var method = GetMethodReference(methodspec.Method);
+			method = method.Instantiate(genericArguments);
 
-			genericContextRef.MethodParameters.Clear();
+			BindGenericParameterReferences(GenericParameterKind.Method, method);
 			return method;
 		}
 
@@ -1086,6 +1081,58 @@ namespace MetadataProvider
 			}
 
 			return result;
+		}
+
+		private void CreateGenericParameterReferences(GenericParameterKind kind, int genericParameterCount)
+		{
+			IList<IGenericParameterReference> parameters;
+
+			switch (kind)
+			{
+				case GenericParameterKind.Type:
+					parameters = refGenericContext.TypeParameters;
+					break;
+
+				case GenericParameterKind.Method:
+					parameters = refGenericContext.MethodParameters;
+					break;
+
+				default:
+					throw kind.ToUnknownValueException();
+			}
+
+			for (var i = 0; i < genericParameterCount; ++i)
+			{
+				var genericParameterReference = new GenericParameterReference(kind, (ushort)i);
+				parameters.Add(genericParameterReference);
+			}
+		}
+
+		private void BindGenericParameterReferences(GenericParameterKind kind, IGenericReference genericContainer)
+		{
+			IList<IGenericParameterReference> parameters;
+
+			switch (kind)
+			{
+				case GenericParameterKind.Type:
+					parameters = refGenericContext.TypeParameters;
+					break;
+
+				case GenericParameterKind.Method:
+					parameters = refGenericContext.MethodParameters;
+					break;
+
+				default:
+					throw kind.ToUnknownValueException();
+			}
+
+			foreach (var parameter in parameters)
+			{
+				var param = parameter as GenericParameterReference;
+				param.GenericContainer = genericContainer;
+			}
+
+			parameters.Clear();
 		}
 
 		private IInstruction ProcessSwitch(ILInstruction op)

@@ -270,8 +270,8 @@ namespace Model
 				GenericMethod = method
 			};
 
-			result.GenericArguments.AddRange(genericArguments);
 			result.Parameters.AddRange(method.Parameters);
+			result.GenericArguments.AddRange(genericArguments);
 			//result.Resolve(host);
 			return result;
 		}

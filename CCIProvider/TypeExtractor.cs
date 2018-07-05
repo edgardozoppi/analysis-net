@@ -197,9 +197,8 @@ namespace CCIProvider
 		{
 			var containingType = GetContainingType(typeref.DefiningType);
 			var startIndex = TotalGenericParameterCount(containingType);
-			var name = typeref.Name.Value;
 			var index = (ushort)(startIndex + typeref.Index);
-			var type = new GenericParameterReference(GenericParameterKind.Type, index, name);
+			var type = new GenericParameterReference(GenericParameterKind.Type, index);
 
 			ExtractAttributes(type.Attributes, typeref.Attributes);
 
@@ -227,9 +226,8 @@ namespace CCIProvider
 
 		public IGenericParameterReference ExtractType(Cci.IGenericMethodParameterReference typeref)
 		{
-			var name = typeref.Name.Value;
 			var index = typeref.Index;
-			var type = new GenericParameterReference(GenericParameterKind.Method, index, name);
+			var type = new GenericParameterReference(GenericParameterKind.Method, index);
 
 			ExtractAttributes(type.Attributes, typeref.Attributes);
 
@@ -241,15 +239,7 @@ namespace CCIProvider
 			IGenericReference genericContainer;
 			var typerefEntry = typeref as Cci.IParameterListEntry;
 			var kind = GetGenericParameterKind(typeref, out genericContainer);
-			var name = typeref.Name.Value;
-
-			if (kind == GenericParameterKind.Method)
-			{
-				var startIndex = TotalGenericParameterCount(typeref as Cci.IGenericMethodParameterReference);
-				name = string.Format("T{0}", startIndex + typerefEntry.Index);
-			}
-
-			var type = new GenericParameterReference(kind, typerefEntry.Index, name);
+			var type = new GenericParameterReference(kind, typerefEntry.Index);
 
 			ExtractAttributes(type.Attributes, typeref.Attributes);
 

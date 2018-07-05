@@ -487,11 +487,6 @@ namespace Model.Types
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
-		public GenericParameterReference(GenericParameterKind kind, ushort index, string name)
-			: this(kind, index)
-		{
-		}
-
 		public string Name
 		{
 			get { return GetName(this.Kind, this.Index); }

@@ -13,8 +13,6 @@ namespace MetadataProvider
 	{
 		None,
 		Immediate,
-		BranchTarget,
-		SwitchTargets,
 		MemberReference,
 		TypeReference,
 		//TypeDefinition,
@@ -322,7 +320,7 @@ namespace MetadataProvider
 						{
 							//  Error...
 						}
-						operandType = OperandType.BranchTarget;
+						operandType = OperandType.Immediate;
 						operand = jumpOffset;
 					}
 					break;
@@ -346,7 +344,7 @@ namespace MetadataProvider
 						{
 							//  Error...
 						}
-						operandType = OperandType.BranchTarget;
+						operandType = OperandType.Immediate;
 						operand = jumpOffset;
 					}
 					break;
@@ -365,7 +363,7 @@ namespace MetadataProvider
 							}
 							targets[i] = targetAddress;
 						}
-						operandType = OperandType.SwitchTargets;
+						operandType = OperandType.Immediate;
 						operand = targets;
 					}
 					break;
@@ -643,7 +641,7 @@ namespace MetadataProvider
 						{
 							//  Error...
 						}
-						operandType = OperandType.BranchTarget;
+						operandType = OperandType.Immediate;
 						operand = leaveOffset;
 					}
 					break;
@@ -655,7 +653,7 @@ namespace MetadataProvider
 						{
 							//  Error...
 						}
-						operandType = OperandType.BranchTarget;
+						operandType = OperandType.Immediate;
 						operand = leaveOffset;
 					}
 					break;
