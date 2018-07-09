@@ -15,7 +15,7 @@ namespace MetadataProvider
 		Immediate,
 		MemberReference,
 		TypeReference,
-		//TypeDefinition,
+		TypeDefinition,
 		TypeSpecification,
 		MethodDefinition,
 		MethodSpecification,
@@ -776,10 +776,10 @@ namespace MetadataProvider
 					result = MetadataTokens.MethodSpecificationHandle(token);
 					break;
 
-				//case ILTokenType.TypeDefinition:
-				//	operandType = OperandType.TypeDefinition;
-				//	result = MetadataTokens.TypeDefinitionHandle(token);
-				//	break;
+				case ILTokenType.TypeDefinition:
+					operandType = OperandType.TypeDefinition;
+					result = MetadataTokens.TypeDefinitionHandle(token);
+					break;
 
 				case ILTokenType.TypeSpecification:
 					operandType = OperandType.TypeSpecification;

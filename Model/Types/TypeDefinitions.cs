@@ -1288,12 +1288,15 @@ namespace Model.Types
 
 			// TODO: SSA is not inserting phi instructions into method's body instructions collection.
 
+			var locals = new HashSet<IVariable>();
+
 			foreach (var instruction in this.Instructions)
 			{
-				this.LocalVariables.AddRange(instruction.Variables);
+				locals.UnionWith(instruction.Variables);
 			}
 
-			this.LocalVariables.RemoveAll(this.Parameters);
+			locals.ExceptWith(this.Parameters);
+			this.LocalVariables.AddRange(locals);
 		}
 
 		public override string ToString()

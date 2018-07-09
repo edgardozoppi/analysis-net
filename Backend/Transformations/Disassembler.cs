@@ -1049,11 +1049,12 @@ namespace Backend.Transformations
 					}
 				}
 
-				body.LocalVariables.AddRange(stack.Variables);
-
 				var instructions = body.Instructions.OrderBy(op => op.Offset).ToList();
 				body.Instructions.Clear();
 				body.Instructions.AddRange(instructions);
+
+				//body.LocalVariables.AddRange(stack.Variables);
+				body.UpdateVariables();
 			}
 
 			return body;

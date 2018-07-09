@@ -13,6 +13,75 @@ namespace MetadataProvider
 {
 	internal class AssemblyExtractor
 	{
+		#region FakeArrayType
+
+		private struct FakeArrayType : IBasicType
+		{
+			public ArrayType Type { get; private set; }
+
+			public FakeArrayType(ArrayType type)
+			{
+				this.Type = type;
+			}
+
+			public IAssemblyReference ContainingAssembly
+			{
+				get { return null; }
+			}
+
+			public string ContainingNamespace
+			{
+				get { return string.Empty; }
+			}
+
+			public string Name
+			{
+				get { return "FakeArray"; }
+			}
+
+			public string GenericName
+			{
+				get { return this.Name; }
+			}
+
+			public IList<IType> GenericArguments
+			{
+				get { return null; }
+			}
+
+			public IBasicType GenericType
+			{
+				get { return null; }
+			}
+
+			public ITypeDefinition ResolvedType
+			{
+				get { return null; }
+			}
+
+			public TypeKind TypeKind
+			{
+				get { return TypeKind.ReferenceType; }
+			}
+
+			public ISet<CustomAttribute> Attributes
+			{
+				get { return null; }
+			}
+
+			public int GenericParameterCount
+			{
+				get { return 0; }
+			}
+
+			public IBasicType ContainingType
+			{
+				get { return null; }
+			}
+		}
+
+		#endregion
+
 		private IDictionary<SRM.TypeDefinitionHandle, ClassDefinition> definedTypes;
 		private IDictionary<SRM.MethodDefinitionHandle, MethodDefinition> definedMethods;
 		private IDictionary<SRM.FieldDefinitionHandle, FieldDefinition> definedFields;
@@ -1016,7 +1085,14 @@ namespace MetadataProvider
 		private IMethodReference GetMethodReference(SRM.MemberReference member)
 		{
 			var name = metadata.GetString(member.Name);
-			var containingType = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, member.Parent);
+			var type = signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, member.Parent);
+
+			if (type is ArrayType)
+			{
+				type = new FakeArrayType(type as ArrayType);
+			}
+
+			var containingType = (IBasicType)type;
 
 			CreateGenericParameterReferences(GenericParameterKind.Type, containingType.GenericParameterCount);
 			var signature = member.DecodeMethodSignature(signatureTypeProvider, refGenericContext);

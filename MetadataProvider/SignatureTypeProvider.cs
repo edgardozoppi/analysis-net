@@ -157,7 +157,7 @@ namespace MetadataProvider
 
 		public virtual IType GetSZArrayType(IType elementsType)
 		{
-			var result = new ArrayType(elementsType, 0);
+			var result = new ArrayType(elementsType, 1);
 			return result;
 		}
 
