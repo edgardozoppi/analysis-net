@@ -96,8 +96,9 @@ namespace MetadataProvider
 		private ClassDefinition currentType;
 		private MethodDefinition currentMethod;
 
-		public AssemblyExtractor(SRPE.PEReader reader)
+		public AssemblyExtractor(Host host, SRPE.PEReader reader)
 		{
+			this.Host = host;
 			this.reader = reader;
 			this.metadata = SRM.PEReaderExtensions.GetMetadataReader(reader);
 			this.definedTypes = new Dictionary<SRM.TypeDefinitionHandle, ClassDefinition>();
@@ -107,6 +108,8 @@ namespace MetadataProvider
 			this.refGenericContext = new GenericContext();
 			this.signatureTypeProvider = new SignatureTypeProvider(this);
 		}
+
+		public Host Host { get; private set; }
 
 		public ClassDefinition GetDefinedType(SRM.TypeDefinitionHandle handle)
 		{
@@ -533,12 +536,12 @@ namespace MetadataProvider
 			var ilReader = new ILReader(bodyBlock);
 			var operations = ilReader.ReadInstructions();
 
-			Console.WriteLine();
-			Console.WriteLine(currentMethod.Name);
+			//Console.WriteLine();
+			//Console.WriteLine(currentMethod.Name);
 
 			foreach (var op in operations)
 			{
-				Console.WriteLine(op);
+				//Console.WriteLine(op);
 
 				var instruction = ExtractInstruction(op);
 				instructions.Add(instruction);
@@ -584,18 +587,9 @@ namespace MetadataProvider
 				//    //expression = new RuntimeArgumentHandleExpression();
 				//    break;
 
-				// TODO: Support these instructions!
-				//case SRM.ILOpCode.Array_Create_WithLowerBound:
-				//case SRM.ILOpCode.Array_Create:
 				case SRM.ILOpCode.Newarr:
 					instruction = ProcessCreateArray(operation);
 					break;
-
-				// TODO: Support these instructions!
-				//case SRM.ILOpCode.Array_Get:
-				//case SRM.ILOpCode.Array_Addr:
-				//	instruction = ProcessLoadArrayElement(operation);
-				//	break;
 
 				case SRM.ILOpCode.Ldelem:
 				case SRM.ILOpCode.Ldelem_i:
@@ -885,11 +879,6 @@ namespace MetadataProvider
 					instruction = ProcessStoreArgument(operation);
 					break;
 
-				// TODO: Support this instruction!
-				//case SRM.ILOpCode.Array_set:
-				//	instruction = ProcessStoreArrayElement(operation);
-				//	break;
-
 				case SRM.ILOpCode.Stelem:
 				case SRM.ILOpCode.Stelem_i:
 				case SRM.ILOpCode.Stelem_i1:
@@ -1104,6 +1093,8 @@ namespace MetadataProvider
 				IsStatic = !signature.Header.IsInstance
 			};
 
+			method.Resolve(this.Host);
+
 			for (var i = 0; i < signature.ParameterTypes.Length; ++i)
 			{
 				var parameterType = signature.ParameterTypes[i];
@@ -1219,30 +1210,27 @@ namespace MetadataProvider
 			return instruction;
 		}
 
-		private IInstruction ProcessCreateArray(ILInstruction op)
+		private IInstruction ProcessCreateArray(ILInstruction op, ArrayType arrayType = null, bool withLowerBounds = false)
 		{
-			var withLowerBound = OperationHelper.CreateArrayWithLowerBounds(op.Opcode);
-			var elementsType = GetOperand<IType>(op);
-			var arrayType = new ArrayType(elementsType);
+			if (arrayType == null)
+			{
+				var elementsType = GetOperand<IType>(op);
+				arrayType = new ArrayType(elementsType);
+			}
 
 			var instruction = new CreateArrayInstruction(op.Offset, arrayType);
-			instruction.WithLowerBound = withLowerBound;
+			instruction.WithLowerBound = withLowerBounds;
 			return instruction;
 		}
 
-		private IInstruction ProcessLoadArrayElement(ILInstruction op)
+		private IInstruction ProcessLoadArrayElement(ILInstruction op, ArrayType arrayType, LoadArrayElementOperation operation)
 		{
-			var operation = OperationHelper.ToLoadArrayElementOperation(op.Opcode);
-			var arrayType = GetOperand<ArrayType>(op);
-
 			var instruction = new LoadArrayElementInstruction(op.Offset, operation, arrayType);
 			return instruction;
 		}
 
-		private IInstruction ProcessStoreArrayElement(ILInstruction op)
+		private IInstruction ProcessStoreArrayElement(ILInstruction op, ArrayType arrayType)
 		{
-			var arrayType = GetOperand<ArrayType>(op);
-
 			var instruction = new StoreArrayElementInstruction(op.Offset, arrayType);
 			return instruction;
 		}
@@ -1250,17 +1238,64 @@ namespace MetadataProvider
 		private IInstruction ProcessCreateObject(ILInstruction op)
 		{
 			var method = GetOperand<IMethodReference>(op);
+			IInstruction instruction;
 
-			var instruction = new CreateObjectInstruction(op.Offset, method);
+			if (method.ContainingType is FakeArrayType)
+			{
+				var arrayType = (FakeArrayType)method.ContainingType;
+				var withLowerBounds = method.Parameters.Count > arrayType.Type.Rank;
+
+				instruction = ProcessCreateArray(op, arrayType.Type, withLowerBounds);
+			}
+			else
+			{
+				instruction = new CreateObjectInstruction(op.Offset, method);
+			}
+
 			return instruction;
 		}
 
 		private IInstruction ProcessMethodCall(ILInstruction op)
 		{
-			var operation = OperationHelper.ToMethodCallOperation(op.Opcode);
 			var method = GetOperand<IMethodReference>(op);
+			IInstruction instruction;
 
-			var instruction = new MethodCallInstruction(op.Offset, operation, method);
+			if (method.ContainingType is FakeArrayType)
+			{
+				var arrayType = (FakeArrayType)method.ContainingType;
+
+				if (method.Name == "Set")
+				{
+					instruction = ProcessStoreArrayElement(op, arrayType.Type);
+				}
+				else
+				{
+					LoadArrayElementOperation operation;
+
+					if (method.Name == "Get")
+					{
+						operation = LoadArrayElementOperation.Content;
+					}
+					else if (method.Name == "Address")
+					{
+						operation = LoadArrayElementOperation.Address;
+					}
+					else
+					{
+						var msg = string.Format("Unknown array operation '{0}'", method.Name);
+						throw new Exception(msg);
+					}
+
+					instruction = ProcessLoadArrayElement(op, arrayType.Type, operation);
+				}
+			}
+			else
+			{
+				var operation = OperationHelper.ToMethodCallOperation(op.Opcode);
+
+				instruction = new MethodCallInstruction(op.Offset, operation, method);
+			}
+
 			return instruction;
 		}
 

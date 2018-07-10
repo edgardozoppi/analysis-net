@@ -11,23 +11,18 @@ namespace MetadataProvider
 {
 	public class Loader : ILoader
 	{
-		private Host host;
-
 		public Loader(Host host)
 		{
-			this.host = host;
+			this.Host = host;
 		}
 
 		public void Dispose()
 		{
-			this.host = null;
+			this.Host = null;
 			GC.SuppressFinalize(this);
 		}
 
-		public Host Host
-		{
-			get { return host; }
-		}
+		public Host Host { get; private set; }
 
 		public Assembly LoadAssembly(string fileName)
 		{
@@ -41,14 +36,14 @@ namespace MetadataProvider
 
 				var assembly = ExtractAssembly(reader);
 
-				host.Assemblies.Add(assembly);
+				this.Host.Assemblies.Add(assembly);
 				return assembly;
 			}
 		}
 
 		private Assembly ExtractAssembly(PEReader reader)
 		{
-			var extractor = new AssemblyExtractor(reader);
+			var extractor = new AssemblyExtractor(this.Host, reader);
 			var result = extractor.Extract();
 			return result;
 		}

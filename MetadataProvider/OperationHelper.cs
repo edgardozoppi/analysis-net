@@ -461,13 +461,5 @@ namespace MetadataProvider
 				default:							return false;
 			}
 		}
-
-		public static bool CreateArrayWithLowerBounds(SRM.ILOpCode opcode)
-		{
-			// TODO: Support this instruction!
-			//var result = opcode == SRM.ILOpCode.Array_Create_WithLowerBound;
-			//return result;
-			return false;
-		}
 	}
 }

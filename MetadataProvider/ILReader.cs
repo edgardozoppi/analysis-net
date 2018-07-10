@@ -256,41 +256,8 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Call:
-					{
-						operand = ReadHandle(ref operandType);
-
-						//IMethodReference methodReference = GetMethod(reader.ReadUInt32());
-						//IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
-						//if (arrayType != null)
-						//{
-						//	// For Get(), Set() and Address() on arrays, the runtime provides method implementations.
-						//	// Hence, CCI2 replaces these with pseudo instructions Array_set, Array_Get and Array_Addr.
-						//	// All other methods on arrays will not use pseudo instruction and will have methodReference as their operand. 
-						//	if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Set.UniqueKey)
-						//	{
-						//		value = SRM.ILOpCode.Array_set;
-						//		operand = arrayType;
-						//	}
-						//	else if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Get.UniqueKey)
-						//	{
-						//		value = SRM.ILOpCode.Array_Get;
-						//		operand = arrayType;
-						//	}
-						//	else if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Address.UniqueKey)
-						//	{
-						//		value = SRM.ILOpCode.Array_Addr;
-						//		operand = arrayType;
-						//	}
-						//	else
-						//	{
-						//		operand = methodReference;
-						//	}
-						//}
-						//else
-						//{
-						//	operand = methodReference;
-						//}
-					}
+					operand = ReadHandle(ref operandType);
+					//operand = GetMethod(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Calli:
@@ -412,41 +379,8 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Callvirt:
-					{
-						operand = ReadHandle(ref operandType);
-
-						//IMethodReference methodReference = GetMethod(reader.ReadUInt32());
-						//IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
-						//if (arrayType != null)
-						//{
-						//	// For Get(), Set() and Address() on arrays, the runtime provides method implementations.
-						//	// Hence, CCI2 replaces these with pseudo instructions Array_set, Array_Get and Array_Addr.
-						//	// All other methods on arrays will not use pseudo instruction and will have methodReference as their operand. 
-						//	if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Set.UniqueKey)
-						//	{
-						//		value = SRM.ILOpCode.Array_set;
-						//		operand = arrayType;
-						//	}
-						//	else if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Get.UniqueKey)
-						//	{
-						//		value = SRM.ILOpCode.Array_Get;
-						//		operand = arrayType;
-						//	}
-						//	else if (methodReference.Name.UniqueKey == PEFileToObjectModel.NameTable.Address.UniqueKey)
-						//	{
-						//		value = SRM.ILOpCode.Array_Addr;
-						//		operand = arrayType;
-						//	}
-						//	else
-						//	{
-						//		operand = methodReference;
-						//	}
-						//}
-						//else
-						//{
-						//	operand = methodReference;
-						//}
-					}
+					operand = ReadHandle(ref operandType);
+					//operand = GetMethod(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Cpobj:
@@ -461,25 +395,8 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Newobj:
-					{
-						operand = ReadHandle(ref operandType);
-
-						//IMethodReference methodReference = GetMethod(reader.ReadUInt32());
-						//IArrayTypeReference arrayType = methodReference.ContainingType as IArrayTypeReference;
-						//if (arrayType != null && !arrayType.IsVector)
-						//{
-						//	var numParam = methodReference.Parameters.Length;
-						//	if (numParam != arrayType.Rank)
-						//		value = SRM.ILOpCode.Array_Create_WithLowerBound;
-						//	else
-						//		value = SRM.ILOpCode.Array_Create;
-						//	operand = arrayType;
-						//}
-						//else
-						//{
-						//	operand = methodReference;
-						//}
-					}
+					operand = ReadHandle(ref operandType);
+					//operand = GetMethod(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Castclass:
@@ -539,13 +456,8 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Newarr:
-					{
-						operand = ReadHandle(ref operandType);
-
-						//var elementType = GetType(reader.ReadUInt32());
-						//if (elementType != null)
-						//	operand = Vector.GetVector(elementType, PEFileToObjectModel.InternFactory);
-					}
+					operand = ReadHandle(ref operandType);
+					//operand = GetType(reader.ReadUInt32());
 					break;
 
 				case SRM.ILOpCode.Ldlen:

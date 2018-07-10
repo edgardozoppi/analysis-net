@@ -88,6 +88,8 @@ namespace MetadataProvider
 				GenericParameterCount = genericParameterCount
 			};
 
+			type.Resolve(extractor.Host);
+
 			switch (typeref.ResolutionScope.Kind)
 			{
 				case SRM.HandleKind.AssemblyReference:
