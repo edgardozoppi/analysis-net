@@ -361,10 +361,8 @@ namespace MetadataProvider
 			method.IsStatic = methoddef.Attributes.HasFlag(SR.MethodAttributes.Static);
 			method.IsAbstract = methoddef.Attributes.HasFlag(SR.MethodAttributes.Abstract);
 			method.IsVirtual = methoddef.Attributes.HasFlag(SR.MethodAttributes.Virtual);
+			method.IsExternal = methoddef.Attributes.HasFlag(SR.MethodAttributes.PinvokeImpl);
 			method.IsConstructor = method.Name.EndsWith(".ctor");
-
-			// TODO: Figure out if the method is external
-			//method.IsExternal = ??
 
 			currentType.Methods.Add(method);
 			currentMethod = method;
@@ -381,7 +379,7 @@ namespace MetadataProvider
 			{
 				ExtractParameter(signature, handle);
 			}
-
+			
 			ExtractMethodBody(methoddef.RelativeVirtualAddress);
 
 			defGenericContext.MethodParameters.Clear();
@@ -1288,21 +1286,7 @@ namespace MetadataProvider
 				}
 				else
 				{
-					LoadArrayElementOperation operation;
-
-					if (method.Name == "Get")
-					{
-						operation = LoadArrayElementOperation.Content;
-					}
-					else if (method.Name == "Address")
-					{
-						operation = LoadArrayElementOperation.Address;
-					}
-					else
-					{
-						var msg = string.Format("Unknown array operation '{0}'", method.Name);
-						throw new Exception(msg);
-					}
+					var operation = OperationHelper.ToLoadArrayElementOperation(method.Name);
 
 					instruction = ProcessLoadArrayElement(op, arrayType.Type, operation);
 				}

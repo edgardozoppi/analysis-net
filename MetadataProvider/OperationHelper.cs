@@ -255,16 +255,25 @@ namespace MetadataProvider
 			}
 		}
 
-		public static LoadArrayElementOperation ToLoadArrayElementOperation(SRM.ILOpCode opcode)
+		public static LoadArrayElementOperation ToLoadArrayElementOperation(string methodName)
 		{
-			switch (opcode)
-			{
-				// TODO: Support these instructions!
-				//case SRM.ILOpCode.Array_Get:  return LoadArrayElementOperation.Content;
-				//case SRM.ILOpCode.Array_Addr: return LoadArrayElementOperation.Address;
+			LoadArrayElementOperation operation;
 
-				default: throw opcode.ToUnknownValueException();
+			if (methodName == "Get")
+			{
+				operation = LoadArrayElementOperation.Content;
 			}
+			else if (methodName == "Address")
+			{
+				operation = LoadArrayElementOperation.Address;
+			}
+			else
+			{
+				var msg = string.Format("Unknown array operation '{0}'", methodName);
+				throw new Exception(msg);
+			}
+
+			return operation;
 		}
 
 		public static LoadMethodAddressOperation ToLoadMethodAddressOperation(SRM.ILOpCode opcode)
