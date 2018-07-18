@@ -178,6 +178,19 @@ namespace Test
 			a = 7;
 		}
 
+		public void ExampleTryCatchWhen(int y)
+		{
+			int x = 5;
+			try
+			{
+				x = x / y;
+			}
+			catch (Exception ex) when (ex.InnerException == null)
+			{
+				x = ex.Data.Count;
+			}
+		}
+
 		public void ExampleIf()
 		{
 			var a = 0;

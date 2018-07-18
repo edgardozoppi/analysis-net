@@ -53,19 +53,19 @@ namespace Model.ThreeAddressCode
 		public ExceptionHandlerBlockKind Kind { get; private set; }
 		public string Start { get; set; }
 		public string End { get; set; }
-		public IType ExceptionType { get; set; }
+		public CatchExceptionHandler Handler { get; set; }
 
-		public FilterExceptionHandler(uint start, uint end, IType exceptionType)
+		public FilterExceptionHandler(uint start, uint end, CatchExceptionHandler handler)
 		{
 			this.Kind = ExceptionHandlerBlockKind.Filter;
 			this.Start = string.Format("L_{0:X4}", start);
 			this.End = string.Format("L_{0:X4}", end);
-			this.ExceptionType = exceptionType;
+			this.Handler = handler;
 		}
 
 		public override string ToString()
 		{
-			return string.Format("filter {0} handler {1} to {2}", this.ExceptionType, this.Start, this.End);
+			return string.Format("filter {0} to {1} for {2}", this.Start, this.End, this.Handler);
 		}
 	}
 
@@ -75,6 +75,7 @@ namespace Model.ThreeAddressCode
 		public string Start { get; set; }
 		public string End { get; set; }
 		public IType ExceptionType { get; set; }
+		public bool HasAssociatedFilter { get; set; }
 
 		public CatchExceptionHandler(uint start, uint end, IType exceptionType)
 		{

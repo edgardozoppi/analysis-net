@@ -43,7 +43,10 @@ namespace Backend.Analyses
 
 			public override void Visit(CatchInstruction instruction)
 			{
-				instruction.Result.Type = instruction.ExceptionType;
+				if (instruction.HasResult)
+				{
+					instruction.Result.Type = instruction.ExceptionType;
+				}
 			}
 
 			public override void Visit(CreateObjectInstruction instruction)

@@ -304,7 +304,7 @@ namespace Backend.Transformations
 
 			private void ProcessEndFilter(Bytecode.BasicInstruction op)
 			{
-				stack.Clear();
+				//stack.Clear();
 
 				ProcessEmptyOperation(op);
 			}
@@ -1067,6 +1067,14 @@ namespace Backend.Transformations
 				exceptionHandlersStart.Add(protectedBlock.Handler.Start, protectedBlock.Handler);
 				//exceptionHandlersEnd.Add(protectedBlock.End, protectedBlock);
 				//exceptionHandlersEnd.Add(protectedBlock.Handler.End, protectedBlock.Handler);
+
+				if (protectedBlock.Handler.Kind == ExceptionHandlerBlockKind.Filter)
+				{
+					var filterHandler = protectedBlock.Handler as FilterExceptionHandler;
+
+					exceptionHandlersStart.Add(filterHandler.Handler.Start, filterHandler);
+					//exceptionHandlersEnd.Add(filterHandler.Handler.End, filterHandler);
+				}
 			}
 		}
 
@@ -1098,15 +1106,21 @@ namespace Backend.Transformations
 
 						case ExceptionHandlerBlockKind.Filter:
 							// Push the exception into the stack
-							var filterException = stack.Push();
 							var filterBlock = block as FilterExceptionHandler;
-							instruction = new Tac.FilterInstruction(operation.Offset, filterException, filterBlock.ExceptionType);
+							var filterException = stack.Push();
+							instruction = new Tac.FilterInstruction(operation.Offset, filterException, filterBlock.Handler.ExceptionType);
 							break;
 
 						case ExceptionHandlerBlockKind.Catch:
-							// Push the exception into the stack
-							var catchException = stack.Push();
 							var catchBlock = block as CatchExceptionHandler;
+							IVariable catchException = null;
+
+							if (!catchBlock.HasAssociatedFilter)
+							{
+								// Push the exception into the stack
+								catchException = stack.Push();
+							}
+
 							instruction = new Tac.CatchInstruction(operation.Offset, catchException, catchBlock.ExceptionType);
 							break;
 

@@ -517,7 +517,14 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return this.ToString("catch {0} {1}", this.ExceptionType, this.Result);
+			var result = string.Empty;
+
+			if (this.HasResult)
+			{
+				result = string.Format(" {0}", this.Result);
+			}
+
+			return this.ToString("catch {0}{1}", this.ExceptionType, result);
 		}
 	}
 

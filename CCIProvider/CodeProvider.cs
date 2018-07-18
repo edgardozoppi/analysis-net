@@ -82,29 +82,32 @@ namespace CCIProvider
 			foreach (var cciExceptionInfo in cciExceptionInformation)
 			{
 				var tryHandler = new ProtectedBlock(cciExceptionInfo.TryStartOffset, cciExceptionInfo.TryEndOffset);
+				IExceptionHandler handler;
 
 				switch (cciExceptionInfo.HandlerKind)
 				{
 					case Cci.HandlerKind.Filter:
-						var filterExceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
-						var filterHandler = new FilterExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, filterExceptionType);
-						tryHandler.Handler = filterHandler;
+						var catchExceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
+						var catchHandler = new CatchExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, catchExceptionType);
+						handler = new FilterExceptionHandler(cciExceptionInfo.FilterDecisionStartOffset, cciExceptionInfo.HandlerStartOffset, catchHandler);
+						catchHandler.HasAssociatedFilter = true;
+						tryHandler.Handler = handler;
 						break;
 
 					case Cci.HandlerKind.Catch:
-						var catchExceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
-						var catchHandler = new CatchExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, catchExceptionType);
-						tryHandler.Handler = catchHandler;
+						catchExceptionType = typeExtractor.ExtractType(cciExceptionInfo.ExceptionType);
+						handler = new CatchExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset, catchExceptionType);
+						tryHandler.Handler = handler;
 						break;
 
 					case Cci.HandlerKind.Fault:
-						var faultHandler = new FaultExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset);
-						tryHandler.Handler = faultHandler;
+						handler = new FaultExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset);
+						tryHandler.Handler = handler;
 						break;
 
 					case Cci.HandlerKind.Finally:
-						var finallyHandler = new FinallyExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset);
-						tryHandler.Handler = finallyHandler;
+						handler = new FinallyExceptionHandler(cciExceptionInfo.HandlerStartOffset, cciExceptionInfo.HandlerEndOffset);
+						tryHandler.Handler = handler;
 						break;
 
 					default:
