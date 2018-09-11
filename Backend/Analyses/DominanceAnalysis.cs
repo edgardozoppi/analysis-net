@@ -25,25 +25,25 @@ namespace Backend.Analyses
 			bool changed;
 			var sorted_nodes = cfg.ForwardOrder;
 
-			cfg.Entry.ImmediateDominator = cfg.Entry;
-
 			do
 			{
 				changed = false;
 
-				// Skip first node: entry
-				for (var i = 1; i < sorted_nodes.Length; ++i)
+				for (var i = 0; i < sorted_nodes.Length; ++i)
 				{
 					var node = sorted_nodes[i];
-					var predecessors = node.Predecessors.Where(p => p.ImmediateDominator != null);
-					var new_idom = predecessors.First();
-					predecessors = predecessors.Skip(1);
+                    if (node.Predecessors.Count < 1) continue;
+
+					var new_idom = node.Predecessors.First();
+					var predecessors = node.Predecessors.Skip(1);
 
 					foreach (var pred in predecessors)
 					{
 						new_idom = FindCommonAncestor(pred, new_idom);
+                        if (new_idom == null) break;
 					}
 
+                    if (new_idom == null) continue;
 					var old_idom = node.ImmediateDominator;
 					var equals = old_idom != null && old_idom.Equals(new_idom);
 
@@ -56,18 +56,24 @@ namespace Backend.Analyses
 			}
 			while (changed);
 
-			cfg.Entry.ImmediateDominator = null;
-			return cfg;
+            return cfg;
 		}
 
 		private static CFGNode FindCommonAncestor(CFGNode a, CFGNode b)
 		{
 			while (a.ForwardIndex != b.ForwardIndex)
 			{
-				while (a.ForwardIndex > b.ForwardIndex)
+                if (a.ImmediateDominator == null &&
+                    b.ImmediateDominator == null)
+                {
+                    a = null;
+                    break;
+                }
+
+                while (a.ForwardIndex > b.ForwardIndex && a.ImmediateDominator != null)
 					a = a.ImmediateDominator;
 
-				while (b.ForwardIndex > a.ForwardIndex)
+				while (b.ForwardIndex > a.ForwardIndex && b.ImmediateDominator != null)
 					b = b.ImmediateDominator;
 			}
 

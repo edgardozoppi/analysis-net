@@ -25,26 +25,26 @@ namespace Backend.Analyses
 			bool changed;
 			var sorted_nodes = cfg.BackwardOrder;
 
-			cfg.Exit.ImmediatePostDominator = cfg.Exit;
-
-			do
+            do
 			{
 				changed = false;
 
-				// Skip first node: exit
-				for (var i = 1; i < sorted_nodes.Length; ++i)
+				for (var i = 0; i < sorted_nodes.Length; ++i)
 				{
 					var node = sorted_nodes[i];
-					var successors = node.Successors.Where(p => p.ImmediatePostDominator != null);
-					var new_idom = successors.First();
-					successors = successors.Skip(1);
+                    if (node.Successors.Count < 1) continue;
+
+					var new_idom = node.Successors.First();
+					var successors = node.Successors.Skip(1);
 
 					foreach (var succ in successors)
 					{
 						new_idom = FindCommonAncestor(succ, new_idom);
-					}
+                        if (new_idom == null) break;
+                    }
 
-					var old_idom = node.ImmediatePostDominator;
+                    if (new_idom == null) continue;
+                    var old_idom = node.ImmediatePostDominator;
 					var equals = old_idom != null && old_idom.Equals(new_idom);
 
 					if (!equals)
@@ -56,19 +56,25 @@ namespace Backend.Analyses
 			}
 			while (changed);
 
-			cfg.Exit.ImmediatePostDominator = null;
-			return cfg;
+            return cfg;
 		}
 
 		private static CFGNode FindCommonAncestor(CFGNode a, CFGNode b)
 		{
 			while (a.BackwardIndex != b.BackwardIndex)
 			{
-				while (a.BackwardIndex > b.BackwardIndex)
-					a = a.ImmediatePostDominator;
+                if (a.ImmediatePostDominator == null &&
+                    b.ImmediatePostDominator == null)
+                {
+                    a = null;
+                    break;
+                }
 
-				while (b.BackwardIndex > a.BackwardIndex)
-					b = b.ImmediatePostDominator;
+                while (a.BackwardIndex > b.BackwardIndex && a.ImmediatePostDominator != null)
+                    a = a.ImmediatePostDominator;
+
+				while (b.BackwardIndex > a.BackwardIndex && b.ImmediatePostDominator != null)
+                    b = b.ImmediatePostDominator;
 			}
 
 			return a;
