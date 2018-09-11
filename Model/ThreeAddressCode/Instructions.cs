@@ -490,7 +490,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return this.ToString("filter {0} {1}", this.ExceptionType, this.Result);
+			return this.ToString("{0} = filter {1}", this.Result, this.ExceptionType);
 		}
 	}
 
@@ -521,10 +521,10 @@ namespace Model.ThreeAddressCode.Instructions
 
 			if (this.HasResult)
 			{
-				result = string.Format(" {0}", this.Result);
+				result = string.Format("{0} = ", this.Result);
 			}
 
-			return this.ToString("catch {0}{1}", this.ExceptionType, result);
+			return this.ToString("{0}catch {1}", result, this.ExceptionType);
 		}
 	}
 

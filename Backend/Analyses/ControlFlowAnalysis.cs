@@ -51,20 +51,39 @@ namespace Backend.Analyses
 
 		private void FillExceptionHandlersStart()
 		{
-			var protectedBlocksStart = methodBody.ExceptionInformation.Select(pb => pb.Start);
-			var handlersStart = methodBody.ExceptionInformation.Select(pb => pb.Handler.Start);
+            foreach (var protectedBlock in methodBody.ExceptionInformation)
+            {
+                exceptionHandlersStart.Add(protectedBlock.Start);
+                exceptionHandlersStart.Add(protectedBlock.Handler.Start);
 
-			exceptionHandlersStart.UnionWith(protectedBlocksStart);
-			exceptionHandlersStart.UnionWith(handlersStart);
-		}
+                if (protectedBlock.Handler.Kind == ExceptionHandlerBlockKind.Filter)
+                {
+                    var filterHandler = protectedBlock.Handler as FilterExceptionHandler;
 
-		private IList<IInstruction> FilterExceptionHandlers()
+                    exceptionHandlersStart.Add(filterHandler.Handler.Start);
+                }
+            }
+        }
+
+        private IList<IInstruction> FilterExceptionHandlers()
 		{
 			var instructions = new List<IInstruction>();
-			var handlersRange = methodBody.ExceptionInformation.ToDictionary(pb => pb.Handler.Start, pb => pb.Handler.End);
-			var i = 0;
+            var handlersRange = new Dictionary<string, string>();
+            var i = 0;
 
-			while (i < methodBody.Instructions.Count)
+            foreach (var protectedBlock in methodBody.ExceptionInformation)
+            {
+                handlersRange.Add(protectedBlock.Handler.Start, protectedBlock.Handler.End);
+
+                if (protectedBlock.Handler.Kind == ExceptionHandlerBlockKind.Filter)
+                {
+                    var filterHandler = protectedBlock.Handler as FilterExceptionHandler;
+
+                    handlersRange.Add(filterHandler.Handler.Start, filterHandler.Handler.End);
+                }
+            }
+
+            while (i < methodBody.Instructions.Count)
 			{
 				var instruction = methodBody.Instructions[i];
 
@@ -240,6 +259,7 @@ namespace Backend.Analyses
 			else
 			{
 				result = instruction is Tac.TryInstruction ||
+                         instruction is Tac.FilterInstruction ||
 						 instruction is Tac.CatchInstruction ||
 						 instruction is Tac.FinallyInstruction;
 			}

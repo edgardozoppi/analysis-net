@@ -22,7 +22,8 @@ namespace Model.ThreeAddressCode.Visitor
 		void Visit(TryInstruction instruction);
 		void Visit(FaultInstruction instruction);
 		void Visit(FinallyInstruction instruction);
-		void Visit(CatchInstruction instruction);
+        void Visit(FilterInstruction instruction);
+        void Visit(CatchInstruction instruction);
 		void Visit(ConvertInstruction instruction);
 		void Visit(ReturnInstruction instruction);
 		void Visit(ThrowInstruction instruction);

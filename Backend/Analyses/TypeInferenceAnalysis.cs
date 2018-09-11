@@ -49,6 +49,14 @@ namespace Backend.Analyses
 				}
 			}
 
+            public override void Visit(FilterInstruction instruction)
+            {
+                if (instruction.HasResult)
+                {
+                    instruction.Result.Type = instruction.ExceptionType;
+                }
+            }
+
 			public override void Visit(CreateObjectInstruction instruction)
 			{
 				instruction.Result.Type = instruction.AllocationType;

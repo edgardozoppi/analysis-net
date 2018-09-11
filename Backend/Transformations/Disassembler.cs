@@ -267,7 +267,9 @@ namespace Backend.Transformations
 			private void ProcessPop(Bytecode.BasicInstruction op)
 			{
 				stack.Pop();
-			}
+
+                ProcessEmptyOperation(op);
+            }
 
 			private void ProcessDup(Bytecode.BasicInstruction op)
 			{
@@ -1072,8 +1074,8 @@ namespace Backend.Transformations
 				{
 					var filterHandler = protectedBlock.Handler as FilterExceptionHandler;
 
-					exceptionHandlersStart.Add(filterHandler.Handler.Start, filterHandler);
-					//exceptionHandlersEnd.Add(filterHandler.Handler.End, filterHandler);
+					exceptionHandlersStart.Add(filterHandler.Handler.Start, filterHandler.Handler);
+					//exceptionHandlersEnd.Add(filterHandler.Handler.End, filterHandler.Handler);
 				}
 			}
 		}

@@ -30,7 +30,8 @@ namespace Model.ThreeAddressCode.Visitor
 		public virtual void Visit(TryInstruction instruction) { }
 		public virtual void Visit(FaultInstruction instruction) { }
 		public virtual void Visit(FinallyInstruction instruction) { }
-		public virtual void Visit(CatchInstruction instruction) { }
+        public virtual void Visit(FilterInstruction instruction) { }
+        public virtual void Visit(CatchInstruction instruction) { }
 		public virtual void Visit(ConvertInstruction instruction) { }
 		public virtual void Visit(ReturnInstruction instruction) { }
 		public virtual void Visit(ThrowInstruction instruction) { }
