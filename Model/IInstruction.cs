@@ -1,4 +1,5 @@
-﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+﻿// Copyright (c) Edgardo Zoppi. All Rights Reserved.
+// See License.txt in the repository root directory for license information.
 
 using Model.ThreeAddressCode.Values;
 using System;
