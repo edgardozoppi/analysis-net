@@ -84,7 +84,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public override string ToString()
 		{
-			return string.Format("&{0}::{1}", this.Method.ContainingType, this.Method);
+			return string.Format("&<{0}>", this.Method);
 		}
 	}
 
@@ -150,7 +150,7 @@ namespace Model.ThreeAddressCode.Values
 
 		public override string ToString()
 		{
-			return string.Format("&{0}::{1}({2})", this.Method.ContainingType, this.Method, this.Instance);
+			return string.Format("&<{0}>({1})", this.Method, this.Instance);
 		}
 	}
 

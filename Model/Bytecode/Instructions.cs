@@ -465,7 +465,9 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return this.ToString("load {0} of field {1}", this.Operation, this.Field.Name);
+            var modifier = this.Field.IsStatic ? "static " : string.Empty;
+
+            return this.ToString("load {0} of {1}field {2}", this.Operation, modifier, this.Field);
 		}
 	}
 
@@ -565,7 +567,9 @@ namespace Model.Bytecode
 
 		public override string ToString()
 		{
-			return this.ToString("store field {0}", this.Field.Name);
+            var modifier = this.Field.IsStatic ? "static " : string.Empty;
+
+			return this.ToString("store {0}field {1}", modifier, this.Field);
 		}
 	}
 

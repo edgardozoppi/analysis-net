@@ -271,8 +271,7 @@ namespace Model.Types
 
 		public override string ToString()
 		{
-			var modifier = this.IsStatic ? "static " : string.Empty;
-			return string.Format("{0}{1} {2}", modifier, this.Type, this.Name);
+			return string.Format("{0}::{1}", this.ContainingType, this.Name);
 		}
 
 		public override int GetHashCode()
@@ -342,8 +341,7 @@ namespace Model.Types
 
 		public override string ToString()
 		{
-			var modifier = this.IsStatic ? "static " : string.Empty;
-			return string.Format("{0}{1} {2}", modifier, this.Type, this.Name);
+			return string.Format("{0}::{1}", this.ContainingType, this.Name);
 		}
 	}
 
