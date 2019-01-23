@@ -287,32 +287,6 @@ namespace MetadataProvider
 			}
 		}
 
-		public static object GetOperationConstant(ILInstruction op)
-		{
-			switch (op.Opcode)
-			{
-				case SRM.ILOpCode.Ldc_i4_0:	 return 0;
-				case SRM.ILOpCode.Ldc_i4_1:	 return 1;
-				case SRM.ILOpCode.Ldc_i4_2:	 return 2;
-				case SRM.ILOpCode.Ldc_i4_3:	 return 3;
-				case SRM.ILOpCode.Ldc_i4_4:	 return 4;
-				case SRM.ILOpCode.Ldc_i4_5:	 return 5;
-				case SRM.ILOpCode.Ldc_i4_6:	 return 6;
-				case SRM.ILOpCode.Ldc_i4_7:	 return 7;
-				case SRM.ILOpCode.Ldc_i4_8:	 return 8;
-				case SRM.ILOpCode.Ldc_i4_m1: return -1;
-				case SRM.ILOpCode.Ldc_i4:
-				case SRM.ILOpCode.Ldc_i4_s:
-				case SRM.ILOpCode.Ldc_i8:
-				case SRM.ILOpCode.Ldc_r4:
-				case SRM.ILOpCode.Ldc_r8:
-				case SRM.ILOpCode.Ldnull:
-				case SRM.ILOpCode.Ldstr:	 return op.Operand;
-
-				default: throw op.Opcode.ToUnknownValueException();
-			}
-		}
-
 		public static IType GetOperationType(SRM.ILOpCode opcode)
 		{
 			switch (opcode)

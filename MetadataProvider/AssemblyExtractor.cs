@@ -1357,7 +1357,7 @@ namespace MetadataProvider
 		{
 			var operation = OperationHelper.ToLoadOperation(op.Opcode);
 			var type = OperationHelper.GetOperationType(op.Opcode);
-			var value = OperationHelper.GetOperationConstant(op);
+            var value = GetOperand<object>(op);
 			var source = new Constant(value) { Type = type };
 
 			var instruction = new LoadInstruction(op.Offset, operation, source);
