@@ -3,7 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection.PortableExecutable;
+using SRPE = System.Reflection.PortableExecutable;
+using SRM = System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -27,23 +28,38 @@ namespace MetadataProvider
 		public Assembly LoadAssembly(string fileName)
 		{
 			using (var stream = File.OpenRead(fileName))
-			using (var reader = new PEReader(stream))
+			using (var reader = new SRPE.PEReader(stream))
 			{
 				if (!reader.HasMetadata)
 				{
 					throw new Exception("The input is not a valid CLR module or assembly.");
 				}
 
-				var assembly = ExtractAssembly(reader);
+                Func<string, Stream> streamProvider = path =>
+                {
+                    Stream result = null;
+
+                    if (File.Exists(path))
+                    {
+                        result = File.OpenRead(path);
+                    }
+
+                    return result;
+                };
+
+                var ok = reader.TryOpenAssociatedPortablePdb(fileName, streamProvider,
+                    out SRM.MetadataReaderProvider pdbProvider, out _);
+
+                var assembly = ExtractAssembly(reader, pdbProvider);
 
 				this.Host.Assemblies.Add(assembly);
 				return assembly;
 			}
 		}
 
-		private Assembly ExtractAssembly(PEReader reader)
+		private Assembly ExtractAssembly(SRPE.PEReader reader, SRM.MetadataReaderProvider pdbProvider)
 		{
-			var extractor = new AssemblyExtractor(this.Host, reader);
+			var extractor = new AssemblyExtractor(this.Host, reader, pdbProvider);
 			var result = extractor.Extract();
 			return result;
 		}
