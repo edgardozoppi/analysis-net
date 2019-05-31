@@ -82,6 +82,7 @@ namespace Backend.Analyses
 
 				OnReachableMethodFound(method);
 
+				if (!method.HasBody) continue;
 				var methodCalls = method.Body.Instructions.OfType<MethodCallInstruction>();
 
 				foreach (var methodCall in methodCalls)
@@ -97,14 +98,12 @@ namespace Backend.Analyses
 					{
 						var calleedef = calleeref.ResolvedMethod;
 
-						if (calleedef != null)
-						{
-							var isNewMethod = visitedMethods.Add(calleedef);
+						if (calleedef == null) continue;
+						var isNewMethod = visitedMethods.Add(calleedef);
 
-							if (isNewMethod)
-							{
-								worklist.Enqueue(calleedef);
-							}
+						if (isNewMethod)
+						{
+							worklist.Enqueue(calleedef);
 						}
 					}
 				}
@@ -115,7 +114,7 @@ namespace Backend.Analyses
 
 		protected virtual void DefaultReachableMethodFound(MethodDefinition method)
 		{
-			if (method.Body.Kind == MethodBodyKind.Bytecode)
+			if (method.HasBody && method.Body.Kind == MethodBodyKind.Bytecode)
 			{
 				var disassembler = new Disassembler(method);
 				var body = disassembler.Execute();
