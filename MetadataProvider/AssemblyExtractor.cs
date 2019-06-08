@@ -243,8 +243,6 @@ namespace MetadataProvider
 				currentType.Types.Add(type);
 			}
 
-			type.Kind = GetTypeDefinitionKind(typedef.Attributes);
-			type.TypeKind = type.Kind.ToTypeKind();
 			type.ContainingType = currentType;
 			type.ContainingAssembly = assembly;
 			type.ContainingNamespace = currentNamespace;
@@ -256,6 +254,9 @@ namespace MetadataProvider
 			}
 
 			ExtractBaseType(typedef.BaseType);
+
+			type.Kind = GetTypeDefinitionKind(typedef.Attributes, type.Base);
+			type.TypeKind = type.Kind.ToTypeKind();
 
 			foreach (var handle in typedef.GetInterfaceImplementations())
 			{
@@ -282,17 +283,34 @@ namespace MetadataProvider
 			currentType = currentType.ContainingType;
 		}
 
-		private static TypeDefinitionKind GetTypeDefinitionKind(SR.TypeAttributes attributes)
+		private static TypeDefinitionKind GetTypeDefinitionKind(SR.TypeAttributes attributes, IBasicType baseType)
 		{
 			var result = TypeDefinitionKind.Unknown;
 
-			if (attributes.HasFlag(SR.TypeAttributes.Class))
+			if (attributes.HasFlag(SR.TypeAttributes.Interface))
+			{
+				result = TypeDefinitionKind.Interface;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.Class))
 			{
 				result = TypeDefinitionKind.Class;
 			}
-			else if (attributes.HasFlag(SR.TypeAttributes.Interface))
+
+			if (baseType != null)
 			{
-				result = TypeDefinitionKind.Interface;
+				if (baseType.Equals(PlatformTypes.ValueType))
+				{
+					result = TypeDefinitionKind.Struct;
+				}
+				else if (baseType.Equals(PlatformTypes.Enum))
+				{
+					result = TypeDefinitionKind.Enum;
+				}
+				else if (baseType.Equals(PlatformTypes.MulticastDelegate) ||
+						 baseType.Equals(PlatformTypes.Delegate))
+				{
+					result = TypeDefinitionKind.Delegate;
+				}
 			}
 
 			return result;

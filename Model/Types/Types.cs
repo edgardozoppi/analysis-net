@@ -68,6 +68,8 @@ namespace Model.Types
 		public static readonly BasicType Float32 = Single;
 		public static readonly BasicType Float64 = Double;
 
+		public static readonly BasicType Enum = New("mscorlib", "System", "Enum", TypeKind.ValueType);		
+		public static readonly BasicType ValueType = New("mscorlib", "System", "ValueType", TypeKind.ValueType);
 		public static readonly BasicType MulticastDelegate = New("mscorlib", "System", "MulticastDelegate", TypeKind.ReferenceType);
 		public static readonly BasicType Delegate = New("mscorlib", "System", "Delegate", TypeKind.ReferenceType);
 

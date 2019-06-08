@@ -7,6 +7,15 @@ using System.Text;
 
 namespace Test
 {
+	enum Days { Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday }
+
+	delegate int MyDelegate(int n);
+
+	interface IMyInterface
+	{
+		void SomeMethod(int m);
+	}
+
 	struct Point
 	{
 		public int x, y;
