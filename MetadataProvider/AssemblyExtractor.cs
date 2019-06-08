@@ -268,6 +268,12 @@ namespace MetadataProvider
 				ExtractField(handle);
 			}
 
+			if (type.Kind == TypeDefinitionKind.Enum)
+			{
+				var valueField = type.Fields.Single(f => f.Name == "value__");
+				type.UnderlayingType = valueField.Type as IBasicType;
+			}
+
 			foreach (var handle in typedef.GetMethods())
 			{
 				ExtractMethod(handle);
@@ -373,8 +379,30 @@ namespace MetadataProvider
 			field.ContainingType = currentType;
 			field.Type = fielddef.DecodeSignature(signatureTypeProvider, defGenericContext);
 			field.IsStatic = fielddef.Attributes.HasFlag(SR.FieldAttributes.Static);
+			field.Value = ExtractFieldDefaultValue(fielddef);
 
 			currentType.Fields.Add(field);
+		}
+
+		private Constant ExtractFieldDefaultValue(SRM.FieldDefinition fielddef)
+		{
+			Constant result = null;
+			var hasDefaultValue = fielddef.Attributes.HasFlag(SR.FieldAttributes.HasDefault);
+
+			if (hasDefaultValue)
+			{
+				var defaultValueHandle = fielddef.GetDefaultValue();
+				var constant = metadata.GetConstant(defaultValueHandle);
+				var reader = metadata.GetBlobReader(constant.Value);
+				var value = reader.ReadConstant(constant.TypeCode);
+
+				result = new Constant(value)
+				{
+					Type = TypeHelper.ToType(constant.TypeCode)
+				};
+			}
+
+			return result;
 		}
 
 		private void ExtractMethod(SRM.MethodDefinitionHandle methoddefHandle)
@@ -421,7 +449,7 @@ namespace MetadataProvider
 			var parameter = new MethodParameter((ushort)parameterdef.SequenceNumber, parameterName, type)
 			{
 				Kind = GetParameterKind(parameterdef.Attributes, type),
-				DefaultValue = ExtractParameterDefaultValue(parameterdef, type)
+				DefaultValue = ExtractParameterDefaultValue(parameterdef)
 			};
 
 			currentMethod.Parameters.Add(parameter);
@@ -444,7 +472,7 @@ namespace MetadataProvider
 			return result;
 		}
 
-		private Constant ExtractParameterDefaultValue(SRM.Parameter parameterdef, IType type)
+		private Constant ExtractParameterDefaultValue(SRM.Parameter parameterdef)
 		{
 			Constant result = null;
 			var hasDefaultValue = parameterdef.Attributes.HasFlag(SR.ParameterAttributes.HasDefault);
@@ -458,7 +486,7 @@ namespace MetadataProvider
 
 				result = new Constant(value)
 				{
-					Type = type
+					Type = TypeHelper.ToType(constant.TypeCode)
 				};
 			}
 

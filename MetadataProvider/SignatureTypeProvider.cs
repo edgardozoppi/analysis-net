@@ -43,30 +43,8 @@ namespace MetadataProvider
 
 		public virtual IType GetPrimitiveType(SRM.PrimitiveTypeCode typeCode)
 		{
-			switch (typeCode)
-			{
-				case SRM.PrimitiveTypeCode.Boolean: return PlatformTypes.Boolean;
-				case SRM.PrimitiveTypeCode.Byte: 	return PlatformTypes.Byte;
-				case SRM.PrimitiveTypeCode.Char: 	return PlatformTypes.Char;
-				case SRM.PrimitiveTypeCode.Double:	return PlatformTypes.Double;
-				case SRM.PrimitiveTypeCode.Int16:	return PlatformTypes.Int16;
-				case SRM.PrimitiveTypeCode.Int32:	return PlatformTypes.Int32;
-				case SRM.PrimitiveTypeCode.Int64:	return PlatformTypes.Int64;
-				case SRM.PrimitiveTypeCode.IntPtr:	return PlatformTypes.IntPtr;
-				case SRM.PrimitiveTypeCode.Object:	return PlatformTypes.Object;
-				case SRM.PrimitiveTypeCode.SByte:	return PlatformTypes.SByte;
-				case SRM.PrimitiveTypeCode.Single:	return PlatformTypes.Single;
-				case SRM.PrimitiveTypeCode.String:	return PlatformTypes.String;
-				case SRM.PrimitiveTypeCode.UInt16:	return PlatformTypes.UInt16;
-				case SRM.PrimitiveTypeCode.UInt32:	return PlatformTypes.UInt32;
-				case SRM.PrimitiveTypeCode.UInt64:	return PlatformTypes.UInt64;
-				case SRM.PrimitiveTypeCode.UIntPtr:	return PlatformTypes.UIntPtr;
-				case SRM.PrimitiveTypeCode.Void:	return PlatformTypes.Void;
-
-				//case SRM.PrimitiveTypeCode.TypedReference:	return "typedref";
-
-				default: throw typeCode.ToUnknownValueException();
-			}
+			var result = TypeHelper.ToType(typeCode);
+			return result;
 		}
 
 		public virtual IType GetTypeFromDefinition(SRM.MetadataReader reader, SRM.TypeDefinitionHandle handle, byte rawTypeKind = 0)
