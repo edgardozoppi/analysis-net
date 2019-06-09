@@ -41,6 +41,10 @@ namespace Test
 		private static int F2 = 0;
 		private bool F3;
 
+		protected bool F4;
+		internal bool F5;
+		protected internal bool F6;
+
 		public void ExampleBugCopyPropagation()
 		{
 			var i = 1;

@@ -104,6 +104,7 @@ namespace Model.Types
 
 	public class FieldDefinition : ITypeMemberDefinition, IFieldReference
 	{
+		public VisibilityKind Visibility { get; set; }
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeDefinition ContainingType { get; set; }
 		public IType Type { get; set; }
@@ -399,6 +400,7 @@ namespace Model.Types
 
 	public class MethodDefinition : ITypeMemberDefinition, IMethodReference, IGenericDefinition
 	{
+		public VisibilityKind Visibility { get; set; }
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public TypeDefinition ContainingType { get; set; }
 		public IType ReturnType { get; set; }
@@ -594,10 +596,21 @@ namespace Model.Types
 		Delegate
 	}
 
+	[Flags]
+	public enum VisibilityKind
+	{
+		Unknown = 0,
+		Private = 1,
+		Protected = 2,
+		Internal = 4,
+		Public = 8
+	}
+
 	public class TypeDefinition : IBasicType, IGenericDefinition, ITypeMemberDefinition, ITypeDefinitionContainer
 	{
 		public TypeKind TypeKind { get; set; }
 		public TypeDefinitionKind Kind { get; set; }
+		public VisibilityKind Visibility { get; set; }
 		public Assembly ContainingAssembly { get; set; }
 		public Namespace ContainingNamespace { get; set; }
 		public TypeDefinition ContainingType { get; set; }

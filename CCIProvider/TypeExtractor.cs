@@ -651,6 +651,7 @@ namespace CCIProvider
 					method.Body = ExtractBody(methoddef.Body, sourceLocationProvider);
 				}
 
+				method.Visibility = ExtractVisibilityKind(methoddef.Visibility);
 				method.IsStatic = methoddef.IsStatic;
 				method.IsAbstract = methoddef.IsAbstract;
 				method.IsVirtual = methoddef.IsVirtual;
@@ -857,9 +858,23 @@ namespace CCIProvider
 
 				ExtractAttributes(field.Attributes, fielddef.Attributes);
 
+				field.Visibility = ExtractVisibilityKind(fielddef.Visibility);
 				field.IsStatic = fielddef.IsStatic;
 				field.ContainingType = containingType;
 				dest.Add(field);
+			}
+		}
+
+		private static VisibilityKind ExtractVisibilityKind(Cci.TypeMemberVisibility visibility)
+		{
+			switch (visibility)
+			{
+				case Cci.TypeMemberVisibility.Public: return VisibilityKind.Public;
+				case Cci.TypeMemberVisibility.Private: return VisibilityKind.Private;
+				case Cci.TypeMemberVisibility.Family: return VisibilityKind.Protected;
+				case Cci.TypeMemberVisibility.Assembly: return VisibilityKind.Internal;
+				case Cci.TypeMemberVisibility.FamilyOrAssembly: return VisibilityKind.Protected | VisibilityKind.Internal;
+				default: return VisibilityKind.Unknown;
 			}
 		}
 	}

@@ -257,6 +257,7 @@ namespace MetadataProvider
 
 			type.Kind = GetTypeDefinitionKind(typedef.Attributes, type.Base);
 			type.TypeKind = type.Kind.ToTypeKind();
+			type.Visibility = GetVisibilityKind(typedef.Attributes);
 
 			foreach (var handle in typedef.GetInterfaceImplementations())
 			{
@@ -322,6 +323,95 @@ namespace MetadataProvider
 			return result;
 		}
 
+		private static VisibilityKind GetVisibilityKind(SR.TypeAttributes attributes)
+		{
+			var result = VisibilityKind.Unknown;
+
+			if (attributes.HasFlag(SR.TypeAttributes.NestedFamORAssem))
+			{
+				result = VisibilityKind.Internal | VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NestedAssembly))
+			{
+				result = VisibilityKind.Internal;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NestedFamily))
+			{
+				result = VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NestedPrivate))
+			{
+				result = VisibilityKind.Private;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NestedPublic) ||
+					 attributes.HasFlag(SR.TypeAttributes.Public))
+			{
+				result = VisibilityKind.Public;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NotPublic))
+			{
+				result = VisibilityKind.Internal;
+			}
+
+			return result;
+		}
+
+		private static VisibilityKind GetVisibilityKind(SR.FieldAttributes attributes)
+		{
+			var result = VisibilityKind.Unknown;
+
+			if (attributes.HasFlag(SR.FieldAttributes.Public))
+			{
+				result = VisibilityKind.Public;
+			}
+			else if (attributes.HasFlag(SR.FieldAttributes.FamORAssem))
+			{
+				result = VisibilityKind.Internal | VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.FieldAttributes.Assembly))
+			{
+				result = VisibilityKind.Internal;
+			}
+			else if (attributes.HasFlag(SR.FieldAttributes.Family))
+			{
+				result = VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.FieldAttributes.Private))
+			{
+				result = VisibilityKind.Private;
+			}
+
+			return result;
+		}
+
+		private static VisibilityKind GetVisibilityKind(SR.MethodAttributes attributes)
+		{
+			var result = VisibilityKind.Unknown;
+
+			if (attributes.HasFlag(SR.MethodAttributes.Public))
+			{
+				result = VisibilityKind.Public;
+			}
+			else if (attributes.HasFlag(SR.MethodAttributes.FamORAssem))
+			{
+				result = VisibilityKind.Internal | VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.MethodAttributes.Assembly))
+			{
+				result = VisibilityKind.Internal;
+			}
+			else if (attributes.HasFlag(SR.MethodAttributes.Family))
+			{
+				result = VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.MethodAttributes.Private))
+			{
+				result = VisibilityKind.Private;
+			}
+
+			return result;
+		}
+
 		private void ExtractBaseType(SRM.EntityHandle handle)
 		{
 			currentType.Base = (IBasicType)signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, handle);
@@ -379,6 +469,7 @@ namespace MetadataProvider
 			field.ContainingType = currentType;
 			field.Type = fielddef.DecodeSignature(signatureTypeProvider, defGenericContext);
 			field.IsStatic = fielddef.Attributes.HasFlag(SR.FieldAttributes.Static);
+			field.Visibility = GetVisibilityKind(fielddef.Attributes);
 			field.Value = ExtractFieldDefaultValue(fielddef);
 
 			currentType.Fields.Add(field);
@@ -411,6 +502,7 @@ namespace MetadataProvider
 			var method = GetDefinedMethod(methoddefHandle);
 
 			method.ContainingType = currentType;
+			method.Visibility = GetVisibilityKind(methoddef.Attributes);
 			method.IsStatic = methoddef.Attributes.HasFlag(SR.MethodAttributes.Static);
 			method.IsAbstract = methoddef.Attributes.HasFlag(SR.MethodAttributes.Abstract);
 			method.IsVirtual = methoddef.Attributes.HasFlag(SR.MethodAttributes.Virtual);
