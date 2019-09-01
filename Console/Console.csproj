@@ -65,6 +65,10 @@
       <Project>{f08216ad-e55c-44b1-a253-ab8b024b7597}</Project>
       <Name>Model</Name>
     </ProjectReference>
+    <ProjectReference Include="..\ReflectionProvider\ReflectionProvider.csproj">
+      <Project>{c0e3cab0-ef23-4838-8fe7-24459f2a6fcb}</Project>
+      <Name>ReflectionProvider</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

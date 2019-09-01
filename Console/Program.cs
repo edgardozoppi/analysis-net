@@ -5,7 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 //using CCIProvider;
-using MetadataProvider;
+//using MetadataProvider;
+using ReflectionProvider;
 using Model;
 using Model.Types;
 using Backend.Analyses;
@@ -37,7 +38,8 @@ namespace Console
 
 			foreach (var method in allDefinedMethods)
 			{
-				VisitMethod(method);
+				System.Console.WriteLine(method.ToSignatureString());
+				//VisitMethod(method);
 			}
 		}
 
@@ -366,11 +368,23 @@ namespace Console
 			}
 		}
 
+		private static void RunReflectionProviderTests()
+		{
+			var host = new Host();
+
+			PlatformTypes.Resolve(host);
+
+			var thisAssembly = System.Reflection.Assembly.GetExecutingAssembly();
+			var loader = new Loader(host);
+			var assembly = loader.LoadAssembly(thisAssembly);
+		}
+
 		static void Main(string[] args)
 		{
 			//RunSomeTests();
 			//RunGenericsTests();
-			RunInterPointsToTests();
+			//RunInterPointsToTests();
+			RunReflectionProviderTests();
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();
