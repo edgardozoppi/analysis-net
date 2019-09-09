@@ -369,8 +369,8 @@ namespace Console
 		static void Main(string[] args)
 		{
 			//RunSomeTests();
-			//RunGenericsTests();
-			RunInterPointsToTests();
+			RunGenericsTests();
+			//RunInterPointsToTests();
 
 			System.Console.WriteLine("Done!");
 			System.Console.ReadKey();

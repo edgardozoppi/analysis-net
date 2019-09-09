@@ -575,12 +575,12 @@ namespace Model.Types
 
 		public override bool Equals(object obj)
 		{
-			var other = obj as GenericParameterReference;
+			var other = obj as IGenericParameterReference;
 			// TODO: Maybe we should also compare the TypeKind?
 			var result = other != null &&
 						 this.Kind == other.Kind &&
-						 this.Index == other.Index &&
-						 this.Name == other.Name;
+						 this.Index == other.Index;
+						 //this.Name == other.Name;
 
 			return result;
 		}

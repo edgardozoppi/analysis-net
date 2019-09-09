@@ -41,9 +41,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExamplesGenerics.cs" />
-    <Compile Include="Examples.cs" />
+    <None Include="Examples.cs" />
     <None Include="ExamplesCallGraph.cs" />
-    <Compile Include="ExamplesPointsTo.cs" />
+    <None Include="ExamplesPointsTo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
